@@ -1,0 +1,38 @@
+version 16.0
+clear all
+set more off
+set varabbrev off
+
+args repository_root
+if `"`repository_root'"' == "" {
+    di as error "install_smoke.do requires the repository root"
+    exit 198
+}
+
+local oldpwd `"`c(pwd)'"'
+capture mkdir `"`repository_root'/build/install-smoke-cwd"'
+quietly cd `"`repository_root'/build/install-smoke-cwd"'
+
+capture ado uninstall fesim
+quietly net install fesim, from(`"`repository_root'"') replace
+discard
+
+capture noisily findfile fesim.ado
+assert _rc == 0
+assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
+
+capture noisily fesim version
+assert _rc == 0
+assert `"`r(version)'"' == "0.0.0-dev"
+
+capture noisily fesim list
+assert _rc == 0
+assert r(n_dgps) == 3
+
+capture noisily fesim describe akmsimple
+assert _rc == 0
+assert `"`r(dgp)'"' == "akm"
+assert `"`r(preset)'"' == "simple"
+
+quietly cd `"`oldpwd'"'
+di as result "FESIM CLEAN INSTALL SMOKE PASS"

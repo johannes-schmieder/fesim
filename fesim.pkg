@@ -1,0 +1,10 @@
+v 3
+d fesim
+d Development interface for linked employer-employee panel simulation
+d
+d Distribution-Date: 20260828
+d Requires: provisional Stata 16 source compatibility; currently tested only on Stata/MP 19
+f fesim.ado
+f fesim_registry.ado
+f fesim_version_info.ado
+f fesim.sthlp

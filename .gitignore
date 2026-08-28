@@ -1,0 +1,17 @@
+# macOS and editor state
+.DS_Store
+.vscode/
+.idea/
+*~
+
+# Stata-generated files
+*.log
+*.smcl
+*.stswp
+*.dta
+*.ster
+*.gph
+
+# Generated Mata libraries and local build/test output
+*.mlib
+build/
