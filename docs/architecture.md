@@ -18,6 +18,8 @@ Mata source files under `src/` are authoritative. `src/build_mlib.do` compiles t
 
 The development library is not required by the Checkpoint 2 discovery/configuration commands and is not distributed by `fesim.pkg`. Its configuration structure reserves the common fields and parameter vector needed by later Mata dispatch, but no simulation lifecycle has been added. Whether future releases ship source, a compiled library, or both remains design gate DG-02; the checkpoint does not decide it accidentally.
 
+Checkpoint 3 adds two qualified shared prototypes to that library. `src/fesim_rng.mata` manages fixed `mt64s` component states without exposing long RNG-state strings to ado code; details are in [`docs/rng.md`](rng.md). `src/fesim_output.mata` validates observation counts, computes conservative memory estimates, and writes deterministic worker-major blocks through vectorized `st_store()` calls; details are in [`docs/output.md`](output.md). Neither module yet dispatches a DGP.
+
 ## Version source
 
 `fesim_version_info.ado` is the runtime version source of truth. Package metadata, help headers, and documentation must agree with it; later static checks should enforce that agreement.

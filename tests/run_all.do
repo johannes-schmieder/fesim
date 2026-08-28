@@ -3,9 +3,20 @@ clear all
 set more off
 set varabbrev off
 
-args requested_root
+args requested_root requested_sha requested_suite requested_branch
 local repository_root `"`requested_root'"'
 if `"`repository_root'"' == "" local repository_root `"`c(pwd)'"'
+local source_sha = lower(strtrim(`"`requested_sha'"'))
+local suite = lower(strtrim(`"`requested_suite'"'))
+if `"`suite'"' == "" local suite "quick"
+local branch = strtrim(`"`requested_branch'"')
+if `"`branch'"' == "" local branch "unknown"
+local started_at `"`c(current_date)' `c(current_time)'"'
+if `"`source_sha'"' != "" & ///
+    (strlen(`"`source_sha'"') != 40 | !regexm(`"`source_sha'"', "^[0-9a-f]+$")) {
+    di as error "requested_sha must be an exact 40-character lowercase Git SHA"
+    exit 198
+}
 
 capture confirm file `"`repository_root'/fesim.ado"'
 if _rc {
@@ -29,7 +40,9 @@ if `build_rc' {
 }
 
 local tests install_smoke smoke unit/test_parser unit/test_registry ///
-    unit/test_config integration/test_discovery
+    unit/test_config unit/test_rng integration/test_discovery ///
+    integration/test_output_blocks
+local n_tests : word count `tests'
 foreach test of local tests {
     capture log close fesim_test
     discard
@@ -47,5 +60,31 @@ foreach test of local tests {
     }
 }
 
-di as result _newline "ALL FESIM CHECKPOINT 2 STATA TEST FILES PASSED"
+if `"`source_sha'"' != "" {
+    local finished_at `"`c(current_date)' `c(current_time)'"'
+    local receipt_path `"`repository_root'/build/test-results/receipt-`source_sha'.json"'
+    tempname receipt
+    file open `receipt' using `"`receipt_path'"', write text replace
+    file write `receipt' "{" _n
+    file write `receipt' `"  "repository": "`repository_root'","' _n
+    file write `receipt' `"  "sha": "`source_sha'","' _n
+    file write `receipt' `"  "branch": "`branch'","' _n
+    file write `receipt' `"  "stata_version": "`=c(stata_version)'","' _n
+    file write `receipt' `"  "stata_flavor": "`c(edition_real)'","' _n
+    file write `receipt' `"  "os": "`c(os)'","' _n
+    file write `receipt' `"  "architecture": "`c(machine_type)'","' _n
+    file write `receipt' `"  "suite": "`suite'","' _n
+    file write `receipt' `"  "started_at": "`started_at'","' _n
+    file write `receipt' `"  "finished_at": "`finished_at'","' _n
+    file write `receipt' `"  "exit_code": 0,"' _n
+    file write `receipt' `"  "tests_passed": `n_tests',"' _n
+    file write `receipt' `"  "tests_failed": 0,"' _n
+    file write `receipt' `"  "mlib_rebuilt": true,"' _n
+    file write `receipt' `"  "status": "accepted""' _n
+    file write `receipt' "}" _n
+    file close `receipt'
+    di as result "ACCEPTED RECEIPT: `receipt_path'"
+}
+
+di as result _newline "ALL FESIM CURRENT STATA TEST FILES PASSED"
 exit 0
