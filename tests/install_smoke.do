@@ -29,10 +29,16 @@ capture noisily fesim list
 assert _rc == 0
 assert r(n_dgps) == 3
 
+capture noisily fesim presets akm
+assert _rc == 0
+assert `"`r(presets)'"' == "simple empirical"
+
 capture noisily fesim describe akmsimple
 assert _rc == 0
 assert `"`r(dgp)'"' == "akm"
 assert `"`r(preset)'"' == "simple"
+assert `"`r(config_schema)'"' == "akm_simple_v1"
+assert strpos(`"`r(config)'"', "workers=10000") > 0
 
 quietly cd `"`oldpwd'"'
 di as result "FESIM CLEAN INSTALL SMOKE PASS"

@@ -11,6 +11,10 @@ capture noisily fesim list extra
 local rc = _rc
 assert `rc' == 198
 
+capture noisily fesim presets akm extra
+local rc = _rc
+assert `rc' == 198
+
 capture noisily fesim describe
 local rc = _rc
 assert `rc' == 198
@@ -56,6 +60,10 @@ local rc = _rc
 assert `rc' == 198
 
 capture noisily fesim, dgp(akm) preset(simple) report noreport clear
+local rc = _rc
+assert `rc' == 198
+
+capture noisily fesim, parameters(mu 4 mu 5) clear
 local rc = _rc
 assert `rc' == 198
 

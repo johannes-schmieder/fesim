@@ -2,17 +2,21 @@
 
 The normative architecture is in [`DESIGN.md`](../DESIGN.md). This note records only implementation details established by the current source.
 
-## Checkpoint 1 boundaries
+## Checkpoint 2 boundaries
 
-The public `fesim.ado` layer currently performs subcommand detection, discovery dispatch, simulation-option parsing, input validation, and data/RNG safety checks. Canonical DGP and alias metadata have one provisional source in `fesim_registry.ado`. Checkpoint 2 will turn that minimal registry into the shared configuration and parameter-registry layer used by simulation.
+The public `fesim.ado` layer performs subcommand detection, discovery dispatch, and data-safety enforcement. It delegates DGP and preset resolution, defaults, overrides, and validation before it considers replacing loaded data.
 
-No DGP simulation loop exists in ado or Mata. Valid simulation syntax exits with return code 498 after validation and before data clearing or RNG use.
+`fesim_registry.ado` is the authoritative source for canonical DGP names, aliases, presets, calibration classifications, configuration availability, and the `akm/simple` scalar schema. Each scalar record supplies type, units, bounds, bound closure, applicability, default value and source, and allowed input routes. Planned presets remain discoverable but cannot be configured or simulated.
+
+`fesim_config.ado` is the shared resolver. It merges package/preset defaults with named common options and `parameters()` values; rejects duplicate, unknown, inapplicable, or invalid inputs; applies cross-parameter checks; and returns both a stable text serialization and a parameter matrix. Alias spelling is deliberately excluded from the serialization, so `akmsimple` and `akm, preset(simple)` yield identical canonical configurations. Model-parameter changes reclassify the calibration as `stylized_modified`; sample-layout changes do not.
+
+The resolver and discovery commands neither set a seed nor request random draws. No DGP simulation loop exists in ado or Mata. Valid simulation syntax exits with return code 498 after configuration validation and before data clearing or RNG use.
 
 ## Mata source and build
 
 Mata source files under `src/` are authoritative. `src/build_mlib.do` compiles the current `fesim_*()` functions into an ignored development library at `build/lfesim.mlib`, clears Mata, reindexes libraries, and calls the compiled API as a load test.
 
-The development library is not required by the Checkpoint 1 discovery commands and is not distributed by `fesim.pkg`. Whether future releases ship source, a compiled library, or both remains design gate DG-02; the checkpoint does not decide it accidentally.
+The development library is not required by the Checkpoint 2 discovery/configuration commands and is not distributed by `fesim.pkg`. Its configuration structure reserves the common fields and parameter vector needed by later Mata dispatch, but no simulation lifecycle has been added. Whether future releases ship source, a compiled library, or both remains design gate DG-02; the checkpoint does not decide it accidentally.
 
 ## Version source
 

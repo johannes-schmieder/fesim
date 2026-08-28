@@ -18,7 +18,20 @@ quietly fesim list
 quietly datasignature confirm
 assert `"`c(rngstate)'"' == `"`rng_before'"'
 
+quietly fesim presets
+quietly datasignature confirm
+assert `"`c(rngstate)'"' == `"`rng_before'"'
+
+quietly fesim presets akm
+quietly datasignature confirm
+assert `"`c(rngstate)'"' == `"`rng_before'"'
+
 quietly fesim describe AKMSIMPLE
+quietly datasignature confirm
+assert `"`c(rngstate)'"' == `"`rng_before'"'
+
+quietly fesim_config, dgp(AKMSIMPLE) workers(25) ///
+    parameters(mu 4 p_ee .2)
 quietly datasignature confirm
 assert `"`c(rngstate)'"' == `"`rng_before'"'
 

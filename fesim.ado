@@ -16,6 +16,11 @@ program define fesim, rclass
         return add
         exit
     }
+    if `"`first'"' == "presets" {
+        fesim__presets `rest'
+        return add
+        exit
+    }
     if `"`first'"' == "describe" {
         if strtrim(`"`rest'"') == "" {
             di as error "fesim describe requires a DGP name"
@@ -32,7 +37,7 @@ program define fesim, rclass
     }
 
     di as error "unknown fesim subcommand: `first'"
-    di as error "available discovery commands are version, list, and describe"
+    di as error "available discovery commands are version, list, presets, and describe"
     exit 198
 end
 
@@ -48,8 +53,7 @@ program define fesim__version, rclass
     local status `"`r(status)'"'
     return add
     return local command "version"
-    di as txt "fesim " as result `"`version'"' ///
-        as txt " (" `"`status'"' ")"
+    di as txt "fesim " as result `"`version'"' as txt " (" `"`status'"' ")"
 end
 
 program define fesim__list, rclass
@@ -76,7 +80,7 @@ program define fesim__list, rclass
         di as txt "  " %-12s `"`dgp'"' %-19s `"`presets'"' ///
             %-27s `"`aliases'"' `"`r(status)'"'
     }
-    di as txt _newline "No DGP is simulation-qualified in version 0.0.0-dev."
+    di as txt _newline "Configuration is available for akm/simple; simulation is not yet implemented."
 
     return local command "list"
     return local dgps `"`dgps'"'
@@ -84,6 +88,40 @@ program define fesim__list, rclass
     return local qualified `"`qualified'"'
     return local status `"`status'"'
     return scalar n_dgps = `n_dgps'
+end
+
+program define fesim__presets, rclass
+    version 16.0
+    capture syntax [name(name=requested id="DGP")]
+    if _rc {
+        di as error "fesim presets accepts at most one DGP name"
+        exit 198
+    }
+
+    if `"`requested'"' == "" {
+        quietly fesim_registry, action(list)
+        local dgps `"`r(dgps)'"'
+        di as txt _newline "Registered fesim presets"
+        foreach dgp of local dgps {
+            quietly fesim_registry, action(resolve) dgp(`dgp')
+            di as txt "  " %-12s `"`dgp'"' as result `"`r(presets)'"'
+        }
+        return local command "presets"
+        return local dgps `"`dgps'"'
+        exit
+    }
+
+    quietly fesim_registry, action(resolve) dgp(`requested')
+    local dgp `"`r(dgp)'"'
+    local alias `"`r(dgp_alias)'"'
+    local presets `"`r(presets)'"'
+    local aliases `"`r(aliases)'"'
+    di as txt _newline "Presets for " as result `"`dgp'"' as txt ": " as result `"`presets'"'
+    return local command "presets"
+    return local dgp `"`dgp'"'
+    return local dgp_alias `"`alias'"'
+    return local presets `"`presets'"'
+    return local aliases `"`aliases'"'
 end
 
 program define fesim__describe, rclass
@@ -95,17 +133,16 @@ program define fesim__describe, rclass
         local registry_options `"`registry_options' preset(`preset')"'
     }
     quietly fesim_registry, `registry_options'
-
     local dgp `"`r(dgp)'"'
     local alias `"`r(dgp_alias)'"'
     local resolved_preset `"`r(preset)'"'
     local title `"`r(title)'"'
     local calibration `"`r(calibration_class)'"'
     local status `"`r(status)'"'
+    local configurable `"`r(configurable)'"'
+    local config_schema `"`r(config_schema)'"'
     local frequencies `"`r(frequencies)'"'
     local jobrules `"`r(jobrules)'"'
-    return add
-    return local command "describe"
 
     di as txt _newline `"`title'"'
     di as txt "  requested name:      " as result `"`alias'"'
@@ -115,123 +152,68 @@ program define fesim__describe, rclass
     di as txt "  implementation:      " as result `"`status'"'
     di as txt "  output frequencies:  " as result `"`frequencies'"'
     di as txt "  employer rule:       " as result `"`jobrules'"'
-    di as txt _newline "Simulation is not available in this development checkpoint."
+
+    if `"`configurable'"' == "yes" {
+        quietly fesim_config, dgp(`dgp') preset(`resolved_preset')
+        local config `"`r(config)'"'
+        local config_sources `"`r(config_sources)'"'
+        local scalar_parameters `"`r(parameter_names)'"'
+        local returned_calibration `"`r(calibration_class)'"'
+        tempname parameters
+        matrix `parameters' = r(parameters)
+        di as txt _newline "  resolved defaults: " as result `"`config'"'
+        di as txt _newline "Scalar parameter metadata (value, default, lower, upper)"
+        matrix list `parameters', noheader format(%12.6g)
+        return matrix parameters = `parameters'
+        return local config `"`config'"'
+        return local config_sources `"`config_sources'"'
+        return local calibration_class `"`returned_calibration'"'
+    }
+    else {
+        di as txt _newline "Configuration metadata for this preset is planned."
+        return local calibration_class `"`calibration'"'
+    }
+    di as txt "Simulation is not available in this development checkpoint."
+
+    return local command "describe"
+    return local dgp `"`dgp'"'
+    return local dgp_alias `"`alias'"'
+    return local preset `"`resolved_preset'"'
+    return local title `"`title'"'
+    return local status `"`status'"'
+    return local configurable `"`configurable'"'
+    return local config_schema `"`config_schema'"'
+    return local frequencies `"`frequencies'"'
+    return local jobrules `"`jobrules'"'
 end
 
 program define fesim__simulate, rclass
     version 16.0
-    syntax [ , DGP(string) PRESet(string) WORKers(integer 10000) ///
-        FIRMs(integer 500) PERIODs(integer 10) FREQuency(string) ///
-        START(string) SEED(string) INITIAL(string) BURNIN(integer 0) ///
-        JOBRULE(string) TRUTH(string) CONNECTivity(string) ///
-        PARAMETERS(string asis) REPORT NOREPORT CLEAR ]
+    syntax [ , DGP(string) PRESet(string) WORKers(string) FIRMs(string) ///
+        PERIODs(string) FREQuency(string) START(string) SEED(string) ///
+        INITIAL(string) BURNIN(string) JOBRULE(string) TRUTH(string) ///
+        CONNECTivity(string) PARAMETERS(string asis) noREPORT CLEAR ]
 
-    if `"`report'"' != "" & `"`noreport'"' != "" {
-        di as error "report and noreport may not be specified together"
-        exit 198
+    local noreport ""
+    if `"`report'"' == "noreport" {
+        local noreport "noreport"
+        local report ""
     }
-    if `workers' < 1 {
-        di as error "workers() must be a positive integer"
-        exit 198
-    }
-    if `firms' < 1 {
-        di as error "firms() must be a positive integer"
-        exit 198
-    }
-    if `periods' < 1 {
-        di as error "periods() must be a positive integer"
-        exit 198
-    }
-    if `burnin' < 0 {
-        di as error "burnin() must be a nonnegative integer"
-        exit 198
-    }
-
-    local dgp = lower(strtrim(`"`dgp'"'))
-    if `"`dgp'"' == "" local dgp "akm"
-    local preset = lower(strtrim(`"`preset'"'))
-    local registry_options `"action(resolve) dgp(`dgp')"'
-    if `"`preset'"' != "" {
-        local registry_options `"`registry_options' preset(`preset')"'
-    }
-    quietly fesim_registry, `registry_options'
-
-    local frequency = lower(strtrim(`"`frequency'"'))
-    if `"`frequency'"' == "" local frequency "year"
-    if !inlist(`"`frequency'"', "year", "quarter", "month") {
-        di as error "frequency() must be year, quarter, or month"
-        exit 198
-    }
-
-    local initial = lower(strtrim(`"`initial'"'))
-    if `"`initial'"' == "" local initial "stationary"
-    if !inlist(`"`initial'"', "stationary", "random", "allunemployed") {
-        di as error "initial() must be stationary, random, or allunemployed"
-        exit 198
-    }
-
-    local jobrule = lower(strtrim(`"`jobrule'"'))
-    if `"`jobrule'"' == "" local jobrule "end"
-    if `"`jobrule'"' != "end" {
-        di as error "only jobrule(end) is registered for the initial release"
-        exit 198
-    }
-
-    local truth = lower(strtrim(`"`truth'"'))
-    if `"`truth'"' == "" local truth "basic"
-    if !inlist(`"`truth'"', "none", "basic", "full") {
-        di as error "truth() must be none, basic, or full"
-        exit 198
-    }
-
-    local connectivity = lower(strtrim(`"`connectivity'"'))
-    if `"`connectivity'"' == "" local connectivity "keep"
-    if !inlist(`"`connectivity'"', "keep", "largest", "force") {
-        di as error "connectivity() must be keep, largest, or force"
-        exit 198
-    }
-
-    local start = strtrim(`"`start'"')
-    if `"`start'"' == "" {
-        if `"`frequency'"' == "year" local start "2000"
-        else if `"`frequency'"' == "quarter" local start "2000q1"
-        else local start "2000m1"
-    }
-    if `"`frequency'"' == "year" & !regexm(`"`start'"', "^[0-9]+$") {
-        di as error "start() must have form YYYY with frequency(year)"
-        exit 198
-    }
-    if `"`frequency'"' == "quarter" & ///
-        !regexm(lower(`"`start'"'), "^[0-9]+q[1-4]$") {
-        di as error "start() must have form YYYYqQ with frequency(quarter)"
-        exit 198
-    }
-    if `"`frequency'"' == "month" & ///
-        !regexm(lower(`"`start'"'), "^[0-9]+m([1-9]|1[0-2])$") {
-        di as error "start() must have form YYYYmM with frequency(month)"
-        exit 198
-    }
-    if `"`frequency'"' == "year" local start_value = yearly(`"`start'"', "Y")
-    else if `"`frequency'"' == "quarter" local start_value = quarterly(`"`start'"', "YQ")
-    else local start_value = monthly(`"`start'"', "YM")
-    if missing(`start_value') {
-        di as error "start() is invalid for frequency(`frequency')"
-        exit 198
-    }
-
-    if strtrim(`"`seed'"') != "" {
-        capture confirm integer number `seed'
-        local seed_rc = _rc
-        if `seed_rc' {
-            di as error "seed() must be an integer from 0 through 2147483647"
-            exit 198
-        }
-        if `seed' < 0 | `seed' > 2147483647 {
-            di as error "seed() must be an integer from 0 through 2147483647"
-            exit 198
+    local config_options ""
+    foreach name in dgp preset workers firms periods frequency start seed ///
+        initial burnin jobrule truth connectivity {
+        if `"``name''"' != "" {
+            local config_options `"`config_options' `name'(``name'')"'
         }
     }
+    if strtrim(`"`parameters'"') != "" {
+        local config_options `"`config_options' parameters(`parameters')"'
+    }
+    if `"`report'"' != "" local config_options `"`config_options' report"'
+    if `"`noreport'"' != "" local config_options `"`config_options' noreport"'
 
+    quietly fesim_config, `config_options'
+    local resolved_config `"`r(config)'"'
     if `"`clear'"' == "" & (_N > 0 | c(k) > 0) {
         di as error "data are in memory; specify clear to permit replacement"
         exit 4
@@ -239,6 +221,7 @@ program define fesim__simulate, rclass
 
     quietly fesim_version_info
     di as error "fesim simulation is not implemented in version `r(version)'"
-    di as error "Checkpoint 1 provides version, list, and describe only; data and RNG state were not changed."
+    di as error "Checkpoint 2 resolves configuration but does not simulate; data and RNG state were not changed."
+    di as txt "resolved configuration: `resolved_config'"
     exit 498
 end

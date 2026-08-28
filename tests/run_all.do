@@ -28,7 +28,8 @@ if `build_rc' {
     exit `build_rc'
 }
 
-local tests install_smoke smoke unit/test_parser integration/test_discovery
+local tests install_smoke smoke unit/test_parser unit/test_registry ///
+    unit/test_config integration/test_discovery
 foreach test of local tests {
     capture log close fesim_test
     discard
@@ -46,5 +47,5 @@ foreach test of local tests {
     }
 }
 
-di as result _newline "ALL FESIM CHECKPOINT 1 STATA TEST FILES PASSED"
+di as result _newline "ALL FESIM CHECKPOINT 2 STATA TEST FILES PASSED"
 exit 0

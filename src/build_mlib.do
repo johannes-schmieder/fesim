@@ -28,6 +28,7 @@ quietly adopath ++ `"`output_dir'"'
 mata: mata clear
 mata: mata mlib index
 mata: assert(fesim_mata_api_version() == 1)
+mata: assert(fesim_config_schema_version() == 1)
 mata: assert(fesim_dispatch_status() == "simulation_not_implemented")
 
 capture confirm file `"`output_dir'/lfesim.mlib"'

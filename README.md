@@ -6,16 +6,20 @@ The installed runtime will use only official Stata and Mata. It will not require
 
 ## Current implementation status
 
-Version `0.0.0-dev` is the repository-bootstrap checkpoint. It provides discovery and development-status commands:
+Version `0.0.0-dev` has a shared configuration and registry layer. It provides discovery, preset inspection, canonical alias resolution, and deterministic default reporting:
 
 ```stata
 fesim version
 fesim list
+fesim presets
+fesim presets akm
 fesim describe akmsimple
 fesim describe akm, preset(simple)
 ```
 
-Simulation is not implemented in this checkpoint. A simulation invocation is parsed and validated without clearing data or consuming random numbers, then exits with a development-stage error. The first end-to-end target is:
+`fesim describe akmsimple` reports the resolved `akm/simple` configuration and scalar-parameter matrix. The same resolver validates named common options and model-specific name-value pairs such as `parameters(mu 3.2 p_ee .10)`, records their sources, and serializes the result deterministically.
+
+Simulation is not implemented in this checkpoint. A simulation invocation is fully resolved and validated without clearing data or consuming random numbers, then exits with a development-stage error. The first end-to-end target remains:
 
 ```stata
 fesim, dgp(akmsimple) clear seed(12345)
@@ -37,7 +41,7 @@ For a local checkout, prepend the repository root to the Stata ado-path:
 adopath + "/path/to/fesim"
 ```
 
-The provisional source compatibility level is Stata 16. Checkpoint 1 is tested on Stata/MP 19.0 for macOS Apple Silicon; no broader support claim is made yet.
+The provisional source compatibility level is Stata 16. Checkpoint 2 is tested on Stata/MP 19.0 for macOS Apple Silicon; no broader support claim is made yet.
 
 ## Concepts
 

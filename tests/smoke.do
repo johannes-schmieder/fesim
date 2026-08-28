@@ -23,12 +23,19 @@ assert _rc == 0
 assert `"`r(dgps)'"' == "akm akmpaygap bm"
 assert `"`r(qualified)'"' == ""
 
+capture noisily fesim presets akm
+assert _rc == 0
+assert `"`r(dgp)'"' == "akm"
+assert `"`r(presets)'"' == "simple empirical"
+
 capture noisily fesim describe AKMSIMPLE
 assert _rc == 0
 assert `"`r(dgp)'"' == "akm"
 assert `"`r(dgp_alias)'"' == "akmsimple"
 assert `"`r(preset)'"' == "simple"
 assert `"`r(calibration_class)'"' == "stylized"
+assert `"`r(config_schema)'"' == "akm_simple_v1"
+assert strpos(`"`r(config)'"', "dgp=akm preset=simple") == 1
 
 capture noisily fesim describe akm, preset(SIMPLE)
 assert _rc == 0
@@ -42,6 +49,7 @@ quietly adopath ++ `"`repository_root'/build"'
 mata: mata clear
 mata: mata mlib index
 mata: assert(fesim_mata_api_version() == 1)
+mata: assert(fesim_config_schema_version() == 1)
 mata: assert(fesim_dispatch_status() == "simulation_not_implemented")
 
 di as result "FESIM SOURCE SMOKE PASS"
