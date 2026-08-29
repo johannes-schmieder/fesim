@@ -17,7 +17,7 @@ if `"`repository_root'"' == "" | `"`source_sha'"' == "" | ///
     exit 198
 }
 
-quietly adopath + `"`repository_root'"'
+quietly adopath ++ `"`repository_root'"'
 timer clear 1
 timer on 1
 quietly fesim, dgp(akm) preset(simple) workers(`workers') ///

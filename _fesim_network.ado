@@ -49,7 +49,14 @@ program define _fesim_network, rclass
         exit 459
     }
 
-    tempname generated worker_components firm_components returned network
+    tempname generated returned network
+    local mark_largest = `"`connectivity'"' == "largest"
+    local keep_variable ""
+    if `mark_largest' {
+        tempvar in_largest
+        quietly generate byte `in_largest' = 0
+        local keep_variable `"`in_largest'"'
+    }
     quietly count if employed
     local employed_observations = r(N)
     if `employed_observations' == 0 {
@@ -64,19 +71,12 @@ program define _fesim_network, rclass
         forvalues row = 7/10 {
             matrix `generated'[`row', 1] = 0
         }
-        matrix `worker_components' = J(`workers', 1, .)
-        matrix `firm_components' = J(`firms', 1, .)
     }
     else {
-        preserve
-        quietly keep if employed
-        quietly contract workerid firmid, freq(observations)
-        quietly sort workerid firmid
-        capture noisily mata: fesim_network_store_from_stata( ///
+        capture noisily mata: fesim_network_store_panel( ///
             `workers', `firms', "`generated'", ///
-            "`worker_components'", "`firm_components'")
+            "`keep_variable'", `mark_largest')
         local graph_rc = _rc
-        restore
         if `graph_rc' exit `graph_rc'
     }
 
@@ -89,17 +89,7 @@ program define _fesim_network, rclass
 
     local sample_workers = `workers'
     if `"`connectivity'"' == "largest" {
-        local largest_component = el(`generated', 6, 1)
         local sample_workers = el(`generated', 9, 1)
-        tempvar in_largest
-        quietly generate byte `in_largest' = 0
-        capture noisily mata: fesim_network_mark_largest( ///
-            "`worker_components'", `largest_component', "`in_largest'")
-        local mark_rc = _rc
-        if `mark_rc' {
-            quietly drop `in_largest'
-            exit `mark_rc'
-        }
         quietly keep if `in_largest'
         quietly drop `in_largest'
         quietly sort workerid time

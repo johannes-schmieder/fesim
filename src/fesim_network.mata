@@ -17,6 +17,109 @@ string rowvector fesim_network_diagnostic_names()
         "largest_firm_share"))
 }
 
+real colvector fesim_network_union_labels(
+    real matrix edges,
+    real scalar workers,
+    real scalar firms,
+    real colvector active_worker,
+    real colvector active_firm)
+{
+    real scalar component
+    real scalar edge
+    real scalar firm
+    real scalar left
+    real scalar right
+    real scalar root_left
+    real scalar root_right
+    real scalar worker
+    real colvector component_minimum
+    real colvector labels
+    real colvector parent
+    real colvector rank
+
+    parent = 1::(workers + firms)
+    rank = J(workers + firms, 1, 0)
+    for (edge = 1; edge <= rows(edges); edge++) {
+        left = edges[edge, 1]
+        right = workers + edges[edge, 2]
+        root_left = left
+        while (parent[root_left] != root_left) {
+            parent[root_left] = parent[parent[root_left]]
+            root_left = parent[root_left]
+        }
+        root_right = right
+        while (parent[root_right] != root_right) {
+            parent[root_right] = parent[parent[root_right]]
+            root_right = parent[root_right]
+        }
+        if (root_left != root_right) {
+            if (rank[root_left] < rank[root_right]) {
+                parent[root_left] = root_right
+            }
+            else if (rank[root_left] > rank[root_right]) {
+                parent[root_right] = root_left
+            }
+            else {
+                parent[root_right] = root_left
+                rank[root_left] = rank[root_left] + 1
+            }
+        }
+    }
+    for (component = 1; component <= workers + firms; component++) {
+        root_left = component
+        while (parent[root_left] != root_left) {
+            parent[root_left] = parent[parent[root_left]]
+            root_left = parent[root_left]
+        }
+        parent[component] = root_left
+    }
+
+    component_minimum = J(workers + firms, 1, .)
+    for (worker = 1; worker <= workers; worker++) {
+        if (active_worker[worker]) {
+            component = parent[worker]
+            if (missing(component_minimum[component]) | ///
+                worker < component_minimum[component]) {
+                component_minimum[component] = worker
+            }
+        }
+    }
+    labels = J(workers + firms, 1, .)
+    for (worker = 1; worker <= workers; worker++) {
+        if (active_worker[worker]) {
+            labels[worker] = component_minimum[parent[worker]]
+        }
+    }
+    for (firm = 1; firm <= firms; firm++) {
+        if (active_firm[firm]) {
+            labels[workers + firm] = ///
+                component_minimum[parent[workers + firm]]
+        }
+    }
+    return(labels)
+}
+
+real matrix fesim_network_group_sums(
+    real colvector identifiers,
+    real matrix values,
+    real scalar result_rows)
+{
+    real matrix grouped
+    real matrix info
+    real matrix result
+
+    if (rows(identifiers) < 1 | rows(identifiers) != rows(values) | ///
+        result_rows < 1 | result_rows != floor(result_rows)) {
+        _error(3300, "network grouped-sum inputs are invalid")
+    }
+    grouped = sort((identifiers, values), 1)
+    info = panelsetup(grouped, 1)
+    result = J(result_rows, cols(values), 0)
+    result[grouped[info[, 1], 1], .] = ///
+        panelsum(grouped[, 2..cols(grouped)], info)
+    return(result)
+}
+
 struct fesim_network_results scalar fesim_network_analyze(
     real matrix edges,
     real scalar workers,
@@ -24,25 +127,24 @@ struct fesim_network_results scalar fesim_network_analyze(
 {
     struct fesim_network_results scalar result
     real scalar nodes
-    real scalar edge
-    real scalar worker
-    real scalar firm
-    real scalar left
-    real scalar right
-    real scalar root_left
-    real scalar root_right
     real scalar component
     real scalar components
     real scalar largest
     real scalar candidate
-    real colvector parent
     real colvector active_worker
     real colvector active_firm
     real colvector component_edges
     real colvector component_observations
     real colvector component_workers
     real colvector component_firms
+    real colvector active_worker_rows
+    real colvector active_firm_rows
+    real colvector edge_components
+    real colvector worker_components
+    real colvector firm_components
     real colvector roots
+    real colvector labels
+    real matrix component_totals
 
     if (workers < 1 | workers != floor(workers) | ///
         firms < 1 | firms != floor(firms)) {
@@ -58,12 +160,14 @@ struct fesim_network_results scalar fesim_network_analyze(
             any(edges[, 3] :< 1)) {
             _error(3300, "network edges contain invalid identifiers or counts")
         }
-        for (edge = 2; edge <= rows(edges); edge++) {
-            if (edges[edge, 1] < edges[edge - 1, 1] | ///
-                (edges[edge, 1] == edges[edge - 1, 1] & ///
-                edges[edge, 2] <= edges[edge - 1, 2])) {
-                _error(3300, "network edges must be sorted and unique")
-            }
+        if (rows(edges) > 1 & ///
+            (any(edges[2..rows(edges), 1] :< ///
+                edges[1..rows(edges) - 1, 1]) | ///
+            any((edges[2..rows(edges), 1] :== ///
+                edges[1..rows(edges) - 1, 1]) :& ///
+                (edges[2..rows(edges), 2] :<= ///
+                edges[1..rows(edges) - 1, 2])))) {
+            _error(3300, "network edges must be sorted and unique")
         }
     }
 
@@ -80,71 +184,28 @@ struct fesim_network_results scalar fesim_network_analyze(
     }
 
     nodes = workers + firms
-    parent = 1::nodes
     active_worker = J(workers, 1, 0)
     active_firm = J(firms, 1, 0)
-    for (edge = 1; edge <= rows(edges); edge++) {
-        worker = edges[edge, 1]
-        firm = edges[edge, 2]
-        active_worker[worker] = 1
-        active_firm[firm] = 1
-        left = worker
-        right = workers + firm
-        root_left = left
-        while (parent[root_left] != root_left) {
-            parent[root_left] = parent[parent[root_left]]
-            root_left = parent[root_left]
-        }
-        root_right = right
-        while (parent[root_right] != root_right) {
-            parent[root_right] = parent[parent[root_right]]
-            root_right = parent[root_right]
-        }
-        if (root_left != root_right) {
-            if (root_left < root_right) parent[root_right] = root_left
-            else parent[root_left] = root_right
-        }
-    }
+    active_worker_rows = uniqrows(edges[, 1])
+    active_firm_rows = uniqrows(sort(edges[, 2], 1))
+    active_worker[active_worker_rows] = J(rows(active_worker_rows), 1, 1)
+    active_firm[active_firm_rows] = J(rows(active_firm_rows), 1, 1)
+    labels = fesim_network_union_labels(
+        edges, workers, firms, active_worker, active_firm)
+    result.worker_component = labels[1::workers]
+    result.firm_component = labels[(workers + 1)::nodes]
 
-    for (component = 1; component <= nodes; component++) {
-        root_left = component
-        while (parent[root_left] != root_left) {
-            parent[root_left] = parent[parent[root_left]]
-            root_left = parent[root_left]
-        }
-        parent[component] = root_left
-    }
-    for (worker = 1; worker <= workers; worker++) {
-        if (active_worker[worker]) result.worker_component[worker] = parent[worker]
-    }
-    for (firm = 1; firm <= firms; firm++) {
-        if (active_firm[firm]) {
-            result.firm_component[firm] = parent[workers + firm]
-        }
-    }
-
-    component_edges = J(nodes, 1, 0)
-    component_observations = J(nodes, 1, 0)
-    component_workers = J(nodes, 1, 0)
-    component_firms = J(nodes, 1, 0)
-    for (edge = 1; edge <= rows(edges); edge++) {
-        component = result.worker_component[edges[edge, 1]]
-        component_edges[component] = component_edges[component] + 1
-        component_observations[component] = ///
-            component_observations[component] + edges[edge, 3]
-    }
-    for (worker = 1; worker <= workers; worker++) {
-        if (active_worker[worker]) {
-            component = result.worker_component[worker]
-            component_workers[component] = component_workers[component] + 1
-        }
-    }
-    for (firm = 1; firm <= firms; firm++) {
-        if (active_firm[firm]) {
-            component = result.firm_component[firm]
-            component_firms[component] = component_firms[component] + 1
-        }
-    }
+    edge_components = result.worker_component[edges[, 1]]
+    component_totals = fesim_network_group_sums(
+        edge_components, (J(rows(edges), 1, 1), edges[, 3]), nodes)
+    component_edges = component_totals[, 1]
+    component_observations = component_totals[, 2]
+    worker_components = result.worker_component[active_worker_rows]
+    component_workers = fesim_network_group_sums(
+        worker_components, J(rows(worker_components), 1, 1), nodes)
+    firm_components = result.firm_component[active_firm_rows]
+    component_firms = fesim_network_group_sums(
+        firm_components, J(rows(firm_components), 1, 1), nodes)
 
     roots = select(1::nodes, component_workers :> 0)
     components = rows(roots)
@@ -195,22 +256,70 @@ void fesim_network_store_from_stata(
     st_matrix(firm_component_name, result.firm_component)
 }
 
-void fesim_network_mark_largest(
-    string scalar worker_component_name,
-    real scalar largest_component,
-    string scalar keep_variable)
+void fesim_network_store_panel(
+    real scalar workers,
+    real scalar firms,
+    string scalar diagnostics_name,
+    string scalar keep_variable,
+    real scalar mark_largest)
 {
+    struct fesim_network_results scalar result
+    real matrix boundaries
+    real matrix edges
+    real matrix panel
+    real colvector employed
+    real colvector firm_id
+    real colvector keys
+    real colvector starts
+    real colvector unique_keys
     real colvector worker_id
-    real colvector worker_component
 
-    worker_id = st_data(., "workerid")
-    worker_component = st_matrix(worker_component_name)
-    if (any(missing(worker_id)) | any(worker_id :!= floor(worker_id)) | ///
-        any(worker_id :< 1) | any(worker_id :> rows(worker_component))) {
-        _error(3300, "panel worker identifiers do not match network membership")
+    if (mark_largest != 0 & mark_largest != 1) {
+        _error(3300, "network largest-component marker must be zero or one")
     }
-    st_store(., keep_variable, ///
-        worker_component[worker_id] :== largest_component)
+    employed = st_data(., "employed")
+    worker_id = select(st_data(., "workerid"), employed)
+    firm_id = select(st_data(., "firmid"), employed)
+    if (rows(worker_id) < 1) {
+        _error(3300, "network panel does not contain employed observations")
+    }
+    if (rows(worker_id) == 1) {
+        edges = (worker_id, firm_id, 1)
+    }
+    else if (workers <= floor(9007199254740991 / firms)) {
+        keys = sort((worker_id :- 1) :* firms :+ firm_id, 1)
+        boundaries = selectindex((1 \
+            (keys[2..rows(keys)] :!= keys[1..rows(keys) - 1]) \
+            1))
+        starts = boundaries[1..rows(boundaries) - 1]
+        unique_keys = keys[starts]
+        edges = (floor((unique_keys :- 1) :/ firms) :+ 1, ///
+            mod(unique_keys :- 1, firms) :+ 1, ///
+            boundaries[2..rows(boundaries)] :- starts)
+    }
+    else {
+        panel = sort((worker_id, firm_id), (1, 2))
+        boundaries = selectindex((1 \
+            ((panel[2..rows(panel), 1] :!= ///
+                panel[1..rows(panel) - 1, 1]) :| ///
+            (panel[2..rows(panel), 2] :!= ///
+                panel[1..rows(panel) - 1, 2])) \
+            1))
+        starts = boundaries[1..rows(boundaries) - 1]
+        edges = (panel[starts, .], ///
+            boundaries[2..rows(boundaries)] :- starts)
+    }
+    result = fesim_network_analyze(edges, workers, firms)
+    st_matrix(diagnostics_name, result.diagnostics)
+    if (mark_largest) {
+        worker_id = st_data(., "workerid")
+        if (any(missing(worker_id)) | any(worker_id :!= floor(worker_id)) | ///
+            any(worker_id :< 1) | any(worker_id :> workers)) {
+            _error(3300, "panel worker identifiers do not match network membership")
+        }
+        st_store(., keep_variable, ///
+            result.worker_component[worker_id] :== result.diagnostics[6])
+    }
 }
 
 end
