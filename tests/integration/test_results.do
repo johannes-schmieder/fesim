@@ -15,9 +15,26 @@ scalar toy_start = r(start_value)
 mata: toy_resultset = fesim_dispatch_run("_toy", "deterministic", 7, 3, 5)
 mata: assert(fesim_output_lifecycle_panel(toy_resultset, ///
     st_numscalar("toy_start"), "%tq", "basic", 2, 0) == 35)
-mata: st_matrix("toy_moments", toy_resultset.moments')
-matrix rownames toy_moments = employment_rate mean_lnwage
-matrix colnames toy_moments = realized
+mata:
+toy_employed = selectindex(st_data(., "employed") :== 1)
+toy_truth = fesim_truth_moments((1::7) / 100, (1::3) / 10, ///
+    st_data(toy_employed, "epsilon_true"), ///
+    st_data(toy_employed, "alpha_true"), ///
+    st_data(toy_employed, "psi_true"))
+st_matrix("toy_truth_moments", toy_truth)
+end
+matrix rownames toy_truth_moments = alpha_true_mean alpha_true_sd ///
+    alpha_true_var psi_true_mean psi_true_sd psi_true_var ///
+    epsilon_true_mean epsilon_true_sd epsilon_true_var cov_alpha_psi_true
+matrix colnames toy_truth_moments = realized
+
+quietly _fesim_moments, firms(3) truthmoments(toy_truth_moments)
+matrix toy_moments = r(moments)
+scalar toy_firms_active = r(N_firms_active)
+scalar toy_employment_rate = r(employment_rate)
+scalar toy_p_eu = r(p_eu_realized)
+scalar toy_p_ue = r(p_ue_realized)
+scalar toy_p_ee = r(p_ee_realized)
 
 local finalize_options ///
     dgp(_toy) dgpalias(_toy) preset(deterministic) ///
@@ -26,8 +43,9 @@ local finalize_options ///
     seed(none) rng(none) rngmethod(deterministic_no_rng) ///
     frequency(quarter) internalclock(output_period) jobrule(end) ///
     truth(basic) burnin(0) connectivity(keep) reference(none) ///
-    workers(7) firms(3) periods(5) firmsactive(3) ///
-    employmentrate(`=toy_moments[1,1]') ///
+    workers(7) firms(3) periods(5) firmsactive(`=toy_firms_active') ///
+    employmentrate(`=toy_employment_rate') ///
+    peu(`=toy_p_eu') pue(`=toy_p_ue') pee(`=toy_p_ee') ///
     runtimetotal(.04) runtimesolve(0) runtimesimulate(.03) ///
     runtimeoutput(.01) parameters(toy_parameters) moments(toy_moments)
 
@@ -38,10 +56,10 @@ assert r(N_workers) == 7
 assert r(N_firms) == 3
 assert r(N_firms_active) == 3
 assert r(periods) == 5
-assert reldif(r(employment_rate), toy_moments[1,1]) < 1e-12
-assert missing(r(p_eu_realized))
-assert missing(r(p_ue_realized))
-assert missing(r(p_ee_realized))
+assert reldif(r(employment_rate), toy_employment_rate) < 1e-12
+assert r(p_eu_realized) == toy_p_eu
+assert r(p_ue_realized) == toy_p_ue
+assert r(p_ee_realized) == toy_p_ee
 assert missing(r(components))
 assert r(runtime_total) == .04
 assert r(runtime_solve) == 0

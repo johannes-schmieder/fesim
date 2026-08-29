@@ -6,7 +6,7 @@ The installed runtime will use only official Stata and Mata. It will not require
 
 ## Current implementation status
 
-Version `0.0.0-dev` has shared configuration, registry, component-RNG, time/rate, lifecycle, and block-output foundations. It provides discovery, preset inspection, canonical alias resolution, and deterministic default reporting:
+Version `0.0.0-dev` has shared configuration, registry, component-RNG, time/rate, lifecycle, block-output, flow, moment, and result foundations. It provides discovery, preset inspection, canonical alias resolution, and deterministic default reporting:
 
 ```stata
 fesim version
@@ -24,6 +24,8 @@ Simulation is not implemented in this checkpoint. A simulation invocation is ful
 An internal deterministic toy handler exercises the shared Mata lifecycle and typed containers. It is test infrastructure and is not registered as a public DGP. Only the shared output module may translate its results into the frozen Stata panel scaffold. The common blockwise finalizer constructs observed flow indicators and preserves latent transition counts with explicit boundary-period missingness.
 
 The internal common result finalizer attaches the frozen dataset characteristics, returns named scalars/macros/matrices, records stage timings, and implements compact `report`/`noreport` behavior without changing data or RNG state. It remains shared execution infrastructure; public simulation is still unavailable until `akm/simple` is qualified.
+
+The internal common moment engine computes risk-set transition rates, employed-observation wage moments, pooled firm-period size and concentration moments, mover/stayer counts, and consistently weighted truth moments. Its exact row and target-comparison contracts are documented in [docs/moments.md](docs/moments.md).
 
 ```stata
 fesim, dgp(akmsimple) clear seed(12345)
@@ -60,6 +62,6 @@ For example, `dgp(akmsimple)` is an alias for the canonical `dgp(akm) preset(sim
 
 Read [DESIGN.md](DESIGN.md) before changing public behavior and [PLAN.md](PLAN.md) for the live implementation state. Build and test instructions are in [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/architecture.md](docs/architecture.md).
 
-The qualified component-stream protocol is documented in [docs/rng.md](docs/rng.md), and the worker-block output strategy is documented in [docs/output.md](docs/output.md).
+The qualified component-stream protocol is documented in [docs/rng.md](docs/rng.md), the worker-block output strategy in [docs/output.md](docs/output.md), and the common statistical definitions in [docs/moments.md](docs/moments.md).
 
 The license is intentionally undecided pending owner review; no license grant should be inferred from repository visibility.

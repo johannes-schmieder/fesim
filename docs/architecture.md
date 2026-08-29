@@ -30,6 +30,8 @@ Checkpoint 7 raises the internal Mata API to version 4 and adds `src/fesim_flows
 
 Checkpoint 8 adds the installed internal ado `_fesim_finalize`. After a simulation route has written and validated its dataset, this common boundary attaches characteristics, returns the stable scalar/macro/matrix contract, records supplied stage runtimes, and optionally prints a compact report. Report mode is applied only after the canonical scientific command, metadata, and results are assembled, so `report` and `noreport` are invariant apart from display. Details are in [`docs/results.md`](results.md).
 
+Checkpoint 9 raises the internal Mata API to version 5 and adds `src/fesim_moments.mata` plus the installed internal ado `_fesim_moments`. The Mata layer computes DGP-supplied truth moments with fixed sample weighting; the ado layer validates the finalized panel, computes the fixed common realized schema and optional target table, and preserves both data and RNG state. The private integration route now passes these results into `_fesim_finalize`. Details are in [`docs/moments.md`](moments.md).
+
 ## Version source
 
 `fesim_version_info.ado` is the runtime version source of truth. Package metadata, help headers, and documentation must agree with it; later static checks should enforce that agreement.

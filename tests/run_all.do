@@ -41,7 +41,8 @@ if `build_rc' {
 
 local tests install_smoke smoke unit/test_parser unit/test_registry ///
     unit/test_config unit/test_time unit/test_rates unit/test_rng ///
-    unit/test_lifecycle unit/test_flows integration/test_discovery ///
+    unit/test_lifecycle unit/test_flows unit/test_moments ///
+    integration/test_discovery ///
     integration/test_output_blocks integration/test_panel_contract ///
     integration/test_results
 local n_tests : word count `tests'

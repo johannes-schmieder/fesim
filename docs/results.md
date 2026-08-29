@@ -4,6 +4,6 @@ The internal `_fesim_finalize` ado is the single common boundary between a compl
 
 Before changing metadata, the finalizer validates the worker-period key, requested dimensions, named result matrices, scalar bounds, and stage runtimes. It then attaches every required characteristic from `DESIGN.md` Section 7.5, plus the Stata version, RNG method, and truth mode required for reproducibility.
 
-The common scalar and macro names follow `DESIGN.md` Section 16. Diagnostics not yet computed by the selected route are returned as missing scalars; optional target, network, and solver matrices are omitted when not applicable. Parameter and moment matrices are required to have stable row or column names before they can be returned.
+The common scalar and macro names follow `DESIGN.md` Section 16. Diagnostics not yet computed by the selected route are returned as missing scalars; optional target, network, and solver matrices are omitted when not applicable. Parameter and moment matrices are required to have stable row or column names before they can be returned. The upstream common moment and target schemas are documented in [`docs/moments.md`](moments.md).
 
 `report` and `noreport` call the same finalization path. Reporting only prints a compact view after metadata and returns are assembled. The canonical `r(command)` and `_dta[fesim_command]` describe the scientific execution configuration and exclude the reporting-only switch, and stage runtimes exclude display time. Consequently, display choice changes neither data, metadata, RNG state, nor returned values.
