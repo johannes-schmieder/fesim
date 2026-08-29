@@ -1,4 +1,4 @@
-# Simple-AKM performance baseline
+# `fesim` performance baselines
 
 ## Scope
 
@@ -67,3 +67,30 @@ INCLUDE_MILLION=1 scripts/run_public_benchmarks.sh /path/to/stata-mp
 
 The second command repeats the two smaller controls before attempting the
 million-worker run.
+
+## Grouped empirical destination engine
+
+Checkpoint 27 separately benchmarks construction and sampling for the D-025
+destination kernel. Each exact-source run builds five worker-type UE tables,
+five lower EE prefix tables, and five upper EE reverse-prefix tables, then
+performs 100,000 deterministic UE draws and 100,000 deterministic EE draws.
+The EE check verifies every destination differs from its current firm.
+
+| SHA | Firms | Table payload | Build | UE draws | EE draws | Maximum RSS |
+|---|---:|---:|---:|---:|---:|---:|
+| `8986da475a762fe3a3c4be7d8a3e5560927b86ef` | 10,000 | 1,600,208 B | 0.005 s | 0.345 s | 0.402 s | 33,734,656 B |
+| `8986da475a762fe3a3c4be7d8a3e5560927b86ef` | 100,000 | 16,000,208 B | 0.039 s | 1.292 s | 1.386 s | 59,031,552 B |
+| `8986da475a762fe3a3c4be7d8a3e5560927b86ef` | 1,000,000 | 160,000,208 B | 0.379 s | 14.144 s | 13.850 s | 295,108,608 B |
+
+The persistent numeric payload is linear in firms: five firm vectors, three
+`5 x J` cumulative tables, four five-element scale vectors, and six scalars.
+Sampling uses binary inverse CDF lookups, so work is proportional to draws
+times `log(J)`, not workers times firms. No worker-by-firm matrix is created.
+The benchmark environment and ignored-artifact policy are the same as above.
+
+From a clean checkout, reproduce these results with:
+
+```bash
+scripts/run_destination_benchmarks.sh /path/to/stata-mp
+INCLUDE_MILLION=1 scripts/run_destination_benchmarks.sh /path/to/stata-mp
+```
