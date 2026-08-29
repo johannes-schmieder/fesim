@@ -36,6 +36,8 @@ The simulation syntax is resolved and validated, but no DGP is simulation-qualif
 {pstd}
 Configuration metadata is implemented for {cmd:dgp(akm) preset(simple)}. Common defaults are {cmd:workers(10000)}, {cmd:firms(500)}, {cmd:periods(10)}, {cmd:frequency(year)}, {cmd:start(2000)}, {cmd:initial(stationary)}, {cmd:burnin(0)}, {cmd:jobrule(end)}, {cmd:truth(basic)}, {cmd:connectivity(keep)}, and {cmd:report}. Omitting {cmd:seed()} records {cmd:current}; configuration resolution itself never changes the RNG state.
 
+For the simple AKM contract, {cmd:initial(stationary)} uses the exact interval transition matrix over unemployment and firms and initializes job age from the stationary geometric distribution. {cmd:initial(random)} uses employment probability 0.5, attraction-weighted firm assignment, tenure zero, and requires {cmd:burnin()} of at least one period. {cmd:initial(allunemployed)} is a diagnostic start.
+
 {pstd}
 The simple model parameters accepted in {cmd:parameters()} are {cmd:mu}, {cmd:sd_worker}, {cmd:sd_firm}, {cmd:sd_error}, {cmd:firm_size_sd}, {cmd:p_eu}, {cmd:p_ee}, {cmd:p_ue}, and {cmd:wage_trend}. Registered defaults are 3, .40, .15, .20, 1, .08, .12, .60, and 0, respectively. Standard deviations are nonnegative; transition probabilities are bounded in [0,1], with {cmd:p_eu} and {cmd:p_ee} strictly below 1 and summing to less than 1. These model parameters do not have separate named options in {cmd:v0.1.0}.
 

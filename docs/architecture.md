@@ -36,6 +36,8 @@ Checkpoint 10 adds a GitHub-hosted static lane and a separate licensed-Stata exa
 
 Checkpoint 11 raises the internal Mata API to version 6 and the shared population schema to version 2. The population container now carries normalized firm attraction weights. `src/fesim_akm_simple.mata` supplies the first scientific implementation: persistent normal worker/firm effects, independent numerically stable attraction weights, and named population target/realized moments. It remains below the public dispatch boundary until initialization, mobility, wages, output, and diagnostics are qualified. Details are in [`docs/akm_simple.md`](akm_simple.md).
 
+Checkpoint 12 raises the internal Mata API to version 7 and the dynamic-state schema to version 3. Unemployed workers may now carry a zero internal spell counter, while observed spell IDs remain missing. The simple-AKM initial-state layer constructs the exact unemployment-plus-firm interval chain, samples stationary job age, and implements the approved random and all-unemployed diagnostic starts. It remains below public dispatch pending mobility, wages, and output qualification.
+
 ## Version source
 
 `fesim_version_info.ado` is the runtime version source of truth. Package metadata, help headers, and documentation must agree with it; later static checks should enforce that agreement.

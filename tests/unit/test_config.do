@@ -117,6 +117,11 @@ capture noisily fesim_config, seed(notaninteger)
 assert _rc == 198
 capture noisily fesim_config, seed(current)
 assert _rc == 198
+capture noisily fesim_config, initial(random)
+assert _rc == 198
+quietly fesim_config, initial(random) burnin(1)
+assert `"`r(initial)'"' == "random"
+assert r(burnin) == 1
 capture noisily fesim_config, report noreport
 assert _rc == 198
 

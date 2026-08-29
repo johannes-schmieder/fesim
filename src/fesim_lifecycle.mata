@@ -147,7 +147,8 @@ void fesim_state_validate(
     if (state.schema_version != fesim_state_schema_version()) {
         _error(3300, "unsupported fesim dynamic-state schema")
     }
-    if (state.period < 1 | state.period != floor(state.period) | ///
+    if (missing(state.period) | state.period < 1 | ///
+        state.period != floor(state.period) | ///
         rows(state.employed) != population.workers | ///
         rows(state.firm_id) != population.workers | ///
         rows(state.spell_id) != population.workers | ///
@@ -155,7 +156,9 @@ void fesim_state_validate(
         rows(state.ntransitions) != population.workers | ///
         rows(state.current_value) != population.workers | ///
         any(state.employed :!= 0 :& state.employed :!= 1) | ///
-        any(state.spell_id :< 1) | any(state.ntransitions :< 0) | ///
+        any(missing(state.spell_id)) | any(state.spell_id :< 0) | ///
+        any(state.spell_id :!= floor(state.spell_id)) | ///
+        any(missing(state.ntransitions)) | any(state.ntransitions :< 0) | ///
         any(state.ntransitions :!= floor(state.ntransitions))) {
         _error(3300, "dynamic-state dimensions or employment indicators are invalid")
     }
@@ -170,7 +173,9 @@ void fesim_state_validate(
     if (length(employed) & ///
         (any(state.firm_id[employed] :< 1) | ///
         any(state.firm_id[employed] :> population.firms) | ///
+        any(state.spell_id[employed] :< 1) | ///
         any(missing(state.current_value[employed])) | ///
+        any(missing(state.tenure[employed])) | ///
         any(state.tenure[employed] :< 0))) {
         _error(3300, "employed toy states have invalid firm or value")
     }

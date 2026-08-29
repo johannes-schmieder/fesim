@@ -191,6 +191,10 @@ program define fesim_config, rclass
         di as error "initial() must be stationary, random, or allunemployed"
         exit 198
     }
+    if `"`initial'"' == "random" & real(`"`value_burnin'"') < 1 {
+        di as error "initial(random) requires burnin() of at least one output period"
+        exit 198
+    }
     if `"`jobrule'"' == "" {
         local jobrule "end"
         local source_jobrule "package"

@@ -82,7 +82,7 @@ struct fesim_handler {
 
 real scalar fesim_mata_api_version()
 {
-    return(6)
+    return(7)
 }
 
 real scalar fesim_config_schema_version()
@@ -97,7 +97,7 @@ real scalar fesim_population_schema_version()
 
 real scalar fesim_state_schema_version()
 {
-    return(2)
+    return(3)
 }
 
 real scalar fesim_results_schema_version()

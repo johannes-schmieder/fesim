@@ -18,4 +18,14 @@ The worker-primitives and firm-primitives streams are distinct from wage shocks,
 
 The internal population moment vector reports worker-effect mean/sample SD/sample variance, firm-effect mean/sample SD/sample variance, minimum and maximum attraction weight, and attraction-weight HHI. Its companion target vector records mean zero and the requested worker/firm standard deviations and variances; attraction-weight summaries have no fixed finite-sample targets.
 
-The population module does not yet initialize employment, assign workers to firms, simulate mobility, generate wages, or expose a public DGP. Those are subsequent P2 stages.
+## Initial state
+
+The internal initial-state layer supports the three frozen common modes:
+
+- `stationary` constructs the actual interval transition matrix over unemployment and every firm, including attraction-weighted entry and attraction-weighted direct moves conditional on excluding the current firm. It samples the stationary joint state and initializes employed tenure from the geometric stationary job-age distribution based on the effective interval `EU+EE` exit probability.
+- `random` independently employs workers with probability 0.5, assigns firms using primitive attraction weights, initializes tenure at zero, and is valid only with positive burn-in.
+- `allunemployed` sets every worker nonemployed with a zero internal spell counter and consumes no initialization draws.
+
+When job exit is zero, stationary tenure is set to zero and stationarity applies only to employment and firm state. When both `EU` and `UE` are zero, the employment stationary distribution is not unique and stationary initialization is rejected. Employment/tenure draws and firm-assignment draws use separate component streams; neither changes the caller's Stata RNG state for an explicit seed.
+
+The module does not yet simulate mobility, apply burn-in, generate wages, materialize public output, or expose a public DGP. Those are subsequent P2 stages.
