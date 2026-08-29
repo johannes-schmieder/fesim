@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_akm_simple_schema_version()
 {
-    return(1)
+    return(2)
 }
 
 string rowvector fesim_akm_pop_moment_names()
@@ -219,6 +219,9 @@ struct fesim_state scalar fesim_akm_initialize_state(
     real colvector state_probabilities
     real colvector tenure_draws
     real colvector tenure_ages
+    real colvector unemployment_draws
+    real colvector unemployment_ages
+    real colvector unemployed_rows
 
     fesim_population_validate(population)
     initial = strlower(strtrim(initial))
@@ -252,6 +255,7 @@ struct fesim_state scalar fesim_akm_initialize_state(
     state.firm_id = J(population.workers, 1, .)
     state.spell_id = J(population.workers, 1, 0)
     state.tenure = J(population.workers, 1, .)
+    state.unemployment_duration = J(population.workers, 1, 0)
     state.ntransitions = J(population.workers, 1, 0)
     state.current_value = J(population.workers, 1, .)
 
@@ -265,6 +269,10 @@ struct fesim_state scalar fesim_akm_initialize_state(
                 rng_state, "initial_states", population.workers, 1)
             tenure_ages = fesim_akm_geometric_ages(
                 tenure_draws, rates[1] + rates[2])
+            unemployment_draws = fesim_rng_runiform(
+                rng_state, "initial_states", population.workers, 1)
+            unemployment_ages = fesim_akm_geometric_ages(
+                unemployment_draws, rates[3])
         }
         else {
             tenure_ages = J(population.workers, 1, 0)
@@ -276,14 +284,194 @@ struct fesim_state scalar fesim_akm_initialize_state(
                 firm_probabilities, firm_draws[employed_rows])
             state.spell_id[employed_rows] = J(length(employed_rows), 1, 1)
             state.tenure[employed_rows] = tenure_ages[employed_rows]
+            state.unemployment_duration[employed_rows] = ///
+                J(length(employed_rows), 1, .)
             state.current_value[employed_rows] = ///
                 population.worker_value[employed_rows] + ///
                 population.firm_value[state.firm_id[employed_rows]]
+        }
+        if (initial == "stationary") {
+            unemployed_rows = selectindex(state.employed :== 0)
+            if (length(unemployed_rows)) {
+                state.unemployment_duration[unemployed_rows] = ///
+                    unemployment_ages[unemployed_rows]
+            }
         }
     }
     state.validated = 0
     fesim_state_validate(state, population)
     state.validated = 1
+    return(state)
+}
+
+real colvector fesim_akm_draw_excluding(
+    real colvector probabilities,
+    real colvector current_categories,
+    real colvector draws)
+{
+    real scalar category
+    real scalar cumulative
+    real scalar draw
+    real scalar mass
+    real colvector selected
+
+    if (rows(probabilities) < 2 | any(missing(probabilities)) | ///
+        any(probabilities :< 0) | ///
+        abs(sum(probabilities) - 1) > 1e-12 | ///
+        rows(current_categories) != rows(draws) | ///
+        any(missing(current_categories)) | ///
+        any(current_categories :< 1) | ///
+        any(current_categories :> rows(probabilities)) | ///
+        any(current_categories :!= floor(current_categories)) | ///
+        any(missing(draws)) | any(draws :< 0) | any(draws :>= 1)) {
+        _error(3300, "excluded categorical-draw inputs are invalid")
+    }
+    selected = J(rows(draws), 1, .)
+    for (draw = 1; draw <= rows(draws); draw++) {
+        mass = 1 - probabilities[current_categories[draw]]
+        if (mass <= 0) {
+            _error(3300, "excluded category leaves no destination mass")
+        }
+        category = 1
+        cumulative = 0
+        while (category <= rows(probabilities)) {
+            if (category != current_categories[draw]) {
+                cumulative = cumulative + probabilities[category] / mass
+                if (draws[draw] < cumulative) break
+            }
+            category++
+        }
+        if (category > rows(probabilities)) {
+            category = rows(probabilities)
+            if (category == current_categories[draw]) category--
+        }
+        selected[draw] = category
+    }
+    return(selected)
+}
+
+struct fesim_state scalar fesim_akm_advance(
+    struct fesim_state scalar state,
+    struct fesim_population scalar population,
+    real scalar delta_years,
+    real scalar annual_eu,
+    real scalar annual_ee,
+    real scalar annual_ue,
+    struct fesim_rng_state scalar rng_state)
+{
+    real rowvector rates
+    real colvector destination_draws
+    real colvector direct_rows
+    real colvector employed_before
+    real colvector entry_rows
+    real colvector event_draws
+    real colvector exit_rows
+    real colvector retained_employed
+    real colvector stay_rows
+    real colvector stay_unemployed
+
+    fesim_population_validate(population)
+    fesim_state_validate(state, population)
+    rates = fesim_akm_interval_rates(
+        delta_years, annual_eu, annual_ee, annual_ue)
+    if (rates[2] > 0 & ///
+        (population.firms < 2 | max(population.firm_weight) >= 1)) {
+        _error(3300, "direct job moves require another positive-weight firm")
+    }
+
+    event_draws = fesim_rng_runiform(
+        rng_state, "mobility_events", population.workers, 1)
+    destination_draws = fesim_rng_runiform(
+        rng_state, "destination_draws", population.workers, 1)
+    employed_before = state.employed
+    entry_rows = selectindex(employed_before :== 0 :& ///
+        event_draws :< rates[3])
+    exit_rows = selectindex(employed_before :== 1 :& ///
+        event_draws :< rates[1])
+    direct_rows = selectindex(employed_before :== 1 :& ///
+        event_draws :>= rates[1] :& ///
+        event_draws :< rates[1] + rates[2])
+    stay_rows = selectindex(employed_before :== 1 :& ///
+        event_draws :>= rates[1] + rates[2])
+    stay_unemployed = selectindex(employed_before :== 0 :& ///
+        event_draws :>= rates[3])
+
+    state.period = state.period + 1
+    state.ntransitions = J(population.workers, 1, 0)
+    if (length(stay_rows)) {
+        state.tenure[stay_rows] = state.tenure[stay_rows] :+ 1
+    }
+    if (length(stay_unemployed)) {
+        state.unemployment_duration[stay_unemployed] = ///
+            state.unemployment_duration[stay_unemployed] :+ 1
+    }
+    if (length(exit_rows)) {
+        state.employed[exit_rows] = J(length(exit_rows), 1, 0)
+        state.firm_id[exit_rows] = J(length(exit_rows), 1, .)
+        state.tenure[exit_rows] = J(length(exit_rows), 1, .)
+        state.unemployment_duration[exit_rows] = ///
+            J(length(exit_rows), 1, 0)
+        state.current_value[exit_rows] = J(length(exit_rows), 1, .)
+        state.ntransitions[exit_rows] = J(length(exit_rows), 1, 1)
+    }
+    if (length(direct_rows)) {
+        state.firm_id[direct_rows] = fesim_akm_draw_excluding(
+            population.firm_weight, state.firm_id[direct_rows], ///
+            destination_draws[direct_rows])
+        state.spell_id[direct_rows] = state.spell_id[direct_rows] :+ 1
+        state.tenure[direct_rows] = J(length(direct_rows), 1, 0)
+        state.ntransitions[direct_rows] = J(length(direct_rows), 1, 1)
+    }
+    if (length(entry_rows)) {
+        state.employed[entry_rows] = J(length(entry_rows), 1, 1)
+        state.firm_id[entry_rows] = fesim_akm_draw_categories(
+            population.firm_weight, destination_draws[entry_rows])
+        state.spell_id[entry_rows] = state.spell_id[entry_rows] :+ 1
+        state.tenure[entry_rows] = J(length(entry_rows), 1, 0)
+        state.unemployment_duration[entry_rows] = ///
+            J(length(entry_rows), 1, .)
+        state.ntransitions[entry_rows] = J(length(entry_rows), 1, 1)
+    }
+    retained_employed = selectindex(state.employed :== 1)
+    if (length(retained_employed)) {
+        state.current_value[retained_employed] = ///
+            population.worker_value[retained_employed] + ///
+            population.firm_value[state.firm_id[retained_employed]]
+    }
+    fesim_state_validate(state, population)
+    state.validated = 1
+    return(state)
+}
+
+struct fesim_state scalar fesim_akm_burn_in(
+    struct fesim_state scalar state,
+    struct fesim_population scalar population,
+    real scalar burnin,
+    real scalar delta_years,
+    real scalar annual_eu,
+    real scalar annual_ee,
+    real scalar annual_ue,
+    struct fesim_rng_state scalar rng_state)
+{
+    real scalar period
+    real rowvector rates
+
+    if (missing(burnin) | burnin < 0 | burnin != floor(burnin)) {
+        _error(3300, "simple AKM burn-in must be a nonnegative integer")
+    }
+    fesim_population_validate(population)
+    fesim_state_validate(state, population)
+    rates = fesim_akm_interval_rates(
+        delta_years, annual_eu, annual_ee, annual_ue)
+    if (rates[2] > 0 & ///
+        (population.firms < 2 | max(population.firm_weight) >= 1)) {
+        _error(3300, "direct job moves require another positive-weight firm")
+    }
+    for (period = 1; period <= burnin; period++) {
+        state = fesim_akm_advance(
+            state, population, delta_years, annual_eu, annual_ee, ///
+            annual_ue, rng_state)
+    }
     return(state)
 }
 

@@ -35,7 +35,7 @@ assert(mreldif(stationary_probabilities, ///
 stationary_state = fesim_akm_initialize_state(
     initial_population, "stationary", 1, .08, .12, .60, initial_rng)
 assert(stationary_state.validated == 1)
-assert(stationary_state.schema_version == 3)
+assert(stationary_state.schema_version == 4)
 assert(stationary_state.employed == J(8, 1, 1))
 assert(stationary_state.firm_id == (3 \
     3 \
@@ -54,6 +54,7 @@ assert(stationary_state.tenure == (3 \
     0 \
     3 \
     1))
+assert(all(missing(stationary_state.unemployment_duration)))
 assert(stationary_state.ntransitions == J(8, 1, 0))
 assert(stationary_state.current_value == ///
     initial_population.worker_value + ///
@@ -114,9 +115,11 @@ assert(random_state.firm_id[random_employed] == (3 \
     2))
 assert(random_state.tenure[random_employed] == J(6, 1, 0))
 assert(random_state.spell_id[random_employed] == J(6, 1, 1))
+assert(all(missing(random_state.unemployment_duration[random_employed])))
 assert(all(missing(random_state.firm_id[random_unemployed])))
 assert(all(missing(random_state.tenure[random_unemployed])))
 assert(random_state.spell_id[random_unemployed] == J(2, 1, 0))
+assert(random_state.unemployment_duration[random_unemployed] == J(2, 1, 0))
 
 all_unemployed_rng = fesim_rng_init(24680, 1)
 all_states_before = all_unemployed_rng.component_states
@@ -127,6 +130,7 @@ assert(all_unemployed_state.employed == J(8, 1, 0))
 assert(all_unemployed_state.spell_id == J(8, 1, 0))
 assert(all(missing(all_unemployed_state.firm_id)))
 assert(all(missing(all_unemployed_state.tenure)))
+assert(all_unemployed_state.unemployment_duration == J(8, 1, 0))
 assert(all_unemployed_rng.component_states == all_states_before)
 
 zero_exit_rng = fesim_rng_init(24680, 1)

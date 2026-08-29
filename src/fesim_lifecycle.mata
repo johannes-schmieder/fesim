@@ -128,6 +128,7 @@ struct fesim_state scalar fesim_toy_initialize_state(
     state.firm_id = 1 :+ mod(population.worker_id :- 1, population.firms)
     state.spell_id = J(population.workers, 1, 1)
     state.tenure = J(population.workers, 1, 0)
+    state.unemployment_duration = J(population.workers, 1, .)
     state.ntransitions = J(population.workers, 1, 0)
     state.current_value = population.worker_value + ///
         population.firm_value[state.firm_id]
@@ -153,6 +154,7 @@ void fesim_state_validate(
         rows(state.firm_id) != population.workers | ///
         rows(state.spell_id) != population.workers | ///
         rows(state.tenure) != population.workers | ///
+        rows(state.unemployment_duration) != population.workers | ///
         rows(state.ntransitions) != population.workers | ///
         rows(state.current_value) != population.workers | ///
         any(state.employed :!= 0 :& state.employed :!= 1) | ///
@@ -167,7 +169,9 @@ void fesim_state_validate(
     if (length(unemployed) & ///
         (any(!missing(state.firm_id[unemployed])) | ///
         any(!missing(state.current_value[unemployed])) | ///
-        any(!missing(state.tenure[unemployed])))) {
+        any(!missing(state.tenure[unemployed])) | ///
+        any(missing(state.unemployment_duration[unemployed])) | ///
+        any(state.unemployment_duration[unemployed] :< 0))) {
         _error(3300, "nonemployed toy states must have missing firm and value")
     }
     if (length(employed) & ///
@@ -176,7 +180,8 @@ void fesim_state_validate(
         any(state.spell_id[employed] :< 1) | ///
         any(missing(state.current_value[employed])) | ///
         any(missing(state.tenure[employed])) | ///
-        any(state.tenure[employed] :< 0))) {
+        any(state.tenure[employed] :< 0) | ///
+        any(!missing(state.unemployment_duration[employed])))) {
         _error(3300, "employed toy states have invalid firm or value")
     }
 }
@@ -204,6 +209,7 @@ struct fesim_state scalar fesim_toy_advance(
             state.employed[i] = 0
             state.firm_id[i] = .
             state.tenure[i] = .
+            state.unemployment_duration[i] = 0
             state.current_value[i] = .
             state.ntransitions[i] = 1
         }
@@ -213,6 +219,7 @@ struct fesim_state scalar fesim_toy_advance(
                 state.period, population.firms)
             state.spell_id[i] = state.spell_id[i] + 1
             state.tenure[i] = 0
+            state.unemployment_duration[i] = .
             state.current_value[i] = population.worker_value[i] + ///
                 population.firm_value[state.firm_id[i]]
             state.ntransitions[i] = 1
@@ -227,6 +234,10 @@ struct fesim_state scalar fesim_toy_advance(
             }
             state.current_value[i] = population.worker_value[i] + ///
                 population.firm_value[state.firm_id[i]]
+        }
+        else {
+            state.unemployment_duration[i] = ///
+                state.unemployment_duration[i] + 1
         }
     }
     fesim_state_validate(state, population)

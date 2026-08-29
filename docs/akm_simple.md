@@ -28,4 +28,10 @@ The internal initial-state layer supports the three frozen common modes:
 
 When job exit is zero, stationary tenure is set to zero and stationarity applies only to employment and firm state. When both `EU` and `UE` are zero, the employment stationary distribution is not unique and stationary initialization is rejected. Employment/tenure draws and firm-assignment draws use separate component streams; neither changes the caller's Stata RNG state for an explicit seed.
 
-The module does not yet simulate mobility, apply burn-in, generate wages, materialize public output, or expose a public DGP. Those are subsequent P2 stages.
+## Interval mobility and burn-in
+
+Each interval draws one event uniform and one destination uniform for every worker. Employed workers face the converted competing `EU` and `EE` probabilities; unemployed workers face the converted `UE` probability. Direct movers sample attraction weights conditional on excluding their current employer, while entrants sample the primitive weights. At most one transition occurs per simple-AKM interval.
+
+Stayers increment job tenure or unemployment duration. `EU` retains the completed spell counter and starts unemployment duration at zero. `UE` increments the spell counter and starts job tenure at zero. `EE` likewise increments the spell counter and resets tenure without an intervening unemployment row. The wage-shock stream cannot affect mobility events; destination-stream perturbations can change firms but not employment events, spell changes, or durations.
+
+Burn-in repeats this exact advance rule for the requested number of discrete output-clock intervals. The module does not yet generate wages, materialize public output, or expose a public DGP. Those are subsequent P2 stages.

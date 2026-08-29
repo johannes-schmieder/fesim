@@ -49,6 +49,7 @@ struct fesim_state {
     real colvector firm_id
     real colvector spell_id
     real colvector tenure
+    real colvector unemployment_duration
     real colvector ntransitions
     real colvector current_value
     real scalar validated
@@ -82,7 +83,7 @@ struct fesim_handler {
 
 real scalar fesim_mata_api_version()
 {
-    return(7)
+    return(8)
 }
 
 real scalar fesim_config_schema_version()
@@ -97,7 +98,7 @@ real scalar fesim_population_schema_version()
 
 real scalar fesim_state_schema_version()
 {
-    return(3)
+    return(4)
 }
 
 real scalar fesim_results_schema_version()

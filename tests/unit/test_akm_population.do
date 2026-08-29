@@ -9,7 +9,7 @@ local caller_rng_before `"`c(rng)'"'
 local caller_state_before `"`c(rngstate)'"'
 
 mata:
-assert(fesim_akm_simple_schema_version() == 1)
+assert(fesim_akm_simple_schema_version() == 2)
 assert(fesim_akm_pop_moment_names() == ///
     ("alpha_mean", "alpha_sd", "alpha_var", ///
     "psi_mean", "psi_sd", "psi_var", ///

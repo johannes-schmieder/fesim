@@ -38,6 +38,8 @@ Checkpoint 11 raises the internal Mata API to version 6 and the shared populatio
 
 Checkpoint 12 raises the internal Mata API to version 7 and the dynamic-state schema to version 3. Unemployed workers may now carry a zero internal spell counter, while observed spell IDs remain missing. The simple-AKM initial-state layer constructs the exact unemployment-plus-firm interval chain, samples stationary job age, and implements the approved random and all-unemployed diagnostic starts. It remains below public dispatch pending mobility, wages, and output qualification.
 
+Checkpoint 13 raises the internal Mata API to version 8, the dynamic-state schema to version 4, and the simple-AKM module schema to version 2. Dynamic state now carries unemployment duration. The AKM module advances competing employment exits, entries, direct firm moves, spell counters, tenure, unemployment duration, current deterministic value, and latent transition counts on isolated streams, with a repeated-advance burn-in path. Public dispatch remains closed pending wages and output qualification.
+
 ## Version source
 
 `fesim_version_info.ado` is the runtime version source of truth. Package metadata, help headers, and documentation must agree with it; later static checks should enforce that agreement.

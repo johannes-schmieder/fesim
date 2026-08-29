@@ -27,7 +27,7 @@ The internal common result finalizer attaches the frozen dataset characteristics
 
 The internal common moment engine computes risk-set transition rates, employed-observation wage moments, pooled firm-period size and concentration moments, mover/stayer counts, and consistently weighted truth moments. Its exact row and target-comparison contracts are documented in [docs/moments.md](docs/moments.md).
 
-The first `akm/simple` scientific module now generates persistent worker and firm effects plus independent, normalized firm attraction weights on isolated RNG streams. This population layer is documented in [docs/akm_simple.md](docs/akm_simple.md), but public simulation remains unavailable until initialization, mobility, wages, and the full output path are qualified.
+The first `akm/simple` scientific module now generates persistent worker and firm effects, normalized firm attraction weights, approved initial states, competing employment/mobility transitions, spell and duration state, and discrete burn-in on isolated RNG streams. This internal layer is documented in [docs/akm_simple.md](docs/akm_simple.md), but public simulation remains unavailable until wages and the full output path are qualified.
 
 ```stata
 fesim, dgp(akmsimple) clear seed(12345)
