@@ -60,6 +60,8 @@ Checkpoint 21 raises the internal Mata API to version 13 and adds `src/fesim_run
 
 Checkpoint 26 begins the generic empirical-mobility engine and raises the internal Mata API to version 14. `src/fesim_hazards.mata` implements vectorized D-025 log-hazard construction, the log-one-plus duration transform in years, and stable one-risk and competing-risk conversion from annual hazards to arbitrary interval lengths. It is shared infrastructure only: no empirical preset is public until the remaining P3 lifecycle and DG-08 calibration work is complete.
 
+Checkpoint 27 raises the internal Mata API to version 15 and adds `src/fesim_destinations.mata`. Five UE cumulative tables cover the fixed worker mobility types. Exact EE sampling uses firm-quality order, type-specific lower prefix and upper reverse-prefix tables, and stable log side totals to apply current-firm exclusion and the D-025 upward/downward kernel without allocating worker-by-firm probabilities. Sampling functions consume caller-supplied uniforms so the lifecycle retains ownership of the isolated destination RNG stream.
+
 Checkpoint 22 preserves the graph contract while replacing nonlinear interpreted aggregation and large membership-matrix transfers. The public route constructs compressed exact worker-firm keys, uses union by rank with deterministic lowest-worker component IDs, performs grouped native diagnostics, skips unused membership matrices under `connectivity(keep)`, and writes the retained-row marker directly under `connectivity(largest)`. Exact before/after and 10-million-row results are in [`docs/performance.md`](performance.md).
 
 ## Version source

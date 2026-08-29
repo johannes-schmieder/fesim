@@ -16,3 +16,18 @@ controls and then attempt 1,000,000 workers. The harness also records
 `/usr/bin/time -l` output for process resource use. Results live in ignored
 `build/benchmarks/<exact-sha>/` directories. See `docs/performance.md` for the
 qualified baseline and before/after interpretation.
+
+`benchmark_destinations.do` isolates the grouped empirical destination engine.
+It times construction of the five worker-type UE and EE tables and 100,000
+draws from each kernel, verifies exact current-firm exclusion, and records the
+numeric payload of the persistent tables. Run it from a clean checkout with:
+
+```bash
+scripts/run_destination_benchmarks.sh /path/to/stata-mp
+```
+
+The standard firm counts are 10,000 and 100,000. Set `INCLUDE_MILLION=1` for
+the optional one-million-firm table and `DESTINATION_DRAWS=<N>` to change the
+number of draws per kernel. The implementation stores three `5 x J` cumulative
+tables and five `J x 1` firm vectors; it never constructs a worker-by-firm
+matrix.

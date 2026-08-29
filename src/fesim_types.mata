@@ -89,9 +89,30 @@ struct fesim_network_results {
     real scalar validated
 }
 
+struct fesim_destination_tables {
+    real scalar schema_version
+    real rowvector worker_type_support
+    real colvector firm_id
+    real colvector firm_quality
+    real colvector firm_weight
+    real colvector firm_order
+    real colvector firm_position
+    real matrix ue_cumulative
+    real colvector ue_log_scale
+    real matrix ee_lower_cumulative
+    real colvector ee_lower_log_scale
+    real matrix ee_upper_reverse_cumulative
+    real colvector ee_upper_log_scale
+    real scalar theta_sort
+    real scalar theta_quality
+    real scalar theta_up
+    real scalar theta_down
+    real scalar validated
+}
+
 real scalar fesim_mata_api_version()
 {
-    return(14)
+    return(15)
 }
 
 real scalar fesim_config_schema_version()
