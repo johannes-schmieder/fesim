@@ -600,6 +600,9 @@ struct fesim_population scalar fesim_akm_generate_population(
     population.firm_value = firm_sd :* firm_standard
     population.firm_weight = fesim_akm_stable_weights(
         attraction_standard, firm_size_sd)
+    population.worker_type_index = J(workers, 1, .)
+    population.worker_mobility = J(workers, 1, .)
+    population.firm_quality = J(firms, 1, .)
     population.validated = 0
     fesim_population_validate(population)
     population.validated = 1

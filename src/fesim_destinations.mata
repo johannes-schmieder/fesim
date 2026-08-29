@@ -147,6 +147,31 @@ real scalar fesim_destination_prefix_index(
     return(lower)
 }
 
+real colvector fesim_dest_sample_common(
+    real colvector firm_weight,
+    real colvector uniform_draw)
+{
+    real scalar draw
+    real scalar total
+    real colvector destination
+    real rowvector cumulative
+
+    if (cols(firm_weight) != 1 | rows(firm_weight) < 1 | ///
+        any(missing(firm_weight)) | any(firm_weight :<= 0) | ///
+        cols(uniform_draw) != 1 | any(missing(uniform_draw)) | ///
+        any(uniform_draw :< 0) | any(uniform_draw :>= 1)) {
+        _error(3300, "common destination weights or uniforms are invalid")
+    }
+    cumulative = runningsum(firm_weight')
+    total = cumulative[cols(cumulative)]
+    destination = J(rows(uniform_draw), 1, .)
+    for (draw = 1; draw <= rows(uniform_draw); draw++) {
+        destination[draw] = fesim_destination_prefix_index(
+            cumulative, cols(cumulative), uniform_draw[draw] * total)
+    }
+    return(destination)
+}
+
 real colvector fesim_destination_sample_ue(
     struct fesim_destination_tables scalar tables,
     real colvector worker_type_index,

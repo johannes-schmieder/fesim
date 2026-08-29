@@ -48,6 +48,7 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     unit/test_akm_population ///
     unit/test_akm_initialization ///
     unit/test_akm_mobility ///
+    unit/test_empirical_lifecycle ///
     unit/test_akm_wages ///
     unit/test_akm_diagnostics ///
     integration/test_discovery ///

@@ -2,7 +2,7 @@
 program define _fesim_load
     version 16.0
 
-    capture mata: assert(fesim_mata_api_version() == 15)
+    capture mata: assert(fesim_mata_api_version() == 16)
     if !_rc exit
 
     quietly findfile _fesim_load.ado
@@ -11,7 +11,7 @@ program define _fesim_load
     local package_root = substr(`"`loader_path'"', 1, ///
         strlen(`"`loader_path'"') - strlen(`"`loader_name'"') - 1)
     foreach source in types rng time hazards destinations flows moments network runtime output lifecycle ///
-        akm_simple akm_handler dispatch {
+        akm_simple empirical akm_handler dispatch {
         capture quietly findfile fesim_`source'.mata
         if !_rc local source_path `"`r(fn)'"'
         else {
@@ -24,7 +24,7 @@ program define _fesim_load
         }
         quietly do `"`source_path'"'
     }
-    capture mata: assert(fesim_mata_api_version() == 15)
+    capture mata: assert(fesim_mata_api_version() == 16)
     if _rc {
         di as error "fesim Mata source failed to load"
         exit 3000

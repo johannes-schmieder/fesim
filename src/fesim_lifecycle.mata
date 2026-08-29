@@ -83,6 +83,9 @@ struct fesim_population scalar fesim_toy_generate_population(
     population.worker_value = population.worker_id / 100
     population.firm_value = population.firm_id / 10
     population.firm_weight = J(config.firms, 1, 1 / config.firms)
+    population.worker_type_index = J(config.workers, 1, .)
+    population.worker_mobility = J(config.workers, 1, .)
+    population.firm_quality = J(config.firms, 1, .)
     population.validated = 0
     fesim_population_validate(population)
     population.validated = 1
@@ -91,6 +94,9 @@ struct fesim_population scalar fesim_toy_generate_population(
 
 void fesim_population_validate(struct fesim_population scalar population)
 {
+    real scalar firm_quality_missing
+    real scalar worker_mobility_missing
+
     if (population.schema_version != fesim_population_schema_version()) {
         _error(3300, "unsupported fesim population schema")
     }
@@ -100,9 +106,12 @@ void fesim_population_validate(struct fesim_population scalar population)
         population.firms != floor(population.firms) | ///
         rows(population.worker_id) != population.workers | ///
         rows(population.worker_value) != population.workers | ///
+        rows(population.worker_type_index) != population.workers | ///
+        rows(population.worker_mobility) != population.workers | ///
         rows(population.firm_id) != population.firms | ///
         rows(population.firm_value) != population.firms | ///
-        rows(population.firm_weight) != population.firms) {
+        rows(population.firm_weight) != population.firms | ///
+        rows(population.firm_quality) != population.firms) {
         _error(3300, "population dimensions do not match their declared sizes")
     }
     if (any(population.worker_id :!= (1::population.workers)) | ///
@@ -113,6 +122,22 @@ void fesim_population_validate(struct fesim_population scalar population)
         any(population.firm_weight :< 0) | ///
         abs(sum(population.firm_weight) - 1) > 1e-12) {
         _error(3300, "population identifiers, values, or weights are invalid")
+    }
+    worker_mobility_missing = ///
+        all(missing(population.worker_type_index)) & ///
+        all(missing(population.worker_mobility))
+    if (!worker_mobility_missing & ///
+        (any(missing(population.worker_type_index)) | ///
+        any(population.worker_type_index :< 1) | ///
+        any(population.worker_type_index :> 5) | ///
+        any(population.worker_type_index :!= ///
+            floor(population.worker_type_index)) | ///
+        any(missing(population.worker_mobility)))) {
+        _error(3300, "population worker mobility types are invalid")
+    }
+    firm_quality_missing = all(missing(population.firm_quality))
+    if (!firm_quality_missing & any(missing(population.firm_quality))) {
+        _error(3300, "population firm quality is invalid")
     }
 }
 
