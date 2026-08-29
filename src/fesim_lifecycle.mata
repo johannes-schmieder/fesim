@@ -131,7 +131,7 @@ struct fesim_state scalar fesim_toy_initialize_state(
     state.unemployment_duration = J(population.workers, 1, .)
     state.ntransitions = J(population.workers, 1, 0)
     state.current_value = population.worker_value + ///
-        population.firm_value[state.firm_id]
+        population.firm_value[state.firm_id, 1]
     state.validated = 0
     fesim_state_validate(state, population)
     state.validated = 1
@@ -221,7 +221,7 @@ struct fesim_state scalar fesim_toy_advance(
             state.tenure[i] = 0
             state.unemployment_duration[i] = .
             state.current_value[i] = population.worker_value[i] + ///
-                population.firm_value[state.firm_id[i]]
+                population.firm_value[state.firm_id[i], 1]
             state.ntransitions[i] = 1
         }
         else if (state.employed[i]) {
@@ -233,7 +233,7 @@ struct fesim_state scalar fesim_toy_advance(
                 state.ntransitions[i] = 1
             }
             state.current_value[i] = population.worker_value[i] + ///
-                population.firm_value[state.firm_id[i]]
+                population.firm_value[state.firm_id[i], 1]
         }
         else {
             state.unemployment_duration[i] = ///

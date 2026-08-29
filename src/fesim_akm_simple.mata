@@ -288,7 +288,7 @@ struct fesim_state scalar fesim_akm_initialize_state(
                 J(length(employed_rows), 1, .)
             state.current_value[employed_rows] = ///
                 population.worker_value[employed_rows] + ///
-                population.firm_value[state.firm_id[employed_rows]]
+                population.firm_value[state.firm_id[employed_rows], 1]
         }
         if (initial == "stationary") {
             unemployed_rows = selectindex(state.employed :== 0)
@@ -436,7 +436,7 @@ struct fesim_state scalar fesim_akm_advance(
     if (length(retained_employed)) {
         state.current_value[retained_employed] = ///
             population.worker_value[retained_employed] + ///
-            population.firm_value[state.firm_id[retained_employed]]
+            population.firm_value[state.firm_id[retained_employed], 1]
     }
     fesim_state_validate(state, population)
     state.validated = 1
