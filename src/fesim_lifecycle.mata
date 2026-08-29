@@ -154,13 +154,13 @@ void fesim_state_validate(
     }
     unemployed = selectindex(state.employed :== 0)
     employed = selectindex(state.employed :== 1)
-    if (rows(unemployed) & ///
+    if (length(unemployed) & ///
         (any(!missing(state.firm_id[unemployed])) | ///
         any(!missing(state.current_value[unemployed])) | ///
         any(!missing(state.tenure[unemployed])))) {
         _error(3300, "nonemployed toy states must have missing firm and value")
     }
-    if (rows(employed) & ///
+    if (length(employed) & ///
         (any(state.firm_id[employed] :< 1) | ///
         any(state.firm_id[employed] :> population.firms) | ///
         any(missing(state.current_value[employed])) | ///
@@ -257,8 +257,8 @@ real matrix fesim_toy_observe(
     observed[, 7] = state.tenure
     observed[, 8] = state.ntransitions
     unemployed = selectindex(state.employed :== 0)
-    if (rows(unemployed)) {
-        observed[unemployed, 6] = J(rows(unemployed), 1, .)
+    if (length(unemployed)) {
+        observed[unemployed, 6] = J(length(unemployed), 1, .)
     }
     return(observed)
 }
@@ -288,6 +288,12 @@ struct fesim_results scalar fesim_results_new(
 struct fesim_results scalar fesim_toy_finalize_flows(
     struct fesim_results scalar results)
 {
+    real matrix flows
+
+    flows = fesim_finalize_flows(results.observed, results.periods)
+    if (rows(flows) != results.N | cols(flows) != 5) {
+        _error(3300, "toy flow finalization returned invalid dimensions")
+    }
     results.status = "flows_finalized"
     return(results)
 }
@@ -300,7 +306,7 @@ struct fesim_results scalar fesim_toy_compute_moments(
 
     employed_rows = selectindex(results.observed[, 4] :== 1)
     mean_value = .
-    if (rows(employed_rows)) {
+    if (length(employed_rows)) {
         mean_value = mean(results.observed[employed_rows, 5])
     }
     results.moments = (mean(results.observed[, 4]), mean_value)

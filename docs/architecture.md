@@ -26,6 +26,8 @@ Checkpoint 5 expands the internal Mata API to version 2. `src/fesim_types.mata` 
 
 Checkpoint 6 raises the internal Mata API to version 3 and integrates that private result with `src/fesim_output.mata`. The shared writer alone creates the frozen core and flow-placeholder variables, applies storage types, labels and Stata time formats, writes worker blocks, checks the panel key, and optionally adds deterministic basic/full truth columns. A diagnostic failure hook proves that partial output is cleared; it is internal test machinery, not a public option. The private result currently retains a full small observation matrix, so this integration qualifies interfaces and invariants rather than superseding the streaming requirement for real DGPs.
 
+Checkpoint 7 raises the internal Mata API to version 4 and adds `src/fesim_flows.mata`. The shared pure finalizer accepts complete worker histories within a bounded writer block, validates their common observed-state contract, constructs adjacent-observation flows, and masks undefined boundary values. The writer stores those finalized values rather than handler-created variables. Spell changes capture new jobs even when endpoint firm IDs agree; direct job-to-job moves require different adjacent observed firms; the latent transition count is retained separately.
+
 ## Version source
 
 `fesim_version_info.ado` is the runtime version source of truth. Package metadata, help headers, and documentation must agree with it; later static checks should enforce that agreement.

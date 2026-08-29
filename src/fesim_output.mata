@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_output_schema_version()
 {
-    return(2)
+    return(3)
 }
 
 real scalar fesim_output_lifecycle_panel(
@@ -22,6 +22,7 @@ real scalar fesim_output_lifecycle_panel(
     real scalar block_number
     real colvector rows_to_write
     real matrix block
+    real matrix flows
     real colvector time_value
     real colvector employed_rows
     real colvector alpha_true
@@ -54,6 +55,17 @@ real scalar fesim_output_lifecycle_panel(
     }
 
     block_workers = min((results.workers, block_workers))
+    /* Validate every complete worker block before mutating Stata data. */
+    for (first_worker = 1; first_worker <= results.workers; ///
+        first_worker = first_worker + block_workers) {
+        last_worker = min((results.workers, first_worker + block_workers - 1))
+        first_row = (first_worker - 1) * results.periods + 1
+        last_row = last_worker * results.periods
+        rows_to_write = (first_row::last_row)
+        block = results.observed[rows_to_write, ]
+        flows = fesim_finalize_flows(block, results.periods)
+    }
+
     st_addobs(results.N)
     variable_indices = st_addvar(("long", "long", "long", "byte", "double", "long", ///
         "double", "byte", "byte", "byte", "byte", "long"), ///
@@ -75,6 +87,7 @@ real scalar fesim_output_lifecycle_panel(
         last_row = last_worker * results.periods
         rows_to_write = (first_row::last_row)
         block = results.observed[rows_to_write, ]
+        flows = fesim_finalize_flows(block, results.periods)
         time_value = start_value :+ block[, 2] :- 1
 
         st_store(rows_to_write, "workerid", block[, 1])
@@ -84,7 +97,11 @@ real scalar fesim_output_lifecycle_panel(
         st_store(rows_to_write, "lnwage", block[, 5])
         st_store(rows_to_write, "spellid", block[, 6])
         st_store(rows_to_write, "tenure", block[, 7])
-        st_store(rows_to_write, "ntransitions", block[, 8])
+        st_store(rows_to_write, "newjob", flows[, 1])
+        st_store(rows_to_write, "from_unemp", flows[, 2])
+        st_store(rows_to_write, "to_unemp", flows[, 3])
+        st_store(rows_to_write, "jobtojob", flows[, 4])
+        st_store(rows_to_write, "ntransitions", flows[, 5])
 
         if (truth != "none") {
             alpha_true = block[, 1] / 100
@@ -92,9 +109,9 @@ real scalar fesim_output_lifecycle_panel(
             zero_true = J(rows(block), 1, .)
             lnwage_true = J(rows(block), 1, .)
             employed_rows = selectindex(block[, 4] :== 1)
-            if (rows(employed_rows)) {
+            if (length(employed_rows)) {
                 psi_true[employed_rows] = block[employed_rows, 3] / 10
-                zero_true[employed_rows] = J(rows(employed_rows), 1, 0)
+                zero_true[employed_rows] = J(length(employed_rows), 1, 0)
                 lnwage_true[employed_rows] = block[employed_rows, 5]
             }
             st_store(rows_to_write, "alpha_true", alpha_true)
@@ -245,9 +262,9 @@ real scalar fesim_output_toy_panel(
         employed = mod(worker_id + time, 3) :!= 0
         firm_id = 1 :+ mod(worker_id * 7 + time * 3, 97)
         nonemployed = selectindex(employed :== 0)
-        if (rows(nonemployed)) firm_id[nonemployed] = J(rows(nonemployed), 1, .)
+        if (length(nonemployed)) firm_id[nonemployed] = J(length(nonemployed), 1, .)
         lnwage = 2.5 :+ worker_id / 100000 :+ time / 1000
-        if (rows(nonemployed)) lnwage[nonemployed] = J(rows(nonemployed), 1, .)
+        if (length(nonemployed)) lnwage[nonemployed] = J(length(nonemployed), 1, .)
 
         st_store((first_row::last_row), "workerid", worker_id)
         st_store((first_row::last_row), "time", time)

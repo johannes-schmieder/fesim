@@ -40,7 +40,7 @@ if `build_rc' {
 }
 
 local tests install_smoke smoke unit/test_parser unit/test_registry ///
-    unit/test_config unit/test_time unit/test_rates unit/test_rng unit/test_lifecycle integration/test_discovery ///
+    unit/test_config unit/test_time unit/test_rates unit/test_rng unit/test_lifecycle unit/test_flows integration/test_discovery ///
     integration/test_output_blocks integration/test_panel_contract
 local n_tests : word count `tests'
 foreach test of local tests {
