@@ -22,6 +22,8 @@ Checkpoint 3 adds two qualified shared prototypes to that library. `src/fesim_rn
 
 Checkpoint 4 adds `fesim_time.ado` as the authoritative Stata-facing frequency/start normalizer and `src/fesim_time.mata` for abstract period vectors and annual-probability conversion. The configuration resolver delegates date parsing to this module and returns the Stata time format, interval unit, internal-clock label, start/end values, periods per year, and year fraction. EU and EE are converted jointly as competing risks; UE uses the single-risk conversion. These routines do not inspect calendar days, data, or RNG state.
 
+Checkpoint 5 expands the internal Mata API to version 2. `src/fesim_types.mata` defines composed configuration, population, dynamic-state, result, and handler structures with explicit schema versions. `src/fesim_lifecycle.mata` supplies constructors and validation routines plus deterministic internal implementations of the required lifecycle stages. `src/fesim_dispatch.mata` admits only the private `_toy/deterministic` handler and returns a validated worker-major observation matrix; it never creates, labels, or writes Stata variables. Repeated dispatch calls build fresh local structures, and tests deliberately mutate one returned result to prove later and prior results do not share mutable state. This handler qualifies the shared contract only and must not appear in the public registry.
+
 ## Version source
 
 `fesim_version_info.ado` is the runtime version source of truth. Package metadata, help headers, and documentation must agree with it; later static checks should enforce that agreement.

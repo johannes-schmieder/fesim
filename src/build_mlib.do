@@ -22,6 +22,7 @@ quietly do `"`repository_root'/src/fesim_types.mata"'
 quietly do `"`repository_root'/src/fesim_rng.mata"'
 quietly do `"`repository_root'/src/fesim_time.mata"'
 quietly do `"`repository_root'/src/fesim_output.mata"'
+quietly do `"`repository_root'/src/fesim_lifecycle.mata"'
 quietly do `"`repository_root'/src/fesim_dispatch.mata"'
 
 mata: mata mlib create lfesim, dir(`"`output_dir'"') replace
@@ -30,15 +31,20 @@ mata: mata mlib add lfesim fesim_*(), dir(`"`output_dir'"') complete
 quietly adopath ++ `"`output_dir'"'
 mata: mata clear
 mata: mata mlib index
-mata: assert(fesim_mata_api_version() == 1)
-mata: assert(fesim_config_schema_version() == 1)
+mata: assert(fesim_mata_api_version() == 2)
+mata: assert(fesim_config_schema_version() == 2)
 mata: assert(fesim_rng_schema_version() == 1)
 mata: assert(cols(fesim_rng_component_names()) == 8)
 mata: assert(fesim_time_schema_version() == 1)
 mata: assert(fesim_time_delta_years("quarter") == .25)
 mata: assert(fesim_output_schema_version() == 1)
 mata: assert(fesim_output_checked_rows(10000, 10) == 100000)
-mata: assert(fesim_dispatch_status() == "simulation_not_implemented")
+mata: assert(fesim_population_schema_version() == 1)
+mata: assert(fesim_state_schema_version() == 1)
+mata: assert(fesim_results_schema_version() == 1)
+mata: assert(fesim_handler_schema_version() == 1)
+mata: assert(fesim_dispatch_status() == "shared_lifecycle_toy_only")
+mata: assert(fesim_dispatch_toy_smoke() == 1)
 
 capture confirm file `"`output_dir'/lfesim.mlib"'
 if _rc {

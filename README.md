@@ -6,7 +6,7 @@ The installed runtime will use only official Stata and Mata. It will not require
 
 ## Current implementation status
 
-Version `0.0.0-dev` has shared configuration, registry, component-RNG, time/rate, and block-output foundations. It provides discovery, preset inspection, canonical alias resolution, and deterministic default reporting:
+Version `0.0.0-dev` has shared configuration, registry, component-RNG, time/rate, lifecycle, and block-output foundations. It provides discovery, preset inspection, canonical alias resolution, and deterministic default reporting:
 
 ```stata
 fesim version
@@ -20,6 +20,8 @@ fesim describe akm, preset(simple)
 `fesim describe akmsimple` reports the resolved `akm/simple` configuration and scalar-parameter matrix. The same resolver validates named common options and model-specific name-value pairs such as `parameters(mu 3.2 p_ee .10)`, records their sources, and serializes the result deterministically. In the frozen v0.1 contract, all model-specific scalars remain inside `parameters()`; only common controls have named options.
 
 Simulation is not implemented in this checkpoint. A simulation invocation is fully resolved and validated without clearing data or consuming random numbers, then exits with a development-stage error. The first end-to-end target remains:
+
+An internal deterministic toy handler exercises the shared Mata lifecycle and typed containers. It is test infrastructure, is not registered as a public DGP, and does not create or modify Stata variables.
 
 ```stata
 fesim, dgp(akmsimple) clear seed(12345)
