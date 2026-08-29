@@ -6,7 +6,7 @@ The installed runtime will use only official Stata and Mata. It will not require
 
 ## Current implementation status
 
-Version `0.1.0` provides an end-to-end stylized `akm/simple` simulator on top of the shared configuration, component-RNG, time/rate, lifecycle, block-output, flow, moment, and result foundations. Discovery, preset inspection, canonical alias resolution, and deterministic default reporting remain available:
+The latest release is `v0.1.0`. The `main` branch is now `0.2.0-dev`, developing the generic empirical-mobility engine while retaining the released end-to-end stylized `akm/simple` simulator. Discovery, preset inspection, canonical alias resolution, and deterministic default reporting remain available:
 
 ```stata
 fesim version

@@ -58,6 +58,8 @@ Checkpoint 20 adds no runtime behavior. It completes the simple-AKM user path in
 
 Checkpoint 21 raises the internal Mata API to version 13 and adds `src/fesim_runtime.mata`. The public route claims only unused native timer slots, measures simulation and post-simulation diagnostics, releases its slots on success and failure, and leaves occupied caller timers unchanged. The exact-source benchmark harness records public-command time, internal stage time, dataset width, graph scale, and external process resource usage.
 
+Checkpoint 26 begins the generic empirical-mobility engine and raises the internal Mata API to version 14. `src/fesim_hazards.mata` implements vectorized D-025 log-hazard construction, the log-one-plus duration transform in years, and stable one-risk and competing-risk conversion from annual hazards to arbitrary interval lengths. It is shared infrastructure only: no empirical preset is public until the remaining P3 lifecycle and DG-08 calibration work is complete.
+
 Checkpoint 22 preserves the graph contract while replacing nonlinear interpreted aggregation and large membership-matrix transfers. The public route constructs compressed exact worker-firm keys, uses union by rank with deterministic lowest-worker component IDs, performs grouped native diagnostics, skips unused membership matrices under `connectivity(keep)`, and writes the retained-row marker directly under `connectivity(largest)`. Exact before/after and 10-million-row results are in [`docs/performance.md`](performance.md).
 
 ## Version source

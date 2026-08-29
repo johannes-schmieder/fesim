@@ -1,11 +1,11 @@
 {smcl}
-{* *! version 0.1.0 29aug2026}{...}
+{* *! version 0.2.0-dev 29aug2026}{...}
 {vieweralsosee "fesim design" "DESIGN.md"}{...}
 {title:Title}
 
 {p 4 8}{cmd:fesim} {hline 2} linked employer-employee panel simulation{p_end}
 
-{title:Syntax available in 0.1.0}
+{title:Syntax available in 0.2.0-dev}
 
 {p 8 12}{cmd:fesim version}{p_end}
 {p 8 12}{cmd:fesim list}{p_end}
@@ -151,7 +151,7 @@ Discovery and configuration resolution do not alter data or Stata's RNG state. T
 {title:Limitations}
 
 {pstd}
-Version 0.1.0 generates the stylized {cmd:akm/simple} panel but does not estimate a model or provide a paper calibration. {cmd:connectivity(force)} has no accepted scientific design. Other registered presets remain discovery-only.
+Version 0.2.0-dev retains the released stylized {cmd:akm/simple} panel but does not yet expose the empirical-mobility engine under development. It does not estimate a model or provide a paper calibration. {cmd:connectivity(force)} has no accepted scientific design. Other registered presets remain discovery-only.
 
 {pstd}
 The supported minimum for {cmd:v0.1.0} is Stata 19. Exact-source qualification covers Stata/MP 19 on macOS Apple Silicon and Windows x86-64; no cross-version or cross-platform bitwise claim is made.

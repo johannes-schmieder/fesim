@@ -21,6 +21,7 @@ mata: mata clear
 quietly do `"`repository_root'/src/fesim_types.mata"'
 quietly do `"`repository_root'/src/fesim_rng.mata"'
 quietly do `"`repository_root'/src/fesim_time.mata"'
+quietly do `"`repository_root'/src/fesim_hazards.mata"'
 quietly do `"`repository_root'/src/fesim_flows.mata"'
 quietly do `"`repository_root'/src/fesim_moments.mata"'
 quietly do `"`repository_root'/src/fesim_network.mata"'
@@ -37,12 +38,13 @@ mata: mata mlib add lfesim fesim_*(), dir(`"`output_dir'"') complete
 quietly adopath ++ `"`output_dir'"'
 mata: mata clear
 mata: mata mlib index
-mata: assert(fesim_mata_api_version() == 13)
+mata: assert(fesim_mata_api_version() == 14)
 mata: assert(fesim_config_schema_version() == 2)
 mata: assert(fesim_rng_schema_version() == 1)
 mata: assert(cols(fesim_rng_component_names()) == 8)
 mata: assert(fesim_time_schema_version() == 1)
 mata: assert(fesim_time_delta_years("quarter") == .25)
+mata: assert(fesim_hazard_schema_version() == 1)
 mata: assert(fesim_flow_schema_version() == 1)
 mata: assert(fesim_moment_schema_version() == 1)
 mata: assert(fesim_network_schema_version() == 1)

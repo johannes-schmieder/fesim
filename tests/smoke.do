@@ -14,8 +14,8 @@ assert _rc == 0
 
 capture noisily fesim version
 assert _rc == 0
-assert `"`r(version)'"' == "0.1.0"
-assert `"`r(status)'"' == "release"
+assert `"`r(version)'"' == "0.2.0-dev"
+assert `"`r(status)'"' == "development"
 assert r(api_level) == 1
 
 capture noisily fesim list
@@ -48,7 +48,7 @@ assert _rc == 0
 quietly adopath ++ `"`repository_root'/build"'
 mata: mata clear
 mata: mata mlib index
-mata: assert(fesim_mata_api_version() == 13)
+mata: assert(fesim_mata_api_version() == 14)
 mata: assert(fesim_config_schema_version() == 2)
 mata: assert(fesim_moment_schema_version() == 1)
 mata: assert(fesim_akm_simple_schema_version() == 3)

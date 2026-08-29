@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.0 29aug2026}{...}
+{* *! version 0.2.0-dev 29aug2026}{...}
 {vieweralsosee "fesim" "help fesim"}{...}
 {title:fesim license}
 

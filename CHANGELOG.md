@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — 0.2.0
+
+### In development
+
+- Generic empirical-mobility infrastructure under the owner-approved D-025
+  scientific contract. No empirical calibration or public empirical preset is
+  claimed while DG-08 remains open.
+
 ## 0.1.0 — 2026-08-29
 
 ### Implemented

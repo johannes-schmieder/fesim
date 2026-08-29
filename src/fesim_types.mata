@@ -91,7 +91,7 @@ struct fesim_network_results {
 
 real scalar fesim_mata_api_version()
 {
-    return(13)
+    return(14)
 }
 
 real scalar fesim_config_schema_version()

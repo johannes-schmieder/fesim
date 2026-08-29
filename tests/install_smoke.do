@@ -47,7 +47,7 @@ assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
 capture noisily fesim version
 assert _rc == 0
-assert `"`r(version)'"' == "0.1.0"
+assert `"`r(version)'"' == "0.2.0-dev"
 
 capture noisily fesim list
 assert _rc == 0
@@ -72,7 +72,7 @@ capture noisily fesim, dgp(akmsimple) workers(12) firms(3) periods(2) ///
 assert _rc == 0
 assert _N == 24
 isid workerid time
-mata: assert(fesim_mata_api_version() == 13)
+mata: assert(fesim_mata_api_version() == 14)
 mata: mata clear
 quietly adopath ++ `"`repository_root'/build"'
 mata: mata mlib index

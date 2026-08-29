@@ -1,4 +1,4 @@
-*! fesim common metadata/result finalizer 0.1.0 28aug2026
+*! fesim common metadata/result finalizer 0.2.0-dev 29aug2026
 program define _fesim_finalize, rclass
     version 16.0
     syntax , DGP(string) DGPALIAS(string) PRESET(string) ///
