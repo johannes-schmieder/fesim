@@ -71,6 +71,26 @@ capture noisily fesim, unsupported_option clear
 local rc = _rc
 assert `rc' == 198
 
+capture noisily fesim, mu(4) clear
+local rc = _rc
+assert `rc' == 198
+
+capture noisily fesim, sdworker(.5) clear
+local rc = _rc
+assert `rc' == 198
+
+capture noisily fesim workerid, clear
+local rc = _rc
+assert `rc' == 198
+
+capture noisily fesim if 1, clear
+local rc = _rc
+assert `rc' == 198
+
+capture noisily fesim in 1, clear
+local rc = _rc
+assert `rc' == 198
+
 capture noisily fesim, clear
 local rc = _rc
 assert `rc' == 498

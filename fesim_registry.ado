@@ -201,7 +201,7 @@ program define fesim_registry, rclass
             local lower_closed "yes"
             local upper_closed "no"
             local unit "probability"
-            local description "Per-period employment transition probability"
+            local description "Annual employment transition probability"
         }
         else if `"`name'"' == "p_ue" {
             local default ".6"
@@ -210,7 +210,7 @@ program define fesim_registry, rclass
             local lower_closed "yes"
             local upper_closed "yes"
             local unit "probability"
-            local description "Per-period job-finding probability"
+            local description "Annual job-finding probability"
         }
         else if `"`name'"' == "wage_trend" {
             local default "0"

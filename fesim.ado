@@ -221,7 +221,7 @@ program define fesim__simulate, rclass
 
     quietly fesim_version_info
     di as error "fesim simulation is not implemented in version `r(version)'"
-    di as error "Checkpoint 2 resolves configuration but does not simulate; data and RNG state were not changed."
+    di as error "The current development checkpoint resolves configuration but does not simulate; data and RNG state were not changed."
     di as txt "resolved configuration: `resolved_config'"
     exit 498
 end

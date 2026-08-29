@@ -53,6 +53,15 @@ assert r(upper_value) == 1
 assert `"`r(lower_closed)'"' == "yes"
 assert `"`r(upper_closed)'"' == "no"
 assert `"`r(unit)'"' == "probability"
+assert strpos(`"`r(description)'"', "Annual") == 1
+
+foreach name in mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend {
+    quietly fesim_registry, action(parameter) dgp(akm) ///
+        preset(simple) parameter(`name')
+    assert `"`r(scope)'"' == "model"
+    assert `"`r(named_option)'"' == "no"
+    assert `"`r(parameters_allowed)'"' == "yes"
+}
 
 quietly fesim_registry, action(parameter) dgp(akm) preset(simple) parameter(frequency)
 assert `"`r(type)'"' == "string"

@@ -20,6 +20,8 @@ The development library is not required by the Checkpoint 2 discovery/configurat
 
 Checkpoint 3 adds two qualified shared prototypes to that library. `src/fesim_rng.mata` manages fixed `mt64s` component states without exposing long RNG-state strings to ado code; details are in [`docs/rng.md`](rng.md). `src/fesim_output.mata` validates observation counts, computes conservative memory estimates, and writes deterministic worker-major blocks through vectorized `st_store()` calls; details are in [`docs/output.md`](output.md). Neither module yet dispatches a DGP.
 
+Checkpoint 4 adds `fesim_time.ado` as the authoritative Stata-facing frequency/start normalizer and `src/fesim_time.mata` for abstract period vectors and annual-probability conversion. The configuration resolver delegates date parsing to this module and returns the Stata time format, interval unit, internal-clock label, start/end values, periods per year, and year fraction. EU and EE are converted jointly as competing risks; UE uses the single-risk conversion. These routines do not inspect calendar days, data, or RNG state.
+
 ## Version source
 
 `fesim_version_info.ado` is the runtime version source of truth. Package metadata, help headers, and documentation must agree with it; later static checks should enforce that agreement.

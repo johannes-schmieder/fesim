@@ -147,38 +147,21 @@ program define fesim_config, rclass
         local frequency "year"
         local source_frequency "package"
     }
-    if !inlist(`"`frequency'"', "year", "quarter", "month") {
-        di as error "frequency() must be year, quarter, or month"
-        exit 198
-    }
-
     local start = lower(strtrim(`"`start'"'))
     local source_start "option"
-    if `"`start'"' == "" {
-        if `"`frequency'"' == "year" local start "2000"
-        else if `"`frequency'"' == "quarter" local start "2000q1"
-        else local start "2000m1"
-        local source_start "package"
-    }
-    if `"`frequency'"' == "year" & !regexm(`"`start'"', "^[0-9]+$") {
-        di as error "start() must have form YYYY with frequency(year)"
-        exit 198
-    }
-    if `"`frequency'"' == "quarter" & !regexm(`"`start'"', "^[0-9]+q[1-4]$") {
-        di as error "start() must have form YYYYqQ with frequency(quarter)"
-        exit 198
-    }
-    if `"`frequency'"' == "month" & !regexm(`"`start'"', "^[0-9]+m([1-9]|1[0-2])$") {
-        di as error "start() must have form YYYYmM with frequency(month)"
-        exit 198
-    }
-    if `"`frequency'"' == "year" local start_value = yearly(`"`start'"', "Y")
-    else if `"`frequency'"' == "quarter" local start_value = quarterly(`"`start'"', "YQ")
-    else local start_value = monthly(`"`start'"', "YM")
-    if missing(`start_value') {
-        di as error "start() is invalid for frequency(`frequency')"
-        exit 198
-    }
+    if `"`start'"' == "" local source_start "package"
+    local time_options `"frequency(`frequency') periods(`value_periods')"'
+    if `"`start'"' != "" local time_options `"`time_options' start(`start')"'
+    quietly fesim_time, `time_options'
+    local frequency `"`r(frequency)'"'
+    local start `"`r(start)'"'
+    local time_format `"`r(format)'"'
+    local interval_unit `"`r(interval_unit)'"'
+    local internal_clock `"`r(internal_clock)'"'
+    local start_value = r(start_value)
+    local end_value = r(end_value)
+    local periods_per_year = r(periods_per_year)
+    local delta_years = r(delta_years)
 
     local seed = lower(strtrim(`"`seed'"'))
     local source_seed "option"
@@ -301,6 +284,9 @@ program define fesim_config, rclass
     return local config_schema `"`config_schema'"'
     return local frequency `"`frequency'"'
     return local start `"`start'"'
+    return local time_format `"`time_format'"'
+    return local interval_unit `"`interval_unit'"'
+    return local internal_clock `"`internal_clock'"'
     return local seed `"`seed'"'
     return local initial `"`initial'"'
     return local jobrule `"`jobrule'"'
@@ -320,5 +306,8 @@ program define fesim_config, rclass
     return scalar burnin = real(`"`value_burnin'"')
     return scalar N_requested = real(`"`value_workers'"') * real(`"`value_periods'"')
     return scalar start_value = `start_value'
+    return scalar end_value = `end_value'
+    return scalar periods_per_year = `periods_per_year'
+    return scalar delta_years = `delta_years'
     return matrix parameters = `parameter_matrix'
 end

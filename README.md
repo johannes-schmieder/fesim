@@ -6,7 +6,7 @@ The installed runtime will use only official Stata and Mata. It will not require
 
 ## Current implementation status
 
-Version `0.0.0-dev` has a shared configuration and registry layer. It provides discovery, preset inspection, canonical alias resolution, and deterministic default reporting:
+Version `0.0.0-dev` has shared configuration, registry, component-RNG, time/rate, and block-output foundations. It provides discovery, preset inspection, canonical alias resolution, and deterministic default reporting:
 
 ```stata
 fesim version
@@ -17,7 +17,7 @@ fesim describe akmsimple
 fesim describe akm, preset(simple)
 ```
 
-`fesim describe akmsimple` reports the resolved `akm/simple` configuration and scalar-parameter matrix. The same resolver validates named common options and model-specific name-value pairs such as `parameters(mu 3.2 p_ee .10)`, records their sources, and serializes the result deterministically.
+`fesim describe akmsimple` reports the resolved `akm/simple` configuration and scalar-parameter matrix. The same resolver validates named common options and model-specific name-value pairs such as `parameters(mu 3.2 p_ee .10)`, records their sources, and serializes the result deterministically. In the frozen v0.1 contract, all model-specific scalars remain inside `parameters()`; only common controls have named options.
 
 Simulation is not implemented in this checkpoint. A simulation invocation is fully resolved and validated without clearing data or consuming random numbers, then exits with a development-stage error. The first end-to-end target remains:
 
@@ -41,7 +41,7 @@ For a local checkout, prepend the repository root to the Stata ado-path:
 adopath + "/path/to/fesim"
 ```
 
-The provisional source compatibility level is Stata 16. Checkpoint 2 is tested on Stata/MP 19.0 for macOS Apple Silicon; no broader support claim is made yet.
+The supported minimum for v0.1 is Stata 19. Current exact-source qualification is on Stata/MP 19.0 for macOS Apple Silicon; source files may declare the Stata 16 language dialect, but no Stata 16–18 support claim is made without full qualification.
 
 ## Concepts
 
