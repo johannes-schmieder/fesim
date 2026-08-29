@@ -1,0 +1,23 @@
+name: Static contract checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-contract:
+    name: Static contract (no Stata)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the triggering revision
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check package and source contracts
+        run: python3 scripts/static_checks.py
+      - name: Test exact-SHA receipt verifier
+        run: python3 -m unittest discover -s tests/static -p 'test_*.py' -v

@@ -32,6 +32,8 @@ Checkpoint 8 adds the installed internal ado `_fesim_finalize`. After a simulati
 
 Checkpoint 9 raises the internal Mata API to version 5 and adds `src/fesim_moments.mata` plus the installed internal ado `_fesim_moments`. The Mata layer computes DGP-supplied truth moments with fixed sample weighting; the ado layer validates the finalized panel, computes the fixed common realized schema and optional target table, and preserves both data and RNG state. The private integration route now passes these results into `_fesim_finalize`. Details are in [`docs/moments.md`](moments.md).
 
+Checkpoint 10 adds a GitHub-hosted static lane and a separate licensed-Stata exact-source wrapper. Static checks validate package/source/test registration and reject tracked generated artifacts without claiming Stata execution. The licensed wrapper derives `HEAD` from a clean checkout and verifies the generated receipt against that same repository, preventing a requested or stale SHA from being accepted as exact evidence. Details are in [`docs/ci.md`](ci.md).
+
 ## Version source
 
 `fesim_version_info.ado` is the runtime version source of truth. Package metadata, help headers, and documentation must agree with it; later static checks should enforce that agreement.

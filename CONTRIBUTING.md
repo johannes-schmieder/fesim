@@ -32,3 +32,20 @@ do tests/run_all.do
 It rebuilds the Mata library, performs a clean temporary package installation, and runs the smoke, parser, failure-mode, and state-preservation tests. When invoked outside the repository root, pass the repository path as the first argument.
 
 Inspect the complete batch and per-test logs under the ignored `build/test-results/` directory. A zero process exit alone is not sufficient evidence if a log contains an unexpected Stata error or skipped test.
+
+For an exact-source receipt, use the clean-checkout wrapper rather than supplying a SHA manually:
+
+```sh
+STATA_BIN=/path/to/stata-mp scripts/run_stata_tests.sh
+```
+
+The wrapper derives `HEAD`, runs the complete suite, and verifies that the accepted receipt belongs to that exact clean checkout. See [docs/ci.md](docs/ci.md).
+
+GitHub-hosted CI runs dependency-free static contract checks only:
+
+```sh
+python3 scripts/static_checks.py
+python3 -m unittest discover -s tests/static -p 'test_*.py' -v
+```
+
+A green static job must not be described as a Stata test result.
