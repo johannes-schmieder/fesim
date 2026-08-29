@@ -278,6 +278,12 @@ program define fesim__simulate, rclass
     if `had_data' quietly preserve
     clear
 
+    tempname runtime_timers runtime_simulate_scalar runtime_total_scalar
+    quietly mata: st_matrix("`runtime_timers'", ///
+        fesim_runtime_claim_timers(2))
+    quietly mata: fesim_runtime_start(st_matrix("`runtime_timers'")[1, 1])
+    quietly mata: fesim_runtime_start(st_matrix("`runtime_timers'")[1, 2])
+
     local handler_truth `"`resolved_truth'"'
     if `"`resolved_connectivity'"' == "largest" & ///
         `"`resolved_truth'"' == "none" local handler_truth "basic"
@@ -296,12 +302,19 @@ program define fesim__simulate, rclass
         "`truth_moments'", "`truth_targets'"))
     local simulation_rc = _rc
     if `simulation_rc' {
+        quietly mata: fesim_runtime_stop( ///
+            st_matrix("`runtime_timers'")[1, 2])
+        quietly mata: fesim_runtime_stop( ///
+            st_matrix("`runtime_timers'")[1, 1])
+        quietly mata: fesim_runtime_release(st_matrix("`runtime_timers'"))
         if `had_data' quietly restore
         else clear
         quietly mata: fesim_rng_restore_state( ///
             "`caller_rng'", "`caller_rngstate'")
         exit `simulation_rc'
     }
+    quietly mata: st_numscalar("`runtime_simulate_scalar'", ///
+        fesim_runtime_stop(st_matrix("`runtime_timers'")[1, 2]))
 
     matrix rownames `truth_moments' = alpha_true_mean alpha_true_sd ///
         alpha_true_var psi_true_mean psi_true_sd psi_true_var ///
@@ -319,6 +332,9 @@ program define fesim__simulate, rclass
         connectivity(`resolved_connectivity')
     local network_rc = _rc
     if `network_rc' {
+        quietly mata: fesim_runtime_stop( ///
+            st_matrix("`runtime_timers'")[1, 1])
+        quietly mata: fesim_runtime_release(st_matrix("`runtime_timers'"))
         if `had_data' quietly restore
         else clear
         quietly mata: fesim_rng_restore_state( ///
@@ -337,6 +353,9 @@ program define fesim__simulate, rclass
         capture quietly _fesim_truth
         local truth_rc = _rc
         if `truth_rc' {
+            quietly mata: fesim_runtime_stop( ///
+                st_matrix("`runtime_timers'")[1, 1])
+            quietly mata: fesim_runtime_release(st_matrix("`runtime_timers'"))
             if `had_data' quietly restore
             else clear
             quietly mata: fesim_rng_restore_state( ///
@@ -354,6 +373,9 @@ program define fesim__simulate, rclass
         truthmoments(`truth_moments') targets(`truth_targets')
     local moments_rc = _rc
     if `moments_rc' {
+        quietly mata: fesim_runtime_stop( ///
+            st_matrix("`runtime_timers'")[1, 1])
+        quietly mata: fesim_runtime_release(st_matrix("`runtime_timers'"))
         if `had_data' quietly restore
         else clear
         quietly mata: fesim_rng_restore_state( ///
@@ -368,6 +390,12 @@ program define fesim__simulate, rclass
     local realized_eu = r(p_eu_realized)
     local realized_ue = r(p_ue_realized)
     local realized_ee = r(p_ee_realized)
+    quietly mata: st_numscalar("`runtime_total_scalar'", ///
+        fesim_runtime_stop(st_matrix("`runtime_timers'")[1, 1]))
+    quietly mata: fesim_runtime_release(st_matrix("`runtime_timers'"))
+    local runtime_total = scalar(`runtime_total_scalar')
+    local runtime_simulate = scalar(`runtime_simulate_scalar')
+    local runtime_output = max(`runtime_total' - `runtime_simulate', 0)
     if `had_data' quietly restore, not
 
     local recorded_seed : display %21.0f scalar(`master_seed')
@@ -390,6 +418,9 @@ program define fesim__simulate, rclass
         largestcomponentobsshare(`largest_observation_share') ///
         largestcomponentworkershare(`largest_worker_share') ///
         largestcomponentfirmshare(`largest_firm_share') ///
+        runtimetotal(`runtime_total') runtimesolve(0) ///
+        runtimesimulate(`runtime_simulate') ///
+        runtimeoutput(`runtime_output') ///
         firmsactive(`firms_active') ///
         employmentrate(`employment_rate') peu(`realized_eu') ///
         pue(`realized_ue') pee(`realized_ee') ///

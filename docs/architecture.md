@@ -56,6 +56,8 @@ Checkpoint 19 adds no runtime behavior. It registers large-sample statistical te
 
 Checkpoint 20 adds no runtime behavior. It completes the simple-AKM user path in the help and README, documents simulation returns and truth variables, and adds a tested `examples/akmsimple.do` that uses only built-in `areg` for an estimator demonstration. Static test registration now includes `tests/docs/`.
 
+Checkpoint 21 raises the internal Mata API to version 13 and adds `src/fesim_runtime.mata`. The public route claims only unused native timer slots, measures simulation and post-simulation diagnostics, releases its slots on success and failure, and leaves occupied caller timers unchanged. The exact-source benchmark harness records public-command time, internal stage time, dataset width, graph scale, and external process resource usage.
+
 ## Version source
 
 `fesim_version_info.ado` is the runtime version source of truth. Package metadata, help headers, and documentation must agree with it; later static checks should enforce that agreement.

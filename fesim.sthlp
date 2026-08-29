@@ -123,6 +123,10 @@ Discovery and configuration resolution do not alter data or Stata's RNG state. T
 {synopt:{cmd:r(largest_component_obs_share)}}returned graph's largest employed-observation share{p_end}
 {synopt:{cmd:r(largest_component_worker_share)}}returned graph's largest ever-employed-worker share{p_end}
 {synopt:{cmd:r(largest_component_firm_share)}}returned graph's largest active-firm share{p_end}
+{synopt:{cmd:r(runtime_total)}}simulation plus post-simulation diagnostic seconds{p_end}
+{synopt:{cmd:r(runtime_solve)}}solve-stage seconds; zero for simple AKM{p_end}
+{synopt:{cmd:r(runtime_simulate)}}population, mobility, wage, write, and flow seconds{p_end}
+{synopt:{cmd:r(runtime_output)}}graph, retained-truth, and common-moment seconds{p_end}
 {synopt:{cmd:r(parameters)}}resolved value/default/bound matrix; requested dimensions remain here{p_end}
 {synopt:{cmd:r(moments)}}common realized and truth moment rows{p_end}
 {synopt:{cmd:r(targets)}}target, realized, difference, and relative-difference columns{p_end}
