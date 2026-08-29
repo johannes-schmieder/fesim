@@ -24,6 +24,8 @@ Checkpoint 4 adds `fesim_time.ado` as the authoritative Stata-facing frequency/s
 
 Checkpoint 5 expands the internal Mata API to version 2. `src/fesim_types.mata` defines composed configuration, population, dynamic-state, result, and handler structures with explicit schema versions. `src/fesim_lifecycle.mata` supplies constructors and validation routines plus deterministic internal implementations of the required lifecycle stages. `src/fesim_dispatch.mata` admits only the private `_toy/deterministic` handler and returns a validated worker-major observation matrix; it never creates, labels, or writes Stata variables. Repeated dispatch calls build fresh local structures, and tests deliberately mutate one returned result to prove later and prior results do not share mutable state. This handler qualifies the shared contract only and must not appear in the public registry.
 
+Checkpoint 6 raises the internal Mata API to version 3 and integrates that private result with `src/fesim_output.mata`. The shared writer alone creates the frozen core and flow-placeholder variables, applies storage types, labels and Stata time formats, writes worker blocks, checks the panel key, and optionally adds deterministic basic/full truth columns. A diagnostic failure hook proves that partial output is cleared; it is internal test machinery, not a public option. The private result currently retains a full small observation matrix, so this integration qualifies interfaces and invariants rather than superseding the streaming requirement for real DGPs.
+
 ## Version source
 
 `fesim_version_info.ado` is the runtime version source of truth. Package metadata, help headers, and documentation must agree with it; later static checks should enforce that agreement.

@@ -3,7 +3,7 @@ clear all
 set more off
 set varabbrev off
 
-mata: assert(fesim_output_schema_version() == 1)
+mata: assert(fesim_output_schema_version() == 2)
 mata: assert(fesim_output_checked_rows(37, 7) == 259)
 mata: assert(fesim_output_default_block(10000, 10) == 10000)
 mata: assert(fesim_output_default_block(100000, 10) == 25000)

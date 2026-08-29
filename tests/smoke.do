@@ -48,7 +48,7 @@ assert _rc == 0
 quietly adopath ++ `"`repository_root'/build"'
 mata: mata clear
 mata: mata mlib index
-mata: assert(fesim_mata_api_version() == 2)
+mata: assert(fesim_mata_api_version() == 3)
 mata: assert(fesim_config_schema_version() == 2)
 mata: assert(fesim_dispatch_status() == "shared_lifecycle_toy_only")
 

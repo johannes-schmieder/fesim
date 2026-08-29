@@ -12,11 +12,11 @@ quietly datasignature set, reset
 local rng_before `"`c(rngstate)'"'
 
 mata:
-assert(fesim_mata_api_version() == 2)
+assert(fesim_mata_api_version() == 3)
 assert(fesim_config_schema_version() == 2)
 assert(fesim_population_schema_version() == 1)
-assert(fesim_state_schema_version() == 1)
-assert(fesim_results_schema_version() == 1)
+assert(fesim_state_schema_version() == 2)
+assert(fesim_results_schema_version() == 2)
 assert(fesim_handler_schema_version() == 1)
 assert(fesim_dispatch_status() == "shared_lifecycle_toy_only")
 
@@ -51,7 +51,7 @@ assert(toy_result_a.validated == 1)
 assert(toy_result_a.status == "validated")
 assert(toy_result_a.N == 35)
 assert(rows(toy_result_a.observed) == 35)
-assert(cols(toy_result_a.observed) == 5)
+assert(cols(toy_result_a.observed) == 8)
 assert(toy_result_a.lifecycle == toy_handler.lifecycle_stages)
 assert(mreldif(toy_result_a.observed, toy_result_b.observed) == 0)
 assert(mreldif(toy_result_a.moments, toy_result_b.moments) == 0)

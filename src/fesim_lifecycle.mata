@@ -121,6 +121,7 @@ struct fesim_state scalar fesim_toy_initialize_state(
     state.firm_id = 1 :+ mod(population.worker_id :- 1, population.firms)
     state.spell_id = J(population.workers, 1, 1)
     state.tenure = J(population.workers, 1, 0)
+    state.ntransitions = J(population.workers, 1, 0)
     state.current_value = population.worker_value + ///
         population.firm_value[state.firm_id]
     state.validated = 0
@@ -144,9 +145,11 @@ void fesim_state_validate(
         rows(state.firm_id) != population.workers | ///
         rows(state.spell_id) != population.workers | ///
         rows(state.tenure) != population.workers | ///
+        rows(state.ntransitions) != population.workers | ///
         rows(state.current_value) != population.workers | ///
         any(state.employed :!= 0 :& state.employed :!= 1) | ///
-        any(state.spell_id :< 1)) {
+        any(state.spell_id :< 1) | any(state.ntransitions :< 0) | ///
+        any(state.ntransitions :!= floor(state.ntransitions))) {
         _error(3300, "dynamic-state dimensions or employment indicators are invalid")
     }
     unemployed = selectindex(state.employed :== 0)
@@ -182,6 +185,7 @@ struct fesim_state scalar fesim_toy_advance(
 
     fesim_state_validate(state, population)
     state.period = state.period + 1
+    state.ntransitions = J(population.workers, 1, 0)
     for (i = 1; i <= population.workers; i++) {
         code = mod(population.worker_id[i] + state.period, 6)
         if (state.employed[i] & code == 0) {
@@ -189,6 +193,7 @@ struct fesim_state scalar fesim_toy_advance(
             state.firm_id[i] = .
             state.tenure[i] = .
             state.current_value[i] = .
+            state.ntransitions[i] = 1
         }
         else if (!state.employed[i] & code == 1) {
             state.employed[i] = 1
@@ -198,6 +203,7 @@ struct fesim_state scalar fesim_toy_advance(
             state.tenure[i] = 0
             state.current_value[i] = population.worker_value[i] + ///
                 population.firm_value[state.firm_id[i]]
+            state.ntransitions[i] = 1
         }
         else if (state.employed[i]) {
             state.tenure[i] = state.tenure[i] + 1
@@ -205,6 +211,7 @@ struct fesim_state scalar fesim_toy_advance(
                 state.firm_id[i] = 1 + mod(state.firm_id[i], population.firms)
                 state.spell_id[i] = state.spell_id[i] + 1
                 state.tenure[i] = 0
+                state.ntransitions[i] = 1
             }
             state.current_value[i] = population.worker_value[i] + ///
                 population.firm_value[state.firm_id[i]]
@@ -237,14 +244,22 @@ real matrix fesim_toy_observe(
     real scalar output_period)
 {
     real matrix observed
+    real colvector unemployed
 
     fesim_state_validate(state, population)
-    observed = J(population.workers, 5, .)
+    observed = J(population.workers, 8, .)
     observed[, 1] = population.worker_id
     observed[, 2] = J(population.workers, 1, output_period)
     observed[, 3] = state.firm_id
     observed[, 4] = state.employed
     observed[, 5] = state.current_value
+    observed[, 6] = state.spell_id
+    observed[, 7] = state.tenure
+    observed[, 8] = state.ntransitions
+    unemployed = selectindex(state.employed :== 0)
+    if (rows(unemployed)) {
+        observed[unemployed, 6] = J(rows(unemployed), 1, .)
+    }
     return(observed)
 }
 
@@ -265,7 +280,7 @@ struct fesim_results scalar fesim_results_new(
     results.moments = J(1, 0, .)
     results.metadata_names = J(1, 0, "")
     results.metadata_values = J(1, 0, "")
-    results.observed = J(results.N, 5, .)
+    results.observed = J(results.N, 8, .)
     results.validated = 0
     return(results)
 }
@@ -310,7 +325,7 @@ void fesim_results_validate(struct fesim_results scalar results)
 
     if (results.schema_version != fesim_results_schema_version() | ///
         results.N != results.workers * results.periods | ///
-        rows(results.observed) != results.N | cols(results.observed) != 5) {
+        rows(results.observed) != results.N | cols(results.observed) != 8) {
         _error(3300, "fesim results dimensions are invalid")
     }
     expected_worker = 1 :+ floor((0::(results.N - 1)) / results.periods)

@@ -21,7 +21,7 @@ fesim describe akm, preset(simple)
 
 Simulation is not implemented in this checkpoint. A simulation invocation is fully resolved and validated without clearing data or consuming random numbers, then exits with a development-stage error. The first end-to-end target remains:
 
-An internal deterministic toy handler exercises the shared Mata lifecycle and typed containers. It is test infrastructure, is not registered as a public DGP, and does not create or modify Stata variables.
+An internal deterministic toy handler exercises the shared Mata lifecycle and typed containers. It is test infrastructure and is not registered as a public DGP. Only the shared output module may translate its results into the frozen Stata panel scaffold; flow indicators remain unfinalized placeholders.
 
 ```stata
 fesim, dgp(akmsimple) clear seed(12345)
