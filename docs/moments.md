@@ -19,8 +19,10 @@ The exact row order is normative in [`DESIGN.md`](../DESIGN.md#76-common-moment-
 
 These diagnostics describe the generated latent objects, so their availability does not depend on whether `truth(none)`, `truth(basic)`, or `truth(full)` exposes row-level truth variables in the returned dataset.
 
+The public simple-AKM handler implements those conventions with streaming sufficient statistics. It gives worker effects one observation per simulated worker, marks and uses each active firm's effect once, and accumulates epsilon and worker-firm cross-products over employed worker-periods. These rows and their target table therefore require no full employed-observation buffer.
+
 ## Target comparisons
 
 An applicable one-column target matrix selects rows by the common moment names. The returned table has columns `target`, `realized`, `difference`, and `relative_difference`. Difference is realized minus target; relative difference divides by the absolute target and is missing for a zero target.
 
-The engine is installed infrastructure for future public simulation routes. At the current checkpoint only the private deterministic lifecycle exercises its integration with `_fesim_finalize`; no scientific DGP is public yet.
+The public `akm/simple` route supplies both its truth block and component targets to this engine. The private deterministic lifecycle remains an independent integration fixture.

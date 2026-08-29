@@ -4,7 +4,37 @@ mata:
 
 real scalar fesim_akm_handler_schema_version()
 {
-    return(1)
+    return(2)
+}
+
+real scalar fesim_akm_variance_from_sums(
+    real scalar count,
+    real scalar value_sum,
+    real scalar square_sum)
+{
+    real scalar variance
+
+    if (count < 2) return(.)
+    variance = (square_sum - value_sum ^ 2 / count) / (count - 1)
+    if (variance < 0 & abs(variance) < 1e-12) variance = 0
+    if (variance < 0 | missing(variance)) {
+        _error(3300, "streaming variance is invalid")
+    }
+    return(variance)
+}
+
+real colvector fesim_akm_truth_targets(
+    real scalar worker_sd,
+    real scalar firm_sd,
+    real scalar error_sd)
+{
+    if (missing(worker_sd) | missing(firm_sd) | missing(error_sd) | ///
+        worker_sd < 0 | firm_sd < 0 | error_sd < 0) {
+        _error(3300, "simple AKM truth targets are invalid")
+    }
+    return((0 \ worker_sd \ worker_sd ^ 2 \ ///
+        0 \ firm_sd \ firm_sd ^ 2 \ ///
+        0 \ error_sd \ error_sd ^ 2 \ 0))
 }
 
 real scalar fesim_akm_simulate_to_stata(
@@ -27,13 +57,33 @@ real scalar fesim_akm_simulate_to_stata(
     real scalar annual_eu,
     real scalar annual_ee,
     real scalar annual_ue,
-    real scalar wage_trend)
+    real scalar wage_trend,
+    string scalar truth_moment_matrix,
+    string scalar truth_target_matrix)
 {
     struct fesim_population scalar population
     struct fesim_rng_state scalar rng_state
     struct fesim_state scalar state
     real scalar block_workers
+    real scalar covariance
+    real scalar employed_count
+    real scalar epsilon_square_sum
+    real scalar epsilon_sum
+    real scalar epsilon_mean
     real scalar output_period
+    real scalar psi_square_sum
+    real scalar psi_sum
+    real scalar psi_mean
+    real scalar alpha_employed_sum
+    real scalar alpha_psi_sum
+    real scalar psi_employed_sum
+    real scalar epsilon_variance
+    real scalar psi_variance
+    real scalar alpha_variance
+    real colvector active_firms
+    real colvector active_rows
+    real colvector employed_rows
+    real colvector truth_moments
     real matrix wage_components
 
     if (fesim_output_checked_rows(workers, periods) != workers * periods | ///
@@ -49,7 +99,9 @@ real scalar fesim_akm_simulate_to_stata(
         annual_ee > 1 | annual_ue < 0 | annual_ue > 1 | ///
         annual_eu + annual_ee >= 1 | ///
         (firms == 1 & annual_ee > 0) | ///
-        (seed_was_requested != 0 & seed_was_requested != 1)) {
+        (seed_was_requested != 0 & seed_was_requested != 1) | ///
+        strtrim(truth_moment_matrix) == "" | ///
+        strtrim(truth_target_matrix) == "") {
         _error(3300, "simple AKM handler inputs are invalid")
     }
 
@@ -64,6 +116,13 @@ real scalar fesim_akm_simulate_to_stata(
         annual_ue, rng_state)
 
     block_workers = fesim_output_default_block(workers, periods)
+    active_firms = J(firms, 1, 0)
+    employed_count = 0
+    epsilon_sum = 0
+    epsilon_square_sum = 0
+    alpha_employed_sum = 0
+    psi_employed_sum = 0
+    alpha_psi_sum = 0
     fesim_output_initialize_panel(
         workers, periods, start_value, time_format, truth)
     for (output_period = 1; output_period <= periods; output_period++) {
@@ -75,11 +134,61 @@ real scalar fesim_akm_simulate_to_stata(
         wage_components = fesim_akm_wage_components(
             state, population, mean_log_wage, error_sd, wage_trend, ///
             (output_period - 1) * delta_years, rng_state)
+        employed_rows = selectindex(state.employed :== 1)
+        if (length(employed_rows)) {
+            active_firms[state.firm_id[employed_rows]] = ///
+                J(length(employed_rows), 1, 1)
+            employed_count = employed_count + length(employed_rows)
+            epsilon_sum = epsilon_sum + ///
+                quadsum(wage_components[employed_rows, 7])
+            epsilon_square_sum = epsilon_square_sum + ///
+                quadsum(wage_components[employed_rows, 7] :^ 2)
+            alpha_employed_sum = alpha_employed_sum + ///
+                quadsum(wage_components[employed_rows, 2])
+            psi_employed_sum = psi_employed_sum + ///
+                quadsum(wage_components[employed_rows, 3])
+            alpha_psi_sum = alpha_psi_sum + quadsum( ///
+                wage_components[employed_rows, 2] :* ///
+                wage_components[employed_rows, 3])
+        }
         fesim_output_store_akm_period(
             state, population, wage_components, output_period, periods, ///
             start_value, truth)
     }
     fesim_output_finalize_panel(workers, periods, block_workers, truth)
+
+    alpha_variance = fesim_sample_variance(population.worker_value)
+    active_rows = selectindex(active_firms :== 1)
+    psi_sum = 0
+    psi_square_sum = 0
+    psi_mean = .
+    psi_variance = .
+    if (length(active_rows)) {
+        psi_sum = quadsum(population.firm_value[active_rows])
+        psi_square_sum = quadsum(population.firm_value[active_rows] :^ 2)
+        psi_mean = psi_sum / length(active_rows)
+        psi_variance = fesim_akm_variance_from_sums(
+            length(active_rows), psi_sum, psi_square_sum)
+    }
+    epsilon_variance = fesim_akm_variance_from_sums(
+        employed_count, epsilon_sum, epsilon_square_sum)
+    epsilon_mean = .
+    if (employed_count) epsilon_mean = epsilon_sum / employed_count
+    covariance = .
+    if (employed_count >= 2) {
+        covariance = (alpha_psi_sum - ///
+            alpha_employed_sum * psi_employed_sum / employed_count) / ///
+            (employed_count - 1)
+    }
+    truth_moments = (mean(population.worker_value) \ ///
+        sqrt(alpha_variance) \ alpha_variance \ ///
+        psi_mean \ ///
+        sqrt(psi_variance) \ psi_variance \ ///
+        epsilon_mean \ ///
+        sqrt(epsilon_variance) \ epsilon_variance \ covariance)
+    st_matrix(truth_moment_matrix, truth_moments)
+    st_matrix(truth_target_matrix, ///
+        fesim_akm_truth_targets(worker_sd, firm_sd, error_sd))
     return(rng_state.master_seed)
 }
 

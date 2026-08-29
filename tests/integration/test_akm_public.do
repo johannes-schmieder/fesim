@@ -26,6 +26,7 @@ local public_firms = r(N_firms)
 local public_periods = r(periods)
 matrix public_parameters = r(parameters)
 matrix public_moments = r(moments)
+matrix public_targets = r(targets)
 assert _N == 160
 isid workerid time
 assert workerid == floor((_n - 1) / 4) + 1
@@ -71,7 +72,35 @@ assert `public_firms' == 6
 assert `public_periods' == 4
 assert `"`c(rngstate)'"' == `"`explicit_rng_before'"'
 assert rowsof(public_parameters) == 13
-assert rowsof(public_moments) == 28
+assert rowsof(public_moments) == 38
+assert rowsof(public_targets) == 10
+assert colsof(public_targets) == 4
+assert public_targets["alpha_true_mean", "target"] == 0
+assert public_targets["alpha_true_sd", "target"] == .3
+assert public_targets["alpha_true_var", "target"] == .09
+assert public_targets["psi_true_sd", "target"] == .1
+assert public_targets["epsilon_true_sd", "target"] == .15
+assert public_targets["cov_alpha_psi_true", "target"] == 0
+preserve
+quietly by workerid: keep if _n == 1
+quietly summarize alpha_true
+assert reldif(public_moments["alpha_true_mean", "realized"], r(mean)) < 1e-12
+assert reldif(public_moments["alpha_true_sd", "realized"], r(sd)) < 1e-12
+restore
+preserve
+quietly keep if employed
+quietly bysort firmid: keep if _n == 1
+quietly summarize psi_true
+assert reldif(public_moments["psi_true_mean", "realized"], r(mean)) < 1e-12
+assert reldif(public_moments["psi_true_sd", "realized"], r(sd)) < 1e-12
+restore
+quietly summarize epsilon_true if employed
+assert reldif(public_moments["epsilon_true_mean", "realized"], r(mean)) < 1e-12
+assert reldif(public_moments["epsilon_true_sd", "realized"], r(sd)) < 1e-12
+quietly correlate alpha_true psi_true if employed, covariance
+matrix public_covariance = r(C)
+assert reldif(public_moments["cov_alpha_psi_true", "realized"], ///
+    public_covariance[1, 2]) < 1e-12
 foreach characteristic in version dgp dgp_alias preset calibration_class ///
     command seed rng frequency internal_clock jobrule burnin connectivity ///
     reference rng_method stata_version truth {
@@ -92,8 +121,14 @@ quietly save `canonical'
 quietly fesim, dgp(akmsimple) `common_options'
 local alias_dgp `"`r(dgp)'"'
 local alias_name `"`r(dgp_alias)'"'
+matrix alias_moments = r(moments)
+matrix alias_targets = r(targets)
 assert `"`alias_dgp'"' == "akm"
 assert `"`alias_name'"' == "akmsimple"
+mata: assert(mreldif(st_matrix("alias_moments"), ///
+    st_matrix("public_moments")) == 0)
+mata: assert(mreldif(st_matrix("alias_targets"), ///
+    st_matrix("public_targets")) == 0)
 quietly cf _all using `canonical'
 
 quietly fesim, dgp(akm) preset(simple) workers(40) firms(6) periods(4) ///
@@ -110,6 +145,8 @@ quietly fesim, dgp(akm) preset(simple) workers(40) firms(6) periods(4) ///
     parameters(mu 3.2 sd_worker .3 sd_firm .1 sd_error .15 ///
     firm_size_sd .5 p_eu .08 p_ee .12 p_ue .6 wage_trend .04) ///
     truth(none) connectivity(keep) noreport clear
+matrix none_moments = r(moments)
+matrix none_targets = r(targets)
 foreach truth_name in alpha_true psi_true time_true xb_true match_true ///
     epsilon_true lnwage_true {
     capture confirm variable `truth_name'
@@ -117,6 +154,21 @@ foreach truth_name in alpha_true psi_true time_true xb_true match_true ///
 }
 quietly cf workerid time firmid employed lnwage spellid tenure newjob ///
     from_unemp to_unemp jobtojob ntransitions using `canonical'
+mata: assert(mreldif(st_matrix("none_moments"), ///
+    st_matrix("public_moments")) == 0)
+mata: assert(mreldif(st_matrix("none_targets"), ///
+    st_matrix("public_targets")) == 0)
+
+quietly fesim, workers(8) firms(2) periods(3) seed(13579) ///
+    initial(allunemployed) parameters(p_ue 0) truth(none) noreport clear
+matrix unemployed_moments = r(moments)
+matrix unemployed_targets = r(targets)
+assert r(N_firms_active) == 0
+assert missing(unemployed_moments["psi_true_mean", "realized"])
+assert missing(unemployed_moments["epsilon_true_mean", "realized"])
+assert missing(unemployed_moments["cov_alpha_psi_true", "realized"])
+assert unemployed_targets["psi_true_sd", "target"] == .15
+assert unemployed_targets["epsilon_true_sd", "target"] == .2
 
 clear
 set rng mt64

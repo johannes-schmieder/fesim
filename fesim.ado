@@ -278,7 +278,7 @@ program define fesim__simulate, rclass
     if `had_data' quietly preserve
     clear
 
-    tempname master_seed
+    tempname master_seed truth_moments truth_targets
     capture noisily mata: st_numscalar("`master_seed'", ///
         fesim_akm_simulate_to_stata( ///
         `resolved_workers', `resolved_firms', `resolved_periods', ///
@@ -288,7 +288,8 @@ program define fesim__simulate, rclass
         st_numscalar("`p_sd_worker'"), st_numscalar("`p_sd_firm'"), ///
         st_numscalar("`p_sd_error'"), st_numscalar("`p_firm_size_sd'"), ///
         st_numscalar("`p_eu'"), st_numscalar("`p_ee'"), ///
-        st_numscalar("`p_ue'"), st_numscalar("`p_wage_trend'")))
+        st_numscalar("`p_ue'"), st_numscalar("`p_wage_trend'"), ///
+        "`truth_moments'", "`truth_targets'"))
     local simulation_rc = _rc
     if `simulation_rc' {
         if `had_data' quietly restore
@@ -298,7 +299,18 @@ program define fesim__simulate, rclass
         exit `simulation_rc'
     }
 
-    capture quietly _fesim_moments, firms(`resolved_firms')
+    matrix rownames `truth_moments' = alpha_true_mean alpha_true_sd ///
+        alpha_true_var psi_true_mean psi_true_sd psi_true_var ///
+        epsilon_true_mean epsilon_true_sd epsilon_true_var ///
+        cov_alpha_psi_true
+    matrix colnames `truth_moments' = realized
+    matrix rownames `truth_targets' = alpha_true_mean alpha_true_sd ///
+        alpha_true_var psi_true_mean psi_true_sd psi_true_var ///
+        epsilon_true_mean epsilon_true_sd epsilon_true_var ///
+        cov_alpha_psi_true
+    matrix colnames `truth_targets' = target
+    capture quietly _fesim_moments, firms(`resolved_firms') ///
+        truthmoments(`truth_moments') targets(`truth_targets')
     local moments_rc = _rc
     if `moments_rc' {
         if `had_data' quietly restore
@@ -307,8 +319,9 @@ program define fesim__simulate, rclass
             "`caller_rng'", "`caller_rngstate'")
         exit `moments_rc'
     }
-    tempname resolved_moments
+    tempname resolved_moments resolved_targets
     matrix `resolved_moments' = r(moments)
+    matrix `resolved_targets' = r(targets)
     local firms_active = r(N_firms_active)
     local employment_rate = r(employment_rate)
     local realized_eu = r(p_eu_realized)
@@ -331,7 +344,8 @@ program define fesim__simulate, rclass
         connectivity(`resolved_connectivity') reference(none) ///
         workers(`resolved_workers') firms(`resolved_firms') ///
         periods(`resolved_periods') parameters(`resolved_parameters') ///
-        moments(`resolved_moments') firmsactive(`firms_active') ///
+        moments(`resolved_moments') targets(`resolved_targets') ///
+        firmsactive(`firms_active') ///
         employmentrate(`employment_rate') peu(`realized_eu') ///
         pue(`realized_ue') pee(`realized_ee') ///
         reporting(`resolved_reporting')
