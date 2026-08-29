@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_akm_simple_schema_version()
 {
-    return(2)
+    return(3)
 }
 
 string rowvector fesim_akm_pop_moment_names()
@@ -473,6 +473,95 @@ struct fesim_state scalar fesim_akm_burn_in(
             annual_ue, rng_state)
     }
     return(state)
+}
+
+string rowvector fesim_akm_wage_component_names()
+{
+    return(("lnwage", "alpha_true", "psi_true", "time_true", ///
+        "xb_true", "match_true", "epsilon_true", "lnwage_true"))
+}
+
+string rowvector fesim_akm_wage_moment_names()
+{
+    return(("epsilon_mean", "epsilon_sd", "epsilon_var"))
+}
+
+real matrix fesim_akm_wage_components(
+    struct fesim_state scalar state,
+    struct fesim_population scalar population,
+    real scalar mean_log_wage,
+    real scalar error_sd,
+    real scalar wage_trend,
+    real scalar elapsed_years,
+    struct fesim_rng_state scalar rng_state)
+{
+    real scalar time_component
+    real colvector employed_rows
+    real colvector standard_errors
+    real matrix components
+
+    fesim_population_validate(population)
+    fesim_state_validate(state, population)
+    if (missing(mean_log_wage) | missing(error_sd) | ///
+        missing(wage_trend) | missing(elapsed_years) | ///
+        error_sd < 0 | elapsed_years < 0) {
+        _error(3300, "simple AKM wage inputs are invalid")
+    }
+    time_component = wage_trend * elapsed_years
+    if (missing(time_component)) {
+        _error(3300, "simple AKM time component overflowed")
+    }
+    standard_errors = fesim_rng_rnormal(
+        rng_state, "wage_shocks", population.workers, 1, 0, 1)
+    components = J(population.workers, 8, .)
+    components[, 2] = population.worker_value
+    components[, 4] = J(population.workers, 1, time_component)
+    employed_rows = selectindex(state.employed :== 1)
+    if (length(employed_rows)) {
+        components[employed_rows, 3] = ///
+            population.firm_value[state.firm_id[employed_rows], 1]
+        components[employed_rows, 5] = J(length(employed_rows), 1, 0)
+        components[employed_rows, 6] = J(length(employed_rows), 1, 0)
+        components[employed_rows, 7] = ///
+            error_sd :* standard_errors[employed_rows]
+        components[employed_rows, 1] = mean_log_wage :+ ///
+            components[employed_rows, 2] :+ ///
+            components[employed_rows, 3] :+ time_component :+ ///
+            components[employed_rows, 7]
+        components[employed_rows, 8] = components[employed_rows, 1]
+        if (any(missing(components[employed_rows, 1])) | ///
+            any(missing(components[employed_rows, 7]))) {
+            _error(3300, "simple AKM wage values overflowed")
+        }
+    }
+    return(components)
+}
+
+real colvector fesim_akm_wage_moments(real matrix components)
+{
+    real scalar epsilon_variance
+    real colvector employed_rows
+
+    if (cols(components) != 8 | rows(components) < 1) {
+        _error(3300, "simple AKM wage-component matrix is invalid")
+    }
+    employed_rows = selectindex(components[, 1] :< .)
+    if (!length(employed_rows)) return(J(3, 1, .))
+    if (any(missing(components[employed_rows, 7]))) {
+        _error(3300, "employed wage components lack epsilon")
+    }
+    epsilon_variance = fesim_sample_variance(components[employed_rows, 7])
+    return((mean(components[employed_rows, 7]) \
+        sqrt(epsilon_variance) \
+        epsilon_variance))
+}
+
+real colvector fesim_akm_wage_targets(real scalar error_sd)
+{
+    if (missing(error_sd) | error_sd < 0) {
+        _error(3300, "simple AKM wage target is invalid")
+    }
+    return((0 \ error_sd \ error_sd ^ 2))
 }
 
 struct fesim_population scalar fesim_akm_generate_population(

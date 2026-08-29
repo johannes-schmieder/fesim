@@ -34,4 +34,10 @@ Each interval draws one event uniform and one destination uniform for every work
 
 Stayers increment job tenure or unemployment duration. `EU` retains the completed spell counter and starts unemployment duration at zero. `UE` increments the spell counter and starts job tenure at zero. `EE` likewise increments the spell counter and resets tenure without an intervening unemployment row. The wage-shock stream cannot affect mobility events; destination-stream perturbations can change firms but not employment events, spell changes, or durations.
 
-Burn-in repeats this exact advance rule for the requested number of discrete output-clock intervals. The module does not yet generate wages, materialize public output, or expose a public DGP. Those are subsequent P2 stages.
+Burn-in repeats this exact advance rule for the requested number of discrete output-clock intervals.
+
+## Wage components
+
+For each retained period the module consumes one standardized wage-stream draw per worker and uses it only for employed workers. This fixes wage-stream consumption independently of employment counts and future output blocking. Employed log wages equal `mu + alpha + psi + wage_trend * elapsed_years + epsilon`; `xb_true` and `match_true` are zero, and there is no observation error, so `lnwage_true` equals `lnwage`. Nonemployment retains `alpha_true` and the deterministic time component but leaves firm-, wage-, and job-specific components missing.
+
+Elapsed years are measured from the first retained observation, not from initialization or burn-in. The wage helper returns named truth components plus realized and target epsilon moments. It does not yet materialize public output or expose a public DGP.
