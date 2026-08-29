@@ -28,6 +28,8 @@ Checkpoint 6 raises the internal Mata API to version 3 and integrates that priva
 
 Checkpoint 7 raises the internal Mata API to version 4 and adds `src/fesim_flows.mata`. The shared pure finalizer accepts complete worker histories within a bounded writer block, validates their common observed-state contract, constructs adjacent-observation flows, and masks undefined boundary values. The writer stores those finalized values rather than handler-created variables. Spell changes capture new jobs even when endpoint firm IDs agree; direct job-to-job moves require different adjacent observed firms; the latent transition count is retained separately.
 
+Checkpoint 8 adds the installed internal ado `_fesim_finalize`. After a simulation route has written and validated its dataset, this common boundary attaches characteristics, returns the stable scalar/macro/matrix contract, records supplied stage runtimes, and optionally prints a compact report. Report mode is applied only after the canonical scientific command, metadata, and results are assembled, so `report` and `noreport` are invariant apart from display. Details are in [`docs/results.md`](results.md).
+
 ## Version source
 
 `fesim_version_info.ado` is the runtime version source of truth. Package metadata, help headers, and documentation must agree with it; later static checks should enforce that agreement.

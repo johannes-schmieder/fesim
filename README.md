@@ -23,6 +23,8 @@ Simulation is not implemented in this checkpoint. A simulation invocation is ful
 
 An internal deterministic toy handler exercises the shared Mata lifecycle and typed containers. It is test infrastructure and is not registered as a public DGP. Only the shared output module may translate its results into the frozen Stata panel scaffold. The common blockwise finalizer constructs observed flow indicators and preserves latent transition counts with explicit boundary-period missingness.
 
+The internal common result finalizer attaches the frozen dataset characteristics, returns named scalars/macros/matrices, records stage timings, and implements compact `report`/`noreport` behavior without changing data or RNG state. It remains shared execution infrastructure; public simulation is still unavailable until `akm/simple` is qualified.
+
 ```stata
 fesim, dgp(akmsimple) clear seed(12345)
 ```

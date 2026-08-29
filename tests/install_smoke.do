@@ -21,6 +21,10 @@ capture noisily findfile fesim.ado
 assert _rc == 0
 assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
+capture noisily findfile _fesim_finalize.ado
+assert _rc == 0
+assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
+
 capture noisily fesim version
 assert _rc == 0
 assert `"`r(version)'"' == "0.0.0-dev"

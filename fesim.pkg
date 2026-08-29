@@ -5,6 +5,7 @@ d
 d Distribution-Date: 20260828
 d Requires: Stata 19 or later; current qualification is Stata/MP 19 on macOS Apple Silicon
 f fesim.ado
+f _fesim_finalize.ado
 f fesim_config.ado
 f fesim_registry.ado
 f fesim_time.ado
