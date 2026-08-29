@@ -82,6 +82,7 @@ struct fesim_population scalar fesim_toy_generate_population(
     population.firm_id = (1::config.firms)
     population.worker_value = population.worker_id / 100
     population.firm_value = population.firm_id / 10
+    population.firm_weight = J(config.firms, 1, 1 / config.firms)
     population.validated = 0
     fesim_population_validate(population)
     population.validated = 1
@@ -100,12 +101,18 @@ void fesim_population_validate(struct fesim_population scalar population)
         rows(population.worker_id) != population.workers | ///
         rows(population.worker_value) != population.workers | ///
         rows(population.firm_id) != population.firms | ///
-        rows(population.firm_value) != population.firms) {
+        rows(population.firm_value) != population.firms | ///
+        rows(population.firm_weight) != population.firms) {
         _error(3300, "population dimensions do not match their declared sizes")
     }
     if (any(population.worker_id :!= (1::population.workers)) | ///
-        any(population.firm_id :!= (1::population.firms))) {
-        _error(3300, "population identifiers must be consecutive and one-based")
+        any(population.firm_id :!= (1::population.firms)) | ///
+        any(missing(population.worker_value)) | ///
+        any(missing(population.firm_value)) | ///
+        any(missing(population.firm_weight)) | ///
+        any(population.firm_weight :< 0) | ///
+        abs(sum(population.firm_weight) - 1) > 1e-12) {
+        _error(3300, "population identifiers, values, or weights are invalid")
     }
 }
 

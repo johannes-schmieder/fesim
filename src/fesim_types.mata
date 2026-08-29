@@ -38,6 +38,7 @@ struct fesim_population {
     real colvector firm_id
     real colvector worker_value
     real colvector firm_value
+    real colvector firm_weight
     real scalar validated
 }
 
@@ -81,7 +82,7 @@ struct fesim_handler {
 
 real scalar fesim_mata_api_version()
 {
-    return(5)
+    return(6)
 }
 
 real scalar fesim_config_schema_version()
@@ -91,7 +92,7 @@ real scalar fesim_config_schema_version()
 
 real scalar fesim_population_schema_version()
 {
-    return(1)
+    return(2)
 }
 
 real scalar fesim_state_schema_version()

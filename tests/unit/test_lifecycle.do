@@ -12,9 +12,9 @@ quietly datasignature set, reset
 local rng_before `"`c(rngstate)'"'
 
 mata:
-assert(fesim_mata_api_version() == 5)
+assert(fesim_mata_api_version() == 6)
 assert(fesim_config_schema_version() == 2)
-assert(fesim_population_schema_version() == 1)
+assert(fesim_population_schema_version() == 2)
 assert(fesim_state_schema_version() == 2)
 assert(fesim_results_schema_version() == 2)
 assert(fesim_handler_schema_version() == 1)
@@ -31,6 +31,7 @@ toy_population = fesim_toy_generate_population(toy_config)
 assert(toy_population.validated == 1)
 assert(toy_population.worker_id == (1::7))
 assert(toy_population.firm_id == (1::3))
+assert(toy_population.firm_weight == J(3, 1, 1 / 3))
 
 toy_state = fesim_toy_initialize_state(toy_population)
 assert(toy_state.validated == 1)

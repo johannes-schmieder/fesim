@@ -34,6 +34,8 @@ Checkpoint 9 raises the internal Mata API to version 5 and adds `src/fesim_momen
 
 Checkpoint 10 adds a GitHub-hosted static lane and a separate licensed-Stata exact-source wrapper. Static checks validate package/source/test registration and reject tracked generated artifacts without claiming Stata execution. The licensed wrapper derives `HEAD` from a clean checkout and verifies the generated receipt against that same repository, preventing a requested or stale SHA from being accepted as exact evidence. Details are in [`docs/ci.md`](ci.md).
 
+Checkpoint 11 raises the internal Mata API to version 6 and the shared population schema to version 2. The population container now carries normalized firm attraction weights. `src/fesim_akm_simple.mata` supplies the first scientific implementation: persistent normal worker/firm effects, independent numerically stable attraction weights, and named population target/realized moments. It remains below the public dispatch boundary until initialization, mobility, wages, output, and diagnostics are qualified. Details are in [`docs/akm_simple.md`](akm_simple.md).
+
 ## Version source
 
 `fesim_version_info.ado` is the runtime version source of truth. Package metadata, help headers, and documentation must agree with it; later static checks should enforce that agreement.
