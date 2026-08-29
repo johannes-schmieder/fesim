@@ -51,7 +51,7 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     integration/test_discovery ///
     integration/test_akm_public ///
     integration/test_output_blocks integration/test_panel_contract ///
-    integration/test_results
+    integration/test_results regression/akm_tiny
 local n_tests : word count `tests'
 foreach test of local tests {
     capture log close fesim_test

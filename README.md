@@ -66,6 +66,6 @@ For example, `dgp(akmsimple)` is an alias for the canonical `dgp(akm) preset(sim
 
 Read [DESIGN.md](DESIGN.md) before changing public behavior and [PLAN.md](PLAN.md) for the live implementation state. Build and test instructions are in [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/architecture.md](docs/architecture.md).
 
-The qualified component-stream protocol is documented in [docs/rng.md](docs/rng.md), the worker-block output strategy in [docs/output.md](docs/output.md), the common statistical definitions in [docs/moments.md](docs/moments.md), and observed graph semantics in [docs/network.md](docs/network.md).
+The qualified component-stream protocol is documented in [docs/rng.md](docs/rng.md), the worker-block output strategy in [docs/output.md](docs/output.md), the common statistical definitions in [docs/moments.md](docs/moments.md), observed graph semantics in [docs/network.md](docs/network.md), and frozen tiny-panel scope in [docs/regression.md](docs/regression.md).
 
 The license is intentionally undecided pending owner review; no license grant should be inferred from repository visibility.

@@ -50,6 +50,8 @@ Checkpoint 16 raises the internal Mata API to version 11 and simple-AKM handler 
 
 Checkpoint 17 raises the internal Mata API to version 12 and adds `src/fesim_network.mata` plus the installed `_fesim_network` and `_fesim_truth` ado helpers. The network helper contracts the final employed panel to weighted unique matches, computes bipartite components with union-find, returns pre/post-filter diagnostics, and optionally retains complete histories from the deterministic largest component. The truth helper recomputes component moments on that retained sample, including when row-level truth is suppressed. Both helpers remain inside the public command's data/RNG rollback boundary. Details are in [`docs/network.md`](network.md).
 
+Checkpoint 18 adds no runtime behavior. It freezes annual, quarterly, and monthly 24-observation simple-AKM panels with full data signatures, selected exact returns, repeated-call matrix equality, cleared-state reruns, and canonical/alias equality. Static test registration now includes `tests/regression/`. Details and portability limits are in [`docs/regression.md`](regression.md).
+
 ## Version source
 
 `fesim_version_info.ado` is the runtime version source of truth. Package metadata, help headers, and documentation must agree with it; later static checks should enforce that agreement.

@@ -134,7 +134,11 @@ def check_test_registration() -> None:
     actual = {"tests/install_smoke.do", "tests/smoke.do"}
     actual.update(
         str(path.relative_to(ROOT))
-        for directory in (ROOT / "tests/unit", ROOT / "tests/integration")
+        for directory in (
+            ROOT / "tests/unit",
+            ROOT / "tests/integration",
+            ROOT / "tests/regression",
+        )
         for path in directory.glob("*.do")
     )
     require(
