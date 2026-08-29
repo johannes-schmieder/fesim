@@ -33,3 +33,14 @@ The wrapper refuses tracked or untracked source changes, derives the exact `HEAD
 - accepted status, zero exit code and failed-test count, a positive passed-test count, and a clean Mata rebuild.
 
 Receipts and logs remain ignored local evidence. `PLAN.md` records accepted exact-SHA results. No licensed self-hosted workflow is configured because the repository has no `gptpro.md` or approved Stata runner instructions.
+
+## Owner-controlled Windows qualification
+
+Formal Windows qualification uses the private guarded Windows/Stata runner,
+not GitHub Actions. The exact clean source archive contains `windows-ci.do`,
+which invokes the complete Stata suite and writes `windows-ci.status` with the
+authoritative final marker only after every assertion passes. The external
+runner binds that result to the exact commit and source-archive hash, collects
+only sanitized evidence, removes transient source/results, and returns the
+machine to its stopped state. Raw Stata startup logs and license information
+must never be collected or published.
