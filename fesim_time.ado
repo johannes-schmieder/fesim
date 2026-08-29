@@ -1,4 +1,4 @@
-*! fesim common time normalizer 0.0.0-dev 28aug2026
+*! fesim common time normalizer 0.1.0 28aug2026
 program define fesim_time, rclass
     version 16.0
     syntax , FREQuency(string) [START(string) PERIODs(integer 1)]

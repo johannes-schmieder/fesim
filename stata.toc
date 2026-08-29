@@ -1,6 +1,6 @@
 v 3
-d fesim 0.0.0-dev: linked employer-employee panel simulation
+d fesim 0.1.0: linked employer-employee panel simulation
 d
-d Pure Stata/Mata simulator. The qualified development route provides the
+d Pure Stata/Mata simulator. The qualified release provides the
 d stylized akm/simple DGP; other registered DGPs and presets remain planned.
 p fesim Simulate linked employer-employee panels

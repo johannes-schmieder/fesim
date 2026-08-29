@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — 0.1.0
+## 0.1.0 — 2026-08-29
 
 ### Implemented
 
@@ -30,5 +30,3 @@ design. They are not an empirical or paper calibration.
 - `connectivity(force)`, pending an accepted scientific generation rule.
 - Cross-platform or cross-version bitwise reproducibility beyond the exact
   environments recorded in `PLAN.md`.
-
-No tag or final release is implied by this unreleased entry.

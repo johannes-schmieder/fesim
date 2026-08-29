@@ -1,9 +1,11 @@
 v 3
 d fesim
-d Development interface for linked employer-employee panel simulation
+d Version: 0.1.0
+d Linked employer-employee panel simulation
 d
 d Distribution-Date: 20260829
-d Requires: Stata 19 or later; current qualification is Stata/MP 19 on macOS Apple Silicon
+d Requires: Stata 19 or later; qualified on macOS Apple Silicon and Windows x86-64
+f LICENSE
 f fesim.ado
 f _fesim_load.ado
 f _fesim_finalize.ado

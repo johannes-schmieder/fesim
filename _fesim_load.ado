@@ -1,4 +1,4 @@
-*! fesim Mata source loader 0.0.0-dev 29aug2026
+*! fesim Mata source loader 0.1.0 29aug2026
 program define _fesim_load
     version 16.0
 

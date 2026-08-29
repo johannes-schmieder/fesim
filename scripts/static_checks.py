@@ -76,7 +76,8 @@ def check_package_manifest() -> None:
     for entry in entries:
         require((ROOT / entry).is_file(), f"manifest file does not exist: {entry}")
         require(
-            Path(entry).suffix in {".ado", ".sthlp", ".mata"},
+            entry == "LICENSE"
+            or Path(entry).suffix in {".ado", ".sthlp", ".mata"},
             f"unsupported installed runtime file: {entry}",
         )
 
@@ -86,11 +87,12 @@ def check_package_manifest() -> None:
     mata_sources = {
         str(path.relative_to(ROOT)) for path in (ROOT / "src").glob("fesim_*.mata")
     }
+    expected_files = runtime_files | mata_sources | {"LICENSE"}
     require(
-        set(entries) == runtime_files | mata_sources,
+        set(entries) == expected_files,
         "fesim.pkg/runtime mismatch: "
-        f"missing={sorted((runtime_files | mata_sources) - set(entries))}, "
-        f"extra={sorted(set(entries) - (runtime_files | mata_sources))}",
+        f"missing={sorted(expected_files - set(entries))}, "
+        f"extra={sorted(set(entries) - expected_files)}",
     )
     require(
         re.search(r"^d Requires: Stata 19 or later;", manifest, re.MULTILINE)
@@ -107,6 +109,8 @@ def check_version_source() -> None:
     required_mentions = {
         "fesim.sthlp": (ROOT / "fesim.sthlp").read_text(encoding="utf-8")[:300],
         "README.md": (ROOT / "README.md").read_text(encoding="utf-8"),
+        "CITATION.cff": (ROOT / "CITATION.cff").read_text(encoding="utf-8"),
+        "fesim.pkg": (ROOT / "fesim.pkg").read_text(encoding="utf-8"),
         "stata.toc": (ROOT / "stata.toc").read_text(encoding="utf-8"),
     }
     required_mentions.update(

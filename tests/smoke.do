@@ -14,8 +14,8 @@ assert _rc == 0
 
 capture noisily fesim version
 assert _rc == 0
-assert `"`r(version)'"' == "0.0.0-dev"
-assert `"`r(status)'"' == "development"
+assert `"`r(version)'"' == "0.1.0"
+assert `"`r(status)'"' == "release"
 assert r(api_level) == 1
 
 capture noisily fesim list

@@ -1,4 +1,4 @@
-*! fesim configuration registry 0.0.0-dev 28aug2026
+*! fesim configuration registry 0.1.0 28aug2026
 program define fesim_registry, rclass
     version 16.0
     syntax , ACTION(string) [ DGP(string) PRESet(string) PARAmeter(string) ]

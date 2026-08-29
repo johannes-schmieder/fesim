@@ -1,12 +1,12 @@
 # fesim
 
-`fesim` is a Stata/Mata package under active development for simulating linked employer–employee panels. Its intended scope includes transparent AKM-style designs, mobility and network experiments, pay-gap decompositions, and later structural search models, all behind a common output contract.
+`fesim` is a Stata/Mata package for simulating linked employer–employee panels. Its intended scope includes transparent AKM-style designs, mobility and network experiments, pay-gap decompositions, and later structural search models, all behind a common output contract.
 
 The installed runtime will use only official Stata and Mata. It will not require a compiled plugin, Python, R, Julia, or a user-written Stata dependency.
 
 ## Current implementation status
 
-Version `0.0.0-dev` now provides an end-to-end stylized `akm/simple` simulator on top of the shared configuration, component-RNG, time/rate, lifecycle, block-output, flow, moment, and result foundations. Discovery, preset inspection, canonical alias resolution, and deterministic default reporting remain available:
+Version `0.1.0` provides an end-to-end stylized `akm/simple` simulator on top of the shared configuration, component-RNG, time/rate, lifecycle, block-output, flow, moment, and result foundations. Discovery, preset inspection, canonical alias resolution, and deterministic default reporting remain available:
 
 ```stata
 fesim version
@@ -65,12 +65,12 @@ The `akm/simple` module generates persistent worker and firm effects, normalized
 
 The simple preset is a transparent stylized design, not an empirical calibration. It reports compressed bipartite worker-firm component diagnostics under `connectivity(keep)` and can retain complete worker histories from the deterministically selected largest component with `connectivity(largest)`. The exact graph and returned-matrix contract is documented in [docs/network.md](docs/network.md). `connectivity(force)` remains unavailable pending an accepted scientific generation rule.
 
-## Development installation
+## Installation
 
-After the checkpoint is available on `main`:
+Install version 0.1.0 from its immutable release tag:
 
 ```stata
-net install fesim, from("https://raw.githubusercontent.com/johannes-schmieder/fesim/main") replace
+net install fesim, from("https://raw.githubusercontent.com/johannes-schmieder/fesim/v0.1.0") replace
 ```
 
 For a local checkout, prepend the repository root to the Stata ado-path:
@@ -79,7 +79,7 @@ For a local checkout, prepend the repository root to the Stata ado-path:
 adopath ++ "/path/to/fesim"
 ```
 
-The supported minimum for v0.1 is Stata 19. Current exact-source qualification is on Stata/MP 19.0 for macOS Apple Silicon; source files may declare the Stata 16 language dialect, but no Stata 16–18 support claim is made without full qualification.
+The supported minimum for v0.1 is Stata 19. Exact-source qualification covers Stata/MP 19.0 on macOS Apple Silicon and Windows x86-64; source files may declare the Stata 16 language dialect, but no Stata 16–18 support claim is made without full qualification.
 
 ## Concepts
 
@@ -96,4 +96,4 @@ Read [DESIGN.md](DESIGN.md) before changing public behavior and [PLAN.md](PLAN.m
 
 The qualified component-stream protocol is documented in [docs/rng.md](docs/rng.md), the worker-block output strategy in [docs/output.md](docs/output.md), the common statistical definitions in [docs/moments.md](docs/moments.md), observed graph semantics in [docs/network.md](docs/network.md), frozen tiny-panel scope in [docs/regression.md](docs/regression.md), large-sample test bounds in [docs/statistical_tests.md](docs/statistical_tests.md), and exact-source runtime baselines in [docs/performance.md](docs/performance.md). User-visible release scope is summarized in [CHANGELOG.md](CHANGELOG.md).
 
-The license is intentionally undecided pending owner review; no license grant should be inferred from repository visibility.
+`fesim` is released under the MIT License. See [LICENSE](LICENSE).

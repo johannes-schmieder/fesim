@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: fesim
+type: software
+authors:
+  - family-names: Schmieder
+    given-names: Johannes
+repository-code: "https://github.com/johannes-schmieder/fesim"
+url: "https://github.com/johannes-schmieder/fesim"
+license: MIT
+version: 0.1.0
+date-released: 2026-08-29
