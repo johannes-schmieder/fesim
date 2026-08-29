@@ -259,7 +259,7 @@ program define fesim__simulate, rclass
         di as error "simulation is not yet implemented for dgp(`resolved_dgp') preset(`resolved_preset')"
         exit 498
     }
-    if `"`resolved_connectivity'"' != "keep" {
+    if `"`resolved_connectivity'"' == "force" {
         di as error "connectivity(`resolved_connectivity') is not yet implemented for akm/simple"
         exit 498
     }
@@ -278,13 +278,17 @@ program define fesim__simulate, rclass
     if `had_data' quietly preserve
     clear
 
+    local handler_truth `"`resolved_truth'"'
+    if `"`resolved_connectivity'"' == "largest" & ///
+        `"`resolved_truth'"' == "none" local handler_truth "basic"
+
     tempname master_seed truth_moments truth_targets
     capture noisily mata: st_numscalar("`master_seed'", ///
         fesim_akm_simulate_to_stata( ///
         `resolved_workers', `resolved_firms', `resolved_periods', ///
         `resolved_start', "`resolved_time_format'", `resolved_delta', ///
         `seed_value', `seed_was_requested', "`resolved_initial'", ///
-        `resolved_burnin', "`resolved_truth'", st_numscalar("`p_mu'"), ///
+        `resolved_burnin', "`handler_truth'", st_numscalar("`p_mu'"), ///
         st_numscalar("`p_sd_worker'"), st_numscalar("`p_sd_firm'"), ///
         st_numscalar("`p_sd_error'"), st_numscalar("`p_firm_size_sd'"), ///
         st_numscalar("`p_eu'"), st_numscalar("`p_ee'"), ///
@@ -309,6 +313,43 @@ program define fesim__simulate, rclass
         epsilon_true_mean epsilon_true_sd epsilon_true_var ///
         cov_alpha_psi_true
     matrix colnames `truth_targets' = target
+
+    capture quietly _fesim_network, workers(`resolved_workers') ///
+        firms(`resolved_firms') periods(`resolved_periods') ///
+        connectivity(`resolved_connectivity')
+    local network_rc = _rc
+    if `network_rc' {
+        if `had_data' quietly restore
+        else clear
+        quietly mata: fesim_rng_restore_state( ///
+            "`caller_rng'", "`caller_rngstate'")
+        exit `network_rc'
+    }
+    tempname resolved_network
+    matrix `resolved_network' = r(network)
+    local network_workers = r(N_workers_sample)
+    local network_components = r(components)
+    local largest_observation_share = r(largest_component_obs_share)
+    local largest_worker_share = r(largest_component_worker_share)
+    local largest_firm_share = r(largest_component_firm_share)
+
+    if `"`resolved_connectivity'"' == "largest" {
+        capture quietly _fesim_truth
+        local truth_rc = _rc
+        if `truth_rc' {
+            if `had_data' quietly restore
+            else clear
+            quietly mata: fesim_rng_restore_state( ///
+                "`caller_rng'", "`caller_rngstate'")
+            exit `truth_rc'
+        }
+        matrix `truth_moments' = r(moments)
+        if `"`resolved_truth'"' == "none" {
+            quietly drop alpha_true psi_true time_true xb_true match_true ///
+                epsilon_true lnwage_true
+        }
+    }
+
     capture quietly _fesim_moments, firms(`resolved_firms') ///
         truthmoments(`truth_moments') targets(`truth_targets')
     local moments_rc = _rc
@@ -342,9 +383,13 @@ program define fesim__simulate, rclass
         internalclock(`resolved_internal_clock') jobrule(`resolved_jobrule') ///
         truth(`resolved_truth') burnin(`resolved_burnin') ///
         connectivity(`resolved_connectivity') reference(none) ///
-        workers(`resolved_workers') firms(`resolved_firms') ///
+        workers(`network_workers') firms(`resolved_firms') ///
         periods(`resolved_periods') parameters(`resolved_parameters') ///
         moments(`resolved_moments') targets(`resolved_targets') ///
+        network(`resolved_network') components(`network_components') ///
+        largestcomponentobsshare(`largest_observation_share') ///
+        largestcomponentworkershare(`largest_worker_share') ///
+        largestcomponentfirmshare(`largest_firm_share') ///
         firmsactive(`firms_active') ///
         employmentrate(`employment_rate') peu(`realized_eu') ///
         pue(`realized_ue') pee(`realized_ee') ///

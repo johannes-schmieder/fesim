@@ -52,12 +52,20 @@ The simple model parameters accepted in {cmd:parameters()} are {cmd:mu}, {cmd:sd
 The returned dataset is sorted by {cmd:workerid time} and satisfies {cmd:isid workerid time}. Required variables are {cmd:workerid}, {cmd:time}, {cmd:firmid}, {cmd:employed}, {cmd:lnwage}, {cmd:spellid}, {cmd:tenure}, {cmd:newjob}, {cmd:from_unemp}, {cmd:to_unemp}, {cmd:jobtojob}, and {cmd:ntransitions}. With {cmd:truth(basic)} or {cmd:truth(full)}, the simple preset also generates {cmd:alpha_true}, {cmd:psi_true}, {cmd:time_true}, {cmd:xb_true}, {cmd:match_true}, {cmd:epsilon_true}, and {cmd:lnwage_true}. {cmd:truth(none)} suppresses those columns without changing any economic draw or common output value.
 
 {pstd}
-Simulation results are returned through {cmd:r()} scalars for dimensions, realized flows, currently available network diagnostics, and stage runtimes; macros for the resolved DGP, preset, timing, RNG, and version; and matrices {cmd:r(parameters)}, {cmd:r(moments)}, and {cmd:r(targets)}. Simple-AKM component moments and targets are computed even under {cmd:truth(none)}. Dataset characteristics record the version, canonical DGP and requested alias, preset and calibration class, command, actual master seed and RNG, frequency and internal clock, employer rule, burn-in, connectivity rule, truth mode, and normalization reference.
+Simulation results are returned through {cmd:r()} scalars for dimensions, realized flows, network diagnostics, and stage runtimes; macros for the resolved DGP, preset, timing, RNG, and version; and matrices {cmd:r(parameters)}, {cmd:r(moments)}, {cmd:r(targets)}, and {cmd:r(network)}. Simple-AKM component moments and targets are computed even under {cmd:truth(none)}. Dataset characteristics record the version, canonical DGP and requested alias, preset and calibration class, command, actual master seed and RNG, frequency and internal clock, employer rule, burn-in, connectivity rule, truth mode, and normalization reference.
+
+{title:Connectivity}
+
+{pstd}
+The observed graph contains ever-employed workers, active firms, and one edge per unique observed worker-firm match. Never-employed workers and inactive firms are excluded. Largest-component observation, worker, and firm shares respectively use employed observations, ever-employed workers, and active firms as denominators. Ties are resolved by employed observations, then workers, then firms, then the lowest component identifier.
+
+{pstd}
+{cmd:connectivity(keep)} leaves the generated panel unchanged. {cmd:connectivity(largest)} retains all periods, including nonemployment, for workers in the selected component, so the returned panel remains balanced. {cmd:r(network)} has {cmd:generated} and {cmd:returned} columns and stable rows for component, edge, observation, worker, firm, largest-component count, and share diagnostics. Under {cmd:largest}, {cmd:r(N_workers)} is the retained count; the requested worker count remains in {cmd:r(parameters)}. A generated panel without employment rejects {cmd:largest}.
 
 {title:Safety and RNG behavior}
 
 {pstd}
-Discovery and configuration resolution do not alter data or Stata's RNG state. The simulation parser validates recognized options before any possible clear or random draw. If data are loaded and {cmd:clear} is absent, it exits without modifying them. A failing simulation restores the prior dataset and RNG state. With {cmd:seed(#)}, the caller RNG state is unchanged; without it, one integer draw supplies the recorded master seed and advances the caller sequence exactly once. Only {cmd:connectivity(keep)} is currently implemented; {cmd:largest} and {cmd:force} fail before replacement or draws.
+Discovery and configuration resolution do not alter data or Stata's RNG state. The simulation parser validates recognized options before any possible clear or random draw. If data are loaded and {cmd:clear} is absent, it exits without modifying them. A failing simulation restores the prior dataset and RNG state. With {cmd:seed(#)}, the caller RNG state is unchanged; without it, one integer draw supplies the recorded master seed and advances the caller sequence exactly once. {cmd:connectivity(force)} has no accepted scientific generation rule and fails before replacement or draws.
 
 {title:Registered designs}
 
@@ -110,7 +118,7 @@ Discovery and configuration resolution do not alter data or Stata's RNG state. T
 {title:Limitations}
 
 {pstd}
-Version 0.0.0-dev generates the stylized {cmd:akm/simple} panel but does not estimate a model or provide a paper calibration. Connected-component diagnostics and {cmd:connectivity(largest)} are not yet implemented; {cmd:connectivity(force)} has no accepted scientific design. Other registered presets remain discovery-only.
+Version 0.0.0-dev generates the stylized {cmd:akm/simple} panel but does not estimate a model or provide a paper calibration. {cmd:connectivity(force)} has no accepted scientific design. Other registered presets remain discovery-only.
 
 {pstd}
 The supported minimum for {cmd:v0.1.0} is Stata 19. Current exact-source qualification is limited to Stata/MP 19 on macOS Apple Silicon; no cross-version or cross-platform bitwise claim is made.

@@ -81,9 +81,17 @@ struct fesim_handler {
     string scalar qualification
 }
 
+struct fesim_network_results {
+    real scalar schema_version
+    real colvector diagnostics
+    real colvector worker_component
+    real colvector firm_component
+    real scalar validated
+}
+
 real scalar fesim_mata_api_version()
 {
-    return(11)
+    return(12)
 }
 
 real scalar fesim_config_schema_version()

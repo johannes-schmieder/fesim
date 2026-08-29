@@ -71,4 +71,49 @@ real colvector fesim_truth_moments(
         fesim_sample_covariance(alpha_employed, psi_employed)))
 }
 
+real colvector fesim_truth_moments_from_stata()
+{
+    real colvector worker
+    real colvector firm
+    real colvector employed
+    real colvector alpha
+    real colvector psi
+    real colvector epsilon
+    real colvector worker_tag
+    real colvector active_order
+    real colvector firm_tag
+
+    worker = st_data(., "workerid")
+    employed = st_data(., "employed")
+    alpha = st_data(., "alpha_true")
+    if (rows(worker) < 1 | any(missing(worker)) | ///
+        any(missing(alpha)) | ///
+        any((employed :!= 0) :& (employed :!= 1))) {
+        _error(3300, "retained truth panel is invalid")
+    }
+    worker_tag = J(rows(worker), 1, 1)
+    if (rows(worker) > 1) {
+        worker_tag[2::rows(worker)] = ///
+            worker[2::rows(worker)] :!= worker[1::rows(worker) - 1]
+    }
+    firm = select(st_data(., "firmid"), employed)
+    psi = select(st_data(., "psi_true"), employed)
+    epsilon = select(st_data(., "epsilon_true"), employed)
+    if (rows(firm) < 1) {
+        _error(3300, "retained truth panel has no employed observations")
+    }
+    active_order = order(firm, 1)
+    firm = firm[active_order]
+    psi = psi[active_order]
+    firm_tag = J(rows(firm), 1, 1)
+    if (rows(firm) > 1) {
+        firm_tag[2::rows(firm)] = ///
+            firm[2::rows(firm)] :!= firm[1::rows(firm) - 1]
+    }
+    return(fesim_truth_moments(select(alpha, worker_tag), ///
+        select(psi, firm_tag), epsilon, ///
+        select(st_data(., "alpha_true"), employed), ///
+        select(st_data(., "psi_true"), employed)))
+}
+
 end

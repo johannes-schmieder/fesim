@@ -35,7 +35,7 @@ The internal common moment engine computes risk-set transition rates, employed-o
 
 The `akm/simple` module generates persistent worker and firm effects, normalized firm attraction weights, approved initial states, competing employment/mobility transitions, spell and duration state, discrete burn-in, and complete employed wage/truth components on isolated RNG streams. The public route and remaining diagnostic boundary are documented in [docs/akm_simple.md](docs/akm_simple.md).
 
-The simple preset is a transparent stylized design, not an empirical calibration. Connected-component diagnostics and non-`keep` connectivity modes remain under development.
+The simple preset is a transparent stylized design, not an empirical calibration. It reports compressed bipartite worker-firm component diagnostics under `connectivity(keep)` and can retain complete worker histories from the deterministically selected largest component with `connectivity(largest)`. The exact graph and returned-matrix contract is documented in [docs/network.md](docs/network.md). `connectivity(force)` remains unavailable pending an accepted scientific generation rule.
 
 ## Development installation
 
@@ -66,6 +66,6 @@ For example, `dgp(akmsimple)` is an alias for the canonical `dgp(akm) preset(sim
 
 Read [DESIGN.md](DESIGN.md) before changing public behavior and [PLAN.md](PLAN.md) for the live implementation state. Build and test instructions are in [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/architecture.md](docs/architecture.md).
 
-The qualified component-stream protocol is documented in [docs/rng.md](docs/rng.md), the worker-block output strategy in [docs/output.md](docs/output.md), and the common statistical definitions in [docs/moments.md](docs/moments.md).
+The qualified component-stream protocol is documented in [docs/rng.md](docs/rng.md), the worker-block output strategy in [docs/output.md](docs/output.md), the common statistical definitions in [docs/moments.md](docs/moments.md), and observed graph semantics in [docs/network.md](docs/network.md).
 
 The license is intentionally undecided pending owner review; no license grant should be inferred from repository visibility.

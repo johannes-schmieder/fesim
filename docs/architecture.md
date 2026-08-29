@@ -48,6 +48,8 @@ The runtime artifact strategy is source distribution. `fesim.pkg` installs the a
 
 Checkpoint 16 raises the internal Mata API to version 11 and simple-AKM handler schema to version 2. The streaming handler accumulates truth-component sufficient statistics and active-firm membership while writing periods, then supplies the common truth-moment vector and target vector to `_fesim_moments`. The public result includes weighted component rows and the four-column target comparison under every truth-output mode without a full employed-observation buffer.
 
+Checkpoint 17 raises the internal Mata API to version 12 and adds `src/fesim_network.mata` plus the installed `_fesim_network` and `_fesim_truth` ado helpers. The network helper contracts the final employed panel to weighted unique matches, computes bipartite components with union-find, returns pre/post-filter diagnostics, and optionally retains complete histories from the deterministic largest component. The truth helper recomputes component moments on that retained sample, including when row-level truth is suppressed. Both helpers remain inside the public command's data/RNG rollback boundary. Details are in [`docs/network.md`](network.md).
+
 ## Version source
 
 `fesim_version_info.ado` is the runtime version source of truth. Package metadata, help headers, and documentation must agree with it; later static checks should enforce that agreement.

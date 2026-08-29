@@ -29,6 +29,14 @@ capture noisily findfile _fesim_moments.ado
 assert _rc == 0
 assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
+capture noisily findfile _fesim_network.ado
+assert _rc == 0
+assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
+
+capture noisily findfile _fesim_truth.ado
+assert _rc == 0
+assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
+
 capture noisily findfile _fesim_load.ado
 assert _rc == 0
 assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
@@ -60,7 +68,7 @@ capture noisily fesim, dgp(akmsimple) workers(12) firms(3) periods(2) ///
 assert _rc == 0
 assert _N == 24
 isid workerid time
-mata: assert(fesim_mata_api_version() == 11)
+mata: assert(fesim_mata_api_version() == 12)
 mata: mata clear
 quietly adopath ++ `"`repository_root'/build"'
 mata: mata mlib index

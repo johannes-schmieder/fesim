@@ -24,9 +24,14 @@ local public_N = r(N)
 local public_workers = r(N_workers)
 local public_firms = r(N_firms)
 local public_periods = r(periods)
+local public_components = r(components)
+local public_largest_obs_share = r(largest_component_obs_share)
+local public_largest_worker_share = r(largest_component_worker_share)
+local public_largest_firm_share = r(largest_component_firm_share)
 matrix public_parameters = r(parameters)
 matrix public_moments = r(moments)
 matrix public_targets = r(targets)
+matrix public_network = r(network)
 assert _N == 160
 isid workerid time
 assert workerid == floor((_n - 1) / 4) + 1
@@ -75,6 +80,17 @@ assert rowsof(public_parameters) == 13
 assert rowsof(public_moments) == 38
 assert rowsof(public_targets) == 10
 assert colsof(public_targets) == 4
+assert rowsof(public_network) == 13
+assert colsof(public_network) == 2
+assert public_network["components", "generated"] == `public_components'
+assert public_network["largest_observation_share", "generated"] == ///
+    `public_largest_obs_share'
+assert public_network["largest_worker_share", "generated"] == ///
+    `public_largest_worker_share'
+assert public_network["largest_firm_share", "generated"] == ///
+    `public_largest_firm_share'
+mata: assert(st_matrix("public_network")[, 1] == ///
+    st_matrix("public_network")[, 2])
 assert public_targets["alpha_true_mean", "target"] == 0
 assert public_targets["alpha_true_sd", "target"] == .3
 assert public_targets["alpha_true_var", "target"] == .09
@@ -189,6 +205,55 @@ mata: st_local("expected_seed_text", ///
     strtrim(sprintf("%21.0f", public_expected_seed)))
 assert `"`unseeded_record'"' == `"`expected_seed_text'"'
 
+local disconnected_options workers(60) firms(6) periods(4) ///
+    seed(73195) initial(stationary) ///
+    parameters(p_eu 0 p_ee 0 p_ue .6 firm_size_sd 0) noreport clear
+quietly fesim, `disconnected_options' truth(none) connectivity(keep)
+matrix disconnected_keep_network = r(network)
+assert r(components) > 1
+assert disconnected_keep_network["workers", "generated"] == 60
+assert disconnected_keep_network["employed_observations", "generated"] == 240
+matrix disconnected_keep_moments = r(moments)
+
+quietly fesim, `disconnected_options' truth(none) connectivity(largest)
+matrix largest_none_network = r(network)
+matrix largest_none_moments = r(moments)
+local largest_none_workers = r(N_workers)
+assert r(components) == 1
+assert r(N) == `largest_none_workers' * 4
+assert `largest_none_workers' < 60
+assert r(N_firms) == 6
+assert r(N_firms_active) == 1
+assert largest_none_network["components", "generated"] == ///
+    disconnected_keep_network["components", "generated"]
+assert largest_none_network["workers", "generated"] == 60
+assert largest_none_network["workers", "returned"] == `largest_none_workers'
+assert largest_none_network["largest_observation_share", "returned"] == 1
+assert largest_none_network["largest_worker_share", "returned"] == 1
+assert largest_none_network["largest_firm_share", "returned"] == 1
+by workerid (time): assert _N == 4
+foreach truth_name in alpha_true psi_true time_true xb_true match_true ///
+    epsilon_true lnwage_true {
+    capture confirm variable `truth_name'
+    assert _rc == 111
+}
+tempfile largest_none
+quietly save `largest_none'
+
+quietly fesim, `disconnected_options' truth(basic) connectivity(largest)
+matrix largest_basic_moments = r(moments)
+assert r(N_workers) == `largest_none_workers'
+mata: assert(mreldif(st_matrix("largest_basic_moments"), ///
+    st_matrix("largest_none_moments")) == 0)
+quietly cf workerid time firmid employed lnwage spellid tenure newjob ///
+    from_unemp to_unemp jobtojob ntransitions using `largest_none'
+preserve
+quietly by workerid: keep if _n == 1
+quietly summarize alpha_true
+assert reldif(largest_basic_moments["alpha_true_mean", "realized"], ///
+    r(mean)) < 1e-12
+restore
+
 clear
 set obs 3
 generate long protected_id = _n
@@ -197,8 +262,15 @@ quietly datasignature set, reset
 set rng mt64
 set seed 86420
 local failure_rng_before `"`c(rngstate)'"'
-capture noisily fesim, workers(12) firms(3) periods(2) ///
+capture noisily fesim, workers(12) firms(3) periods(2) seed(1234) ///
+    initial(allunemployed) parameters(p_ue 0) truth(none) ///
     connectivity(largest) clear
+assert _rc == 459
+quietly datasignature confirm
+assert `"`c(rngstate)'"' == `"`failure_rng_before'"'
+
+capture noisily fesim, workers(12) firms(3) periods(2) ///
+    connectivity(force) clear
 assert _rc == 498
 quietly datasignature confirm
 assert `"`c(rngstate)'"' == `"`failure_rng_before'"'
