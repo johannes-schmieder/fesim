@@ -159,7 +159,7 @@ The supported minimum for {cmd:v0.1.0} is Stata 19. Exact-source qualification c
 {title:License}
 
 {pstd}
-{cmd:fesim} is released under the MIT License. The full license text is distributed with the package and available in the development repository.
+{cmd:fesim} is released under the MIT License. Type {cmd:help fesim_license} for the full license text.
 
 {title:Author}
 

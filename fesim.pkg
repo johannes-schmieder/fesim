@@ -5,7 +5,6 @@ d Linked employer-employee panel simulation
 d
 d Distribution-Date: 20260829
 d Requires: Stata 19 or later; qualified on macOS Apple Silicon and Windows x86-64
-f LICENSE
 f fesim.ado
 f _fesim_load.ado
 f _fesim_finalize.ado
@@ -17,6 +16,7 @@ f fesim_registry.ado
 f fesim_time.ado
 f fesim_version_info.ado
 f fesim.sthlp
+f fesim_license.sthlp
 f src/fesim_types.mata
 f src/fesim_rng.mata
 f src/fesim_time.mata

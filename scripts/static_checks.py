@@ -76,8 +76,7 @@ def check_package_manifest() -> None:
     for entry in entries:
         require((ROOT / entry).is_file(), f"manifest file does not exist: {entry}")
         require(
-            entry == "LICENSE"
-            or Path(entry).suffix in {".ado", ".sthlp", ".mata"},
+            Path(entry).suffix in {".ado", ".sthlp", ".mata"},
             f"unsupported installed runtime file: {entry}",
         )
 
@@ -87,7 +86,7 @@ def check_package_manifest() -> None:
     mata_sources = {
         str(path.relative_to(ROOT)) for path in (ROOT / "src").glob("fesim_*.mata")
     }
-    expected_files = runtime_files | mata_sources | {"LICENSE"}
+    expected_files = runtime_files | mata_sources
     require(
         set(entries) == expected_files,
         "fesim.pkg/runtime mismatch: "

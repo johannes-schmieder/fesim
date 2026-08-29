@@ -41,7 +41,7 @@ capture noisily findfile _fesim_load.ado
 assert _rc == 0
 assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
-capture noisily findfile LICENSE
+capture noisily findfile fesim_license.sthlp
 assert _rc == 0
 assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
