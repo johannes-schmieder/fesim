@@ -52,6 +52,8 @@ Checkpoint 17 raises the internal Mata API to version 12 and adds `src/fesim_net
 
 Checkpoint 18 adds no runtime behavior. It freezes annual, quarterly, and monthly 24-observation simple-AKM panels with full data signatures, selected exact returns, repeated-call matrix equality, cleared-state reruns, and canonical/alias equality. Static test registration now includes `tests/regression/`. Details and portability limits are in [`docs/regression.md`](regression.md).
 
+Checkpoint 19 adds no runtime behavior. It registers large-sample statistical tests for primitive normal effects, residuals, conditional transition rates, stationary employment, uniform firm assignment, random-mobility sorting, shock/mobility independence, and fixed-seed convergence. Every tolerance is based on a declared effective sample size and an eight- or ten-standard-error family-wide bound. Details are in [`docs/statistical_tests.md`](statistical_tests.md).
+
 ## Version source
 
 `fesim_version_info.ado` is the runtime version source of truth. Package metadata, help headers, and documentation must agree with it; later static checks should enforce that agreement.
