@@ -4,7 +4,7 @@ mata:
 
 string scalar fesim_dispatch_status()
 {
-    return("shared_lifecycle_toy_only")
+    return("akm_simple_public")
 }
 
 void fesim_handler_validate(struct fesim_handler scalar handler)
@@ -26,7 +26,8 @@ struct fesim_handler scalar fesim_dispatch_handler(
 
     dgp = strlower(strtrim(dgp))
     preset = strlower(strtrim(preset))
-    if (dgp != "_toy" | preset != "deterministic") {
+    if (!((dgp == "_toy" & preset == "deterministic") | ///
+        (dgp == "akm" & preset == "simple"))) {
         _error(3300, "no qualified fesim lifecycle handler for requested DGP and preset")
     }
     handler.schema_version = fesim_handler_schema_version()
@@ -36,7 +37,8 @@ struct fesim_handler scalar fesim_dispatch_handler(
         "initialize_state burn_in advance observe finalize_flows " + ///
         "compute_moments metadata"
     handler.solve_required = 0
-    handler.qualification = "internal_toy_only"
+    if (dgp == "_toy") handler.qualification = "internal_toy_only"
+    else handler.qualification = "public_streaming"
     fesim_handler_validate(handler)
     return(handler)
 }

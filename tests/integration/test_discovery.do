@@ -47,10 +47,11 @@ assert `rc' == 198
 quietly datasignature confirm
 assert `"`c(rngstate)'"' == `"`rng_before'"'
 
-capture noisily fesim, dgp(akmsimple) seed(24680) clear
+capture noisily fesim, dgp(akmsimple) workers(25) firms(5) periods(3) ///
+    seed(24680) noreport clear
 local rc = _rc
-assert `rc' == 498
-quietly datasignature confirm
+assert `rc' == 0
+assert _N == 75
 assert `"`c(rngstate)'"' == `"`rng_before'"'
 
 di as result "FESIM DISCOVERY AND STATE-PRESERVATION TESTS PASS"

@@ -6,6 +6,8 @@ set varabbrev off
 quietly fesim_registry, action(list)
 assert `"`r(dgps)'"' == "akm akmpaygap bm"
 assert `"`r(aliases)'"' == "akmsimple akmempirical bmsimple"
+assert `"`r(qualified)'"' == "akm/simple"
+assert `"`r(status)'"' == "partial"
 assert r(n_dgps) == 3
 
 quietly fesim_registry, action(resolve) dgp(AKMSIMPLE)
@@ -14,6 +16,8 @@ assert `"`r(dgp_alias)'"' == "akmsimple"
 assert `"`r(preset)'"' == "simple"
 assert `"`r(configurable)'"' == "yes"
 assert `"`r(config_schema)'"' == "akm_simple_v1"
+assert `"`r(status)'"' == "qualified"
+assert `"`r(implemented)'"' == "yes"
 
 quietly fesim_registry, action(resolve) dgp(akm) preset(SIMPLE)
 assert `"`r(dgp)'"' == "akm"
@@ -24,6 +28,8 @@ assert `"`r(dgp)'"' == "akm"
 assert `"`r(preset)'"' == "empirical"
 assert `"`r(configurable)'"' == "no"
 assert `"`r(config_schema)'"' == ""
+assert `"`r(status)'"' == "planned"
+assert `"`r(implemented)'"' == "no"
 
 capture noisily fesim_registry, action(resolve) dgp(akmsimple) preset(empirical)
 assert _rc == 198

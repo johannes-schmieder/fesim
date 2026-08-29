@@ -91,13 +91,16 @@ capture noisily fesim in 1, clear
 local rc = _rc
 assert `rc' == 198
 
-capture noisily fesim, clear
+capture noisily fesim, workers(10) firms(2) periods(2) ///
+    seed(12345) noreport clear
 local rc = _rc
-assert `rc' == 498
+assert `rc' == 0
+assert _N == 20
 
 capture noisily fesim, dgp(akmsimple) workers(10) firms(2) periods(2) ///
-    frequency(year) start(2000) seed(12345) clear
+    frequency(year) start(2000) seed(12345) noreport clear
 local rc = _rc
-assert `rc' == 498
+assert `rc' == 0
+assert _N == 20
 
 di as result "FESIM PARSER TESTS PASS"

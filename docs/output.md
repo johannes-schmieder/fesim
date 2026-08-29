@@ -1,6 +1,6 @@
 # Block-output implementation
 
-The first output spike establishes the common write strategy before a DGP is introduced.
+The common output layer implements both the early deterministic spike and the public simple-AKM streaming route.
 
 ## Strategy
 
@@ -14,7 +14,9 @@ The first output spike establishes the common write strategy before a DGP is int
 
 The toy writer uses `long` IDs and time, `byte` employment status, and `double` wages. Those types validate the mechanism but do not yet freeze every final output type.
 
-The private lifecycle integration now creates the complete frozen panel through the shared output module: core identifiers/state/value columns, spell and tenure columns, finalized flow indicators, latent transition counts, and optional truth columns. It applies explicit labels and `%ty`, `%tq`, or `%tm` formatting, verifies `isid workerid time`, preflights every complete worker block before creating Stata data, and clears partial output after an injected write failure. The internal lifecycle result is intentionally small and currently materialized; real DGP integration must stream lifecycle blocks rather than retain that full matrix.
+The private lifecycle integration creates the complete frozen panel through the shared output module and remains small, materialized test infrastructure. The public simple-AKM handler instead allocates the final Stata dataset once, stores each retained period into its worker-major row positions, and finalizes adjacent-observation flows in adaptive complete-worker blocks. It applies explicit storage types, labels, `%ty`, `%tq`, or `%tm` formatting, sorting, and `isid workerid time` validation without retaining a full duplicate panel.
+
+Public error handling is coordinated by the ado boundary. Configuration and unsupported-mode errors precede any replacement or draw. If a scientific or output error occurs after an authorized `clear`, the prior dataset and caller RNG state are restored. A source-only clean-install test removes the development Mata library before simulation, proving that the packaged Mata sources and internal loader are sufficient at runtime.
 
 `src/fesim_flows.mata` finalizes one or more complete worker histories at a time. `newjob`, `from_unemp`, `jobtojob`, and `ntransitions` are missing in each worker's first output period because no prior observation exists. `to_unemp` is defined from the current and next observed states and is missing in the last period. A changed spell marks `newjob=1` even when the observed firm ID is unchanged, while `jobtojob=1` requires employment at different observed firms in adjacent periods. This distinguishes a same-firm return after nonemployment or hidden within-period moves from a directly observed employer-to-employer transition.
 

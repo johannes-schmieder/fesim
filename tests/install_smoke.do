@@ -29,6 +29,10 @@ capture noisily findfile _fesim_moments.ado
 assert _rc == 0
 assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
+capture noisily findfile _fesim_load.ado
+assert _rc == 0
+assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
+
 capture noisily fesim version
 assert _rc == 0
 assert `"`r(version)'"' == "0.0.0-dev"
@@ -47,6 +51,19 @@ assert `"`r(dgp)'"' == "akm"
 assert `"`r(preset)'"' == "simple"
 assert `"`r(config_schema)'"' == "akm_simple_v1"
 assert strpos(`"`r(config)'"', "workers=10000") > 0
+
+quietly adopath - `"`repository_root'/build"'
+mata: mata clear
+mata: mata mlib index
+capture noisily fesim, dgp(akmsimple) workers(12) firms(3) periods(2) ///
+    seed(12345) truth(none) noreport clear
+assert _rc == 0
+assert _N == 24
+isid workerid time
+mata: assert(fesim_mata_api_version() == 10)
+mata: mata clear
+quietly adopath ++ `"`repository_root'/build"'
+mata: mata mlib index
 
 quietly cd `"`oldpwd'"'
 di as result "FESIM CLEAN INSTALL SMOKE PASS"

@@ -12,13 +12,13 @@ quietly datasignature set, reset
 local rng_before `"`c(rngstate)'"'
 
 mata:
-assert(fesim_mata_api_version() == 9)
+assert(fesim_mata_api_version() == 10)
 assert(fesim_config_schema_version() == 2)
 assert(fesim_population_schema_version() == 2)
 assert(fesim_state_schema_version() == 4)
 assert(fesim_results_schema_version() == 2)
 assert(fesim_handler_schema_version() == 1)
-assert(fesim_dispatch_status() == "shared_lifecycle_toy_only")
+assert(fesim_dispatch_status() == "akm_simple_public")
 
 toy_config = fesim_toy_config(7, 3, 5)
 assert(toy_config.validated == 1)
@@ -78,7 +78,9 @@ assert _rc == 3300
 mata: bad_handler = fesim_dispatch_handler("_toy", "deterministic"); bad_handler.solve_required = 2
 capture mata: fesim_handler_validate(bad_handler)
 assert _rc == 3300
-capture mata: fesim_dispatch_handler("akm", "simple")
+mata: akm_handler = fesim_dispatch_handler("akm", "simple")
+mata: assert(akm_handler.qualification == "public_streaming")
+capture mata: fesim_dispatch_handler("akm", "unknown")
 assert _rc == 3300
 capture mata: fesim_dispatch_run("_toy", "deterministic", 0, 2, 2)
 assert _rc == 3300

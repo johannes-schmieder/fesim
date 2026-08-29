@@ -47,6 +47,7 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     unit/test_akm_mobility ///
     unit/test_akm_wages ///
     integration/test_discovery ///
+    integration/test_akm_public ///
     integration/test_output_blocks integration/test_panel_contract ///
     integration/test_results
 local n_tests : word count `tests'

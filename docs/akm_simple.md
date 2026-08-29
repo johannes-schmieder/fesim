@@ -4,7 +4,7 @@ The normative simple-AKM model and frozen stylized defaults are in [`DESIGN.md`]
 
 ## Population layer
 
-`src/fesim_akm_simple.mata` currently implements the worker and firm population only. For a supplied component RNG state it:
+`src/fesim_akm_simple.mata` implements the scientific population, state-transition, and wage layers. For a supplied component RNG state its population layer:
 
 - assigns consecutive, persistent worker and firm identifiers;
 - draws one standard normal worker primitive and scales it by `sd_worker`;
@@ -40,4 +40,10 @@ Burn-in repeats this exact advance rule for the requested number of discrete out
 
 For each retained period the module consumes one standardized wage-stream draw per worker and uses it only for employed workers. This fixes wage-stream consumption independently of employment counts and future output blocking. Employed log wages equal `mu + alpha + psi + wage_trend * elapsed_years + epsilon`; `xb_true` and `match_true` are zero, and there is no observation error, so `lnwage_true` equals `lnwage`. Nonemployment retains `alpha_true` and the deterministic time component but leaves firm-, wage-, and job-specific components missing.
 
-Elapsed years are measured from the first retained observation, not from initialization or burn-in. The wage helper returns named truth components plus realized and target epsilon moments. It does not yet materialize public output or expose a public DGP.
+Elapsed years are measured from the first retained observation, not from initialization or burn-in. The wage helper returns named truth components plus realized and target epsilon moments.
+
+## Public streaming handler
+
+`src/fesim_akm_handler.mata` composes the qualified population, initialization, burn-in, transition, and wage routines. It retains worker-length population and state objects, writes each retained period directly into worker-major Stata rows, and finalizes observed flows in bounded complete-worker blocks. It never constructs a second full worker-period panel in Mata.
+
+The public command accepts both `dgp(akm) preset(simple)` and `dgp(akmsimple)`. It attaches the common metadata and realized-moment schema, records the requested alias separately from the canonical DGP, and preserves economic output across alias spelling, reporting mode, truth suppression, and block size. `connectivity(keep)` is the only implemented connectivity mode at this checkpoint; graph diagnostics and target/truth-moment integration remain the next scientific diagnostics checkpoint.

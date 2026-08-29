@@ -76,18 +76,21 @@ def check_package_manifest() -> None:
     for entry in entries:
         require((ROOT / entry).is_file(), f"manifest file does not exist: {entry}")
         require(
-            Path(entry).suffix in {".ado", ".sthlp"},
+            Path(entry).suffix in {".ado", ".sthlp", ".mata"},
             f"unsupported installed runtime file: {entry}",
         )
 
     runtime_files = {
         path.name for suffix in ("*.ado", "*.sthlp") for path in ROOT.glob(suffix)
     }
+    mata_sources = {
+        str(path.relative_to(ROOT)) for path in (ROOT / "src").glob("fesim_*.mata")
+    }
     require(
-        set(entries) == runtime_files,
+        set(entries) == runtime_files | mata_sources,
         "fesim.pkg/runtime mismatch: "
-        f"missing={sorted(runtime_files - set(entries))}, "
-        f"extra={sorted(set(entries) - runtime_files)}",
+        f"missing={sorted((runtime_files | mata_sources) - set(entries))}, "
+        f"extra={sorted(set(entries) - (runtime_files | mata_sources))}",
     )
     require(
         re.search(r"^d Requires: Stata 19 or later;", manifest, re.MULTILINE)

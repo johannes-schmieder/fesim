@@ -80,7 +80,7 @@ program define fesim__list, rclass
         di as txt "  " %-12s `"`dgp'"' %-19s `"`presets'"' ///
             %-27s `"`aliases'"' `"`r(status)'"'
     }
-    di as txt _newline "Configuration is available for akm/simple; simulation is not yet implemented."
+    di as txt _newline "The akm/simple preset is available for simulation."
 
     return local command "list"
     return local dgps `"`dgps'"'
@@ -173,7 +173,12 @@ program define fesim__describe, rclass
         di as txt _newline "Configuration metadata for this preset is planned."
         return local calibration_class `"`calibration'"'
     }
-    di as txt "Simulation is not available in this development checkpoint."
+    if `"`dgp'"' == "akm" & `"`resolved_preset'"' == "simple" {
+        di as txt "Simulation is available for this preset."
+    }
+    else {
+        di as txt "Simulation is not yet available for this preset."
+    }
 
     return local command "describe"
     return local dgp `"`dgp'"'
@@ -213,15 +218,122 @@ program define fesim__simulate, rclass
     if `"`noreport'"' != "" local config_options `"`config_options' noreport"'
 
     quietly fesim_config, `config_options'
+    local resolved_dgp `"`r(dgp)'"'
+    local resolved_alias `"`r(dgp_alias)'"'
+    local resolved_preset `"`r(preset)'"'
+    local calibration_class `"`r(calibration_class)'"'
+    local resolved_frequency `"`r(frequency)'"'
+    local resolved_seed `"`r(seed)'"'
+    local resolved_initial `"`r(initial)'"'
+    local resolved_jobrule `"`r(jobrule)'"'
+    local resolved_truth `"`r(truth)'"'
+    local resolved_connectivity `"`r(connectivity)'"'
+    local resolved_reporting `"`r(report)'"'
+    local resolved_internal_clock `"`r(internal_clock)'"'
     local resolved_config `"`r(config)'"'
+    local resolved_workers = r(workers)
+    local resolved_firms = r(firms)
+    local resolved_periods = r(periods)
+    local resolved_burnin = r(burnin)
+    local resolved_start = r(start_value)
+    local resolved_delta = r(delta_years)
+    local resolved_time_format `"`r(time_format)'"'
+    tempname resolved_parameters p_mu p_sd_worker p_sd_firm p_sd_error ///
+        p_firm_size_sd p_eu p_ee p_ue p_wage_trend
+    matrix `resolved_parameters' = r(parameters)
+    scalar `p_mu' = `resolved_parameters'["mu", "value"]
+    scalar `p_sd_worker' = `resolved_parameters'["sd_worker", "value"]
+    scalar `p_sd_firm' = `resolved_parameters'["sd_firm", "value"]
+    scalar `p_sd_error' = `resolved_parameters'["sd_error", "value"]
+    scalar `p_firm_size_sd' = `resolved_parameters'["firm_size_sd", "value"]
+    scalar `p_eu' = `resolved_parameters'["p_eu", "value"]
+    scalar `p_ee' = `resolved_parameters'["p_ee", "value"]
+    scalar `p_ue' = `resolved_parameters'["p_ue", "value"]
+    scalar `p_wage_trend' = `resolved_parameters'["wage_trend", "value"]
+
     if `"`clear'"' == "" & (_N > 0 | c(k) > 0) {
         di as error "data are in memory; specify clear to permit replacement"
         exit 4
     }
+    if `"`resolved_dgp'"' != "akm" | `"`resolved_preset'"' != "simple" {
+        di as error "simulation is not yet implemented for dgp(`resolved_dgp') preset(`resolved_preset')"
+        exit 498
+    }
+    if `"`resolved_connectivity'"' != "keep" {
+        di as error "connectivity(`resolved_connectivity') is not yet implemented for akm/simple"
+        exit 498
+    }
 
-    quietly fesim_version_info
-    di as error "fesim simulation is not implemented in version `r(version)'"
-    di as error "The current development checkpoint resolves configuration but does not simulate; data and RNG state were not changed."
-    di as txt "resolved configuration: `resolved_config'"
-    exit 498
+    quietly _fesim_load
+
+    local seed_was_requested 0
+    local seed_value 0
+    if `"`resolved_seed'"' != "current" {
+        local seed_was_requested 1
+        local seed_value `resolved_seed'
+    }
+    local caller_rng `"`c(rng)'"'
+    local caller_rngstate `"`c(rngstate)'"'
+    local had_data = _N > 0 | c(k) > 0
+    if `had_data' quietly preserve
+    clear
+
+    tempname master_seed
+    capture noisily mata: st_numscalar("`master_seed'", ///
+        fesim_akm_simulate_to_stata( ///
+        `resolved_workers', `resolved_firms', `resolved_periods', ///
+        `resolved_start', "`resolved_time_format'", `resolved_delta', ///
+        `seed_value', `seed_was_requested', "`resolved_initial'", ///
+        `resolved_burnin', "`resolved_truth'", st_numscalar("`p_mu'"), ///
+        st_numscalar("`p_sd_worker'"), st_numscalar("`p_sd_firm'"), ///
+        st_numscalar("`p_sd_error'"), st_numscalar("`p_firm_size_sd'"), ///
+        st_numscalar("`p_eu'"), st_numscalar("`p_ee'"), ///
+        st_numscalar("`p_ue'"), st_numscalar("`p_wage_trend'")))
+    local simulation_rc = _rc
+    if `simulation_rc' {
+        if `had_data' quietly restore
+        else clear
+        quietly mata: fesim_rng_restore_state( ///
+            "`caller_rng'", "`caller_rngstate'")
+        exit `simulation_rc'
+    }
+
+    capture quietly _fesim_moments, firms(`resolved_firms')
+    local moments_rc = _rc
+    if `moments_rc' {
+        if `had_data' quietly restore
+        else clear
+        quietly mata: fesim_rng_restore_state( ///
+            "`caller_rng'", "`caller_rngstate'")
+        exit `moments_rc'
+    }
+    tempname resolved_moments
+    matrix `resolved_moments' = r(moments)
+    local firms_active = r(N_firms_active)
+    local employment_rate = r(employment_rate)
+    local realized_eu = r(p_eu_realized)
+    local realized_ue = r(p_ue_realized)
+    local realized_ee = r(p_ee_realized)
+    if `had_data' quietly restore, not
+
+    local recorded_seed : display %21.0f scalar(`master_seed')
+    local recorded_seed = strtrim(`"`recorded_seed'"')
+    local scientific_config = subinstr(`"`resolved_config'"', ///
+        " report=`resolved_reporting'", "", .)
+    local resolved_command `"fesim `scientific_config'"'
+    _fesim_finalize, dgp(`resolved_dgp') dgpalias(`resolved_alias') ///
+        preset(`resolved_preset') calibrationclass(`calibration_class') ///
+        command(`"`resolved_command'"') seed(`recorded_seed') rng(mt64s) ///
+        rngmethod(fixed_nonoverlapping_mt64s_component_streams) ///
+        frequency(`resolved_frequency') ///
+        internalclock(`resolved_internal_clock') jobrule(`resolved_jobrule') ///
+        truth(`resolved_truth') burnin(`resolved_burnin') ///
+        connectivity(`resolved_connectivity') reference(none) ///
+        workers(`resolved_workers') firms(`resolved_firms') ///
+        periods(`resolved_periods') parameters(`resolved_parameters') ///
+        moments(`resolved_moments') firmsactive(`firms_active') ///
+        employmentrate(`employment_rate') peu(`realized_eu') ///
+        pue(`realized_ue') pee(`realized_ee') ///
+        reporting(`resolved_reporting')
+    return add
 end

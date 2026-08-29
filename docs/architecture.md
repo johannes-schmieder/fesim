@@ -42,6 +42,10 @@ Checkpoint 13 raises the internal Mata API to version 8, the dynamic-state schem
 
 Checkpoint 14 raises the internal Mata API to version 9 and the simple-AKM module schema to version 3. The wage layer returns the employed wage plus the seven basic truth components, consumes a fixed one draw per worker-period, preserves nonemployment missingness, and reports realized/target epsilon moments. Public dispatch remains closed pending real-handler output integration.
 
+Checkpoint 15 raises the internal Mata API to version 10 and the output schema to version 4. `src/fesim_akm_handler.mata` is the first public scientific handler: it composes the simple-AKM layers, streams retained periods directly into the final Stata panel, and delegates bounded flow finalization to the common output module. `fesim.ado` validates and resolves all configuration before mutation, records the actual component-stream master seed, restores data and RNG on handler failure, computes common moments, and passes the result through the common metadata boundary. Registry discovery now marks only `akm/simple` as qualified.
+
+The runtime artifact strategy is source distribution. `fesim.pkg` installs the authoritative Mata files along with `_fesim_load.ado`; the loader uses an already indexed API-10 library when available and otherwise executes the installed sources in dependency order. The clean-install suite explicitly removes the development library before its simulation smoke test. The ignored `build/lfesim.mlib` remains a fast development and exact-source qualification artifact, not an installed binary dependency.
+
 ## Version source
 
 `fesim_version_info.ado` is the runtime version source of truth. Package metadata, help headers, and documentation must agree with it; later static checks should enforce that agreement.

@@ -6,7 +6,7 @@ The installed runtime will use only official Stata and Mata. It will not require
 
 ## Current implementation status
 
-Version `0.0.0-dev` has shared configuration, registry, component-RNG, time/rate, lifecycle, block-output, flow, moment, and result foundations. It provides discovery, preset inspection, canonical alias resolution, and deterministic default reporting:
+Version `0.0.0-dev` now provides an end-to-end stylized `akm/simple` simulator on top of the shared configuration, component-RNG, time/rate, lifecycle, block-output, flow, moment, and result foundations. Discovery, preset inspection, canonical alias resolution, and deterministic default reporting remain available:
 
 ```stata
 fesim version
@@ -19,21 +19,23 @@ fesim describe akm, preset(simple)
 
 `fesim describe akmsimple` reports the resolved `akm/simple` configuration and scalar-parameter matrix. The same resolver validates named common options and model-specific name-value pairs such as `parameters(mu 3.2 p_ee .10)`, records their sources, and serializes the result deterministically. In the frozen v0.1 contract, all model-specific scalars remain inside `parameters()`; only common controls have named options.
 
-Simulation is not implemented in this checkpoint. A simulation invocation is fully resolved and validated without clearing data or consuming random numbers, then exits with a development-stage error. The first end-to-end target remains:
+The public simulation route is:
+
+```stata
+fesim, dgp(akmsimple) seed(12345) clear
+```
+
+This is equivalent to `dgp(akm) preset(simple)`. It generates the required worker-period panel, optional basic truth variables, common moments, metadata, and returned results. Retained periods are streamed into the final worker-major Stata dataset; the implementation does not retain a second full panel in Mata.
 
 An internal deterministic toy handler exercises the shared Mata lifecycle and typed containers. It is test infrastructure and is not registered as a public DGP. Only the shared output module may translate its results into the frozen Stata panel scaffold. The common blockwise finalizer constructs observed flow indicators and preserves latent transition counts with explicit boundary-period missingness.
 
-The internal common result finalizer attaches the frozen dataset characteristics, returns named scalars/macros/matrices, records stage timings, and implements compact `report`/`noreport` behavior without changing data or RNG state. It remains shared execution infrastructure; public simulation is still unavailable until `akm/simple` is qualified.
+The common result finalizer attaches the frozen dataset characteristics, returns named scalars/macros/matrices, and implements compact `report`/`noreport` behavior without changing data or RNG state.
 
 The internal common moment engine computes risk-set transition rates, employed-observation wage moments, pooled firm-period size and concentration moments, mover/stayer counts, and consistently weighted truth moments. Its exact row and target-comparison contracts are documented in [docs/moments.md](docs/moments.md).
 
-The first `akm/simple` scientific module now generates persistent worker and firm effects, normalized firm attraction weights, approved initial states, competing employment/mobility transitions, spell and duration state, discrete burn-in, and complete employed wage/truth components on isolated RNG streams. This internal layer is documented in [docs/akm_simple.md](docs/akm_simple.md), but public simulation remains unavailable until the real handler and full output path are qualified.
+The `akm/simple` module generates persistent worker and firm effects, normalized firm attraction weights, approved initial states, competing employment/mobility transitions, spell and duration state, discrete burn-in, and complete employed wage/truth components on isolated RNG streams. The public route and remaining diagnostic boundary are documented in [docs/akm_simple.md](docs/akm_simple.md).
 
-```stata
-fesim, dgp(akmsimple) clear seed(12345)
-```
-
-Do not use the current source for empirical or Monte Carlo results yet.
+The simple preset is a transparent stylized design, not an empirical calibration. Connected-component diagnostics and non-`keep` connectivity modes remain under development.
 
 ## Development installation
 

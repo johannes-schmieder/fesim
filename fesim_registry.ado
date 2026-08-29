@@ -12,8 +12,8 @@ program define fesim_registry, rclass
         }
         return local dgps "akm akmpaygap bm"
         return local aliases "akmsimple akmempirical bmsimple"
-        return local qualified ""
-        return local status "planned"
+        return local qualified "akm/simple"
+        return local status "partial"
         return scalar n_dgps = 3
         exit
     }
@@ -338,8 +338,14 @@ program define fesim_registry__resolve, rclass
     return local aliases `"`aliases'"'
     return local title `"`title'"'
     return local calibration_class `"`calibration_class'"'
-    return local status "planned"
-    return local implemented "no"
+    if `"`canonical'/`resolved_preset'"' == "akm/simple" {
+        return local status "qualified"
+        return local implemented "yes"
+    }
+    else {
+        return local status "planned"
+        return local implemented "no"
+    }
     return local configurable `"`configurable'"'
     return local config_schema `"`config_schema'"'
     return local frequencies "year quarter month"

@@ -4,7 +4,168 @@ mata:
 
 real scalar fesim_output_schema_version()
 {
-    return(3)
+    return(4)
+}
+
+real scalar fesim_output_initialize_panel(
+    real scalar workers,
+    real scalar periods,
+    real scalar start_value,
+    string scalar time_format,
+    string scalar truth)
+{
+    real scalar requested
+    real rowvector variable_indices
+    real rowvector truth_indices
+
+    requested = fesim_output_checked_rows(workers, periods)
+    truth = strlower(strtrim(truth))
+    if (truth != "none" & truth != "basic" & truth != "full") {
+        _error(3300, "truth must be none, basic, or full")
+    }
+    if (missing(start_value) | ///
+        (time_format != "%ty" & time_format != "%tq" & ///
+        time_format != "%tm")) {
+        _error(3300, "output start value or time format is invalid")
+    }
+    if (st_nobs() != 0 | st_nvar() != 0) {
+        _error(3300, "panel output writer requires an empty Stata dataset")
+    }
+
+    st_addobs(requested)
+    variable_indices = st_addvar(("long", "long", "long", "byte", "double", "long", ///
+        "double", "byte", "byte", "byte", "byte", "long"), ///
+        ("workerid", "time", "firmid", "employed", "lnwage", ///
+        "spellid", "tenure", "newjob", "from_unemp", "to_unemp", ///
+        "jobtojob", "ntransitions"))
+    if (truth != "none") {
+        truth_indices = st_addvar(J(1, 7, "double"), ///
+            ("alpha_true", "psi_true", "time_true", "xb_true", ///
+            "match_true", "epsilon_true", "lnwage_true"))
+    }
+    st_varformat("time", time_format)
+    return(requested)
+}
+
+void fesim_output_store_akm_period(
+    struct fesim_state scalar state,
+    struct fesim_population scalar population,
+    real matrix wage_components,
+    real scalar output_period,
+    real scalar periods,
+    real scalar start_value,
+    string scalar truth)
+{
+    real colvector rows_to_write
+    real colvector spell_id
+
+    fesim_population_validate(population)
+    fesim_state_validate(state, population)
+    truth = strlower(strtrim(truth))
+    if (rows(wage_components) != population.workers | ///
+        cols(wage_components) != 8 | output_period < 1 | ///
+        output_period > periods | output_period != floor(output_period) | ///
+        periods < 1 | periods != floor(periods) | missing(start_value) | ///
+        (truth != "none" & truth != "basic" & truth != "full")) {
+        _error(3300, "AKM period-output inputs are invalid")
+    }
+    if (st_nobs() != population.workers * periods) {
+        _error(3300, "AKM period output does not match the Stata dataset")
+    }
+
+    rows_to_write = (0::(population.workers - 1)) :* periods :+ output_period
+    spell_id = state.spell_id
+    if (any(state.employed :== 0)) {
+        spell_id[selectindex(state.employed :== 0)] = ///
+            J(sum(state.employed :== 0), 1, .)
+    }
+    st_store(rows_to_write, "workerid", population.worker_id)
+    st_store(rows_to_write, "time", ///
+        J(population.workers, 1, start_value + output_period - 1))
+    st_store(rows_to_write, "firmid", state.firm_id)
+    st_store(rows_to_write, "employed", state.employed)
+    st_store(rows_to_write, "lnwage", wage_components[, 1])
+    st_store(rows_to_write, "spellid", spell_id)
+    st_store(rows_to_write, "tenure", state.tenure)
+    st_store(rows_to_write, "ntransitions", state.ntransitions)
+    if (truth != "none") {
+        st_store(rows_to_write, "alpha_true", wage_components[, 2])
+        st_store(rows_to_write, "psi_true", wage_components[, 3])
+        st_store(rows_to_write, "time_true", wage_components[, 4])
+        st_store(rows_to_write, "xb_true", wage_components[, 5])
+        st_store(rows_to_write, "match_true", wage_components[, 6])
+        st_store(rows_to_write, "epsilon_true", wage_components[, 7])
+        st_store(rows_to_write, "lnwage_true", wage_components[, 8])
+    }
+}
+
+real scalar fesim_output_finalize_panel(
+    real scalar workers,
+    real scalar periods,
+    real scalar block_workers,
+    string scalar truth)
+{
+    real scalar first_worker
+    real scalar first_row
+    real scalar last_worker
+    real scalar last_row
+    real matrix block
+    real matrix flows
+    real colvector output_period
+    real colvector rows_to_write
+
+    fesim_output_checked_rows(workers, periods)
+    truth = strlower(strtrim(truth))
+    if (missing(block_workers) | block_workers < 1 | ///
+        block_workers != floor(block_workers) | ///
+        (truth != "none" & truth != "basic" & truth != "full") | ///
+        st_nobs() != workers * periods) {
+        _error(3300, "panel finalization inputs are invalid")
+    }
+    block_workers = min((workers, block_workers))
+    for (first_worker = 1; first_worker <= workers; ///
+        first_worker = first_worker + block_workers) {
+        last_worker = min((workers, first_worker + block_workers - 1))
+        first_row = (first_worker - 1) * periods + 1
+        last_row = last_worker * periods
+        rows_to_write = (first_row::last_row)
+        output_period = 1 :+ mod((0::(last_row - first_row)), periods)
+        block = (st_data(rows_to_write, "workerid"), output_period, ///
+            st_data(rows_to_write, ///
+            ("firmid", "employed", "lnwage", "spellid", ///
+            "tenure", "ntransitions")))
+        flows = fesim_finalize_flows(block, periods)
+        st_store(rows_to_write, "newjob", flows[, 1])
+        st_store(rows_to_write, "from_unemp", flows[, 2])
+        st_store(rows_to_write, "to_unemp", flows[, 3])
+        st_store(rows_to_write, "jobtojob", flows[, 4])
+        st_store(rows_to_write, "ntransitions", flows[, 5])
+    }
+
+    st_varlabel("workerid", "Worker identifier")
+    st_varlabel("time", "Output period")
+    st_varlabel("firmid", "Observed employer identifier")
+    st_varlabel("employed", "Employed at observation time")
+    st_varlabel("lnwage", "Observed log wage")
+    st_varlabel("spellid", "Worker-specific job-spell identifier")
+    st_varlabel("tenure", "Tenure in output-period units")
+    st_varlabel("newjob", "New observed job")
+    st_varlabel("from_unemp", "Observed nonemployment-to-employment transition")
+    st_varlabel("to_unemp", "Observed employment-to-nonemployment transition")
+    st_varlabel("jobtojob", "Observed direct employer-to-employer transition")
+    st_varlabel("ntransitions", "Latent transitions since prior observation")
+    if (truth != "none") {
+        st_varlabel("alpha_true", "True worker effect")
+        st_varlabel("psi_true", "True observed-firm effect")
+        st_varlabel("time_true", "True deterministic time component")
+        st_varlabel("xb_true", "True observable contribution")
+        st_varlabel("match_true", "True match contribution")
+        st_varlabel("epsilon_true", "True idiosyncratic wage shock")
+        st_varlabel("lnwage_true", "True latent log wage")
+    }
+    stata("sort workerid time", 1)
+    stata("isid workerid time", 1)
+    return(st_nobs())
 }
 
 real scalar fesim_output_lifecycle_panel(
