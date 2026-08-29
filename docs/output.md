@@ -12,7 +12,7 @@ The common output layer implements both the early deterministic spike and the pu
 - Retain only worker-length dynamic state and the current output block in Mata; do not retain a full second panel copy.
 - Finalize sorting, labels, characteristics, and any cross-block metadata only after all blocks are written.
 
-The toy writer uses `long` IDs and time, `byte` employment status, and `double` wages. Those types validate the mechanism but do not yet freeze every final output type.
+The toy writer uses `long` IDs and time, `byte` employment status, and `double` wages. The public simple-AKM route extends this scaffold with the complete frozen variable and storage-type contract verified by `tests/integration/test_panel_contract.do`.
 
 The private lifecycle integration creates the complete frozen panel through the shared output module and remains small, materialized test infrastructure. The public simple-AKM handler instead allocates the final Stata dataset once, stores each retained period into its worker-major row positions, and finalizes adjacent-observation flows in adaptive complete-worker blocks. It applies explicit storage types, labels, `%ty`, `%tq`, or `%tm` formatting, sorting, and `isid workerid time` validation without retaining a full duplicate panel.
 
@@ -24,4 +24,4 @@ Public error handling is coordinated by the ado boundary. Configuration and unsu
 
 The integration test writes the same deterministic panel with one-worker, nine-worker, and all-worker blocks and compares every value, row order, missing-value rule, and storage type. It also verifies `isid workerid time`, unchanged RNG state, and observation-count failures.
 
-The spike exposes conservative final-panel and peak-working-byte estimates. Benchmarks record Stata's elapsed time and allocated memory alongside that estimate. The estimate includes the final Stata panel, five double-precision block vectors, and four worker-length state vectors; later DGP modules must extend the accounting for their own live state rather than silently relying on the toy estimate.
+The early spike exposes conservative final-panel and peak-working-byte estimates for the shared writer. Public simple-AKM benchmarks additionally record exact-source command/stage time, dataset width, maximum resident set size, and peak process footprint; see [`docs/performance.md`](performance.md). Later DGP modules must extend the accounting for their own live state rather than silently relying on either the toy estimate or simple-AKM measurements.

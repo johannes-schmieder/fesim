@@ -1,12 +1,13 @@
 # Examples
 
-Executable simulation examples will be added with the first qualified DGP. Until then, the supported development examples are:
+`akmsimple.do` is the tested end-to-end example for the qualified stylized
+`akm/simple` DGP. It simulates a linked worker-firm panel, inspects returned
+targets, and runs an AKM-style regression with Stata's built-in `areg`:
 
 ```stata
-fesim version
-fesim list
-fesim describe akmsimple
-fesim describe akm, preset(simple)
+do examples/akmsimple.do
 ```
 
-No example in this directory should imply that data generation is already available.
+The example has no user-written runtime dependency. Other registered DGPs and
+presets remain discovery-only until their implementation plans and scientific
+gates are complete.

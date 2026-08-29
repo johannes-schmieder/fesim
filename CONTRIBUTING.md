@@ -19,7 +19,7 @@ From the repository root in Stata:
 do src/build_mlib.do
 ```
 
-The command rebuilds the development `lfesim.mlib` into the ignored `build/` directory and verifies that its minimal API can be loaded. Mata source files are authoritative. Whether a compiled library ships in releases remains an open design gate.
+The command rebuilds the development `lfesim.mlib` into the ignored `build/` directory and verifies that its minimal API can be loaded. Mata source files are authoritative and are installed with the package. The compiled library is a development and qualification artifact, not a release dependency.
 
 ## Tests
 
@@ -29,7 +29,7 @@ The single Stata entry point is:
 do tests/run_all.do
 ```
 
-It rebuilds the Mata library, performs a clean temporary package installation, and runs the smoke, parser, failure-mode, and state-preservation tests. When invoked outside the repository root, pass the repository path as the first argument.
+It rebuilds the Mata library, performs a clean temporary package installation, and runs the registered unit, integration, deterministic regression, statistical, and documentation-example suites. When invoked outside the repository root, pass the repository path as the first argument.
 
 Inspect the complete batch and per-test logs under the ignored `build/test-results/` directory. A zero process exit alone is not sufficient evidence if a log contains an unexpected Stata error or skipped test.
 

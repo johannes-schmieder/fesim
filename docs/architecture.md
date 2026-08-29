@@ -2,7 +2,7 @@
 
 The normative architecture is in [`DESIGN.md`](../DESIGN.md). This note records only implementation details established by the current source.
 
-## Checkpoint 2 boundaries
+## Evolution from the Checkpoint 2 boundaries
 
 The public `fesim.ado` layer performs subcommand detection, discovery dispatch, and data-safety enforcement. It delegates DGP and preset resolution, defaults, overrides, and validation before it considers replacing loaded data.
 
@@ -10,13 +10,13 @@ The public `fesim.ado` layer performs subcommand detection, discovery dispatch, 
 
 `fesim_config.ado` is the shared resolver. It merges package/preset defaults with named common options and `parameters()` values; rejects duplicate, unknown, inapplicable, or invalid inputs; applies cross-parameter checks; and returns both a stable text serialization and a parameter matrix. Alias spelling is deliberately excluded from the serialization, so `akmsimple` and `akm, preset(simple)` yield identical canonical configurations. Model-parameter changes reclassify the calibration as `stylized_modified`; sample-layout changes do not.
 
-The resolver and discovery commands neither set a seed nor request random draws. No DGP simulation loop exists in ado or Mata. Valid simulation syntax exits with return code 498 after configuration validation and before data clearing or RNG use.
+The resolver and discovery commands neither set a seed nor request random draws. At Checkpoint 2, valid simulation syntax exited with return code 498 after configuration validation and before data clearing or RNG use. Checkpoint 15 superseded that temporary boundary by opening the qualified public `akm/simple` route described below.
 
 ## Mata source and build
 
 Mata source files under `src/` are authoritative. `src/build_mlib.do` compiles the current `fesim_*()` functions into an ignored development library at `build/lfesim.mlib`, clears Mata, reindexes libraries, and calls the compiled API as a load test.
 
-The development library is not required by the Checkpoint 2 discovery/configuration commands and is not distributed by `fesim.pkg`. Its configuration structure reserves the common fields and parameter vector needed by later Mata dispatch, but no simulation lifecycle has been added. Whether future releases ship source, a compiled library, or both remains design gate DG-02; the checkpoint does not decide it accidentally.
+The development library is not distributed by `fesim.pkg`. The package installs authoritative Mata source and loads it in a fixed dependency order when a compatible indexed library is unavailable. This source-only runtime strategy was fixed at Checkpoint 15 and is exercised by the clean-install suite.
 
 Checkpoint 3 adds two qualified shared prototypes to that library. `src/fesim_rng.mata` manages fixed `mt64s` component states without exposing long RNG-state strings to ado code; details are in [`docs/rng.md`](rng.md). `src/fesim_output.mata` validates observation counts, computes conservative memory estimates, and writes deterministic worker-major blocks through vectorized `st_store()` calls; details are in [`docs/output.md`](output.md). Neither module yet dispatches a DGP.
 
@@ -57,6 +57,8 @@ Checkpoint 19 adds no runtime behavior. It registers large-sample statistical te
 Checkpoint 20 adds no runtime behavior. It completes the simple-AKM user path in the help and README, documents simulation returns and truth variables, and adds a tested `examples/akmsimple.do` that uses only built-in `areg` for an estimator demonstration. Static test registration now includes `tests/docs/`.
 
 Checkpoint 21 raises the internal Mata API to version 13 and adds `src/fesim_runtime.mata`. The public route claims only unused native timer slots, measures simulation and post-simulation diagnostics, releases its slots on success and failure, and leaves occupied caller timers unchanged. The exact-source benchmark harness records public-command time, internal stage time, dataset width, graph scale, and external process resource usage.
+
+Checkpoint 22 preserves the graph contract while replacing nonlinear interpreted aggregation and large membership-matrix transfers. The public route constructs compressed exact worker-firm keys, uses union by rank with deterministic lowest-worker component IDs, performs grouped native diagnostics, skips unused membership matrices under `connectivity(keep)`, and writes the retained-row marker directly under `connectivity(largest)`. Exact before/after and 10-million-row results are in [`docs/performance.md`](performance.md).
 
 ## Version source
 

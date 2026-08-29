@@ -105,10 +105,16 @@ def check_version_source() -> None:
     require(match is not None, "fesim_version_info.ado has no version return")
     version = match.group(1)
     required_mentions = {
-        "fesim.ado": (ROOT / "fesim.ado").read_text(encoding="utf-8")[:200],
         "fesim.sthlp": (ROOT / "fesim.sthlp").read_text(encoding="utf-8")[:300],
         "README.md": (ROOT / "README.md").read_text(encoding="utf-8"),
+        "stata.toc": (ROOT / "stata.toc").read_text(encoding="utf-8"),
     }
+    required_mentions.update(
+        {
+            path.name: path.read_text(encoding="utf-8").splitlines()[0]
+            for path in ROOT.glob("*.ado")
+        }
+    )
     missing = [name for name, text in required_mentions.items() if version not in text]
     require(not missing, f"version {version} is absent from: {', '.join(missing)}")
 

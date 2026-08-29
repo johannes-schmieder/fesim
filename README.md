@@ -76,7 +76,7 @@ net install fesim, from("https://raw.githubusercontent.com/johannes-schmieder/fe
 For a local checkout, prepend the repository root to the Stata ado-path:
 
 ```stata
-adopath + "/path/to/fesim"
+adopath ++ "/path/to/fesim"
 ```
 
 The supported minimum for v0.1 is Stata 19. Current exact-source qualification is on Stata/MP 19.0 for macOS Apple Silicon; source files may declare the Stata 16 language dialect, but no Stata 16–18 support claim is made without full qualification.
@@ -94,6 +94,6 @@ For example, `dgp(akmsimple)` is an alias for the canonical `dgp(akm) preset(sim
 
 Read [DESIGN.md](DESIGN.md) before changing public behavior and [PLAN.md](PLAN.md) for the live implementation state. Build and test instructions are in [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/architecture.md](docs/architecture.md).
 
-The qualified component-stream protocol is documented in [docs/rng.md](docs/rng.md), the worker-block output strategy in [docs/output.md](docs/output.md), the common statistical definitions in [docs/moments.md](docs/moments.md), observed graph semantics in [docs/network.md](docs/network.md), frozen tiny-panel scope in [docs/regression.md](docs/regression.md), and large-sample test bounds in [docs/statistical_tests.md](docs/statistical_tests.md).
+The qualified component-stream protocol is documented in [docs/rng.md](docs/rng.md), the worker-block output strategy in [docs/output.md](docs/output.md), the common statistical definitions in [docs/moments.md](docs/moments.md), observed graph semantics in [docs/network.md](docs/network.md), frozen tiny-panel scope in [docs/regression.md](docs/regression.md), large-sample test bounds in [docs/statistical_tests.md](docs/statistical_tests.md), and exact-source runtime baselines in [docs/performance.md](docs/performance.md). User-visible release scope is summarized in [CHANGELOG.md](CHANGELOG.md).
 
 The license is intentionally undecided pending owner review; no license grant should be inferred from repository visibility.
