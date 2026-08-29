@@ -52,6 +52,9 @@ The simple model parameters accepted in {cmd:parameters()} are {cmd:mu}, {cmd:sd
 The returned dataset is sorted by {cmd:workerid time} and satisfies {cmd:isid workerid time}. Required variables are {cmd:workerid}, {cmd:time}, {cmd:firmid}, {cmd:employed}, {cmd:lnwage}, {cmd:spellid}, {cmd:tenure}, {cmd:newjob}, {cmd:from_unemp}, {cmd:to_unemp}, {cmd:jobtojob}, and {cmd:ntransitions}. With {cmd:truth(basic)} or {cmd:truth(full)}, the simple preset also generates {cmd:alpha_true}, {cmd:psi_true}, {cmd:time_true}, {cmd:xb_true}, {cmd:match_true}, {cmd:epsilon_true}, and {cmd:lnwage_true}. {cmd:truth(none)} suppresses those columns without changing any economic draw or common output value.
 
 {pstd}
+{cmd:alpha_true} is the persistent worker effect. {cmd:psi_true} is the persistent current-firm effect and is missing outside employment. {cmd:time_true} is {cmd:wage_trend} times elapsed retained-sample years. {cmd:xb_true} and {cmd:match_true} are zero in the simple preset. {cmd:epsilon_true} is the idiosyncratic wage shock, and {cmd:lnwage_true} equals the observed employed log wage because the simple preset has no measurement error.
+
+{pstd}
 Simulation results are returned through {cmd:r()} scalars for dimensions, realized flows, network diagnostics, and stage runtimes; macros for the resolved DGP, preset, timing, RNG, and version; and matrices {cmd:r(parameters)}, {cmd:r(moments)}, {cmd:r(targets)}, and {cmd:r(network)}. Simple-AKM component moments and targets are computed even under {cmd:truth(none)}. Dataset characteristics record the version, canonical DGP and requested alias, preset and calibration class, command, actual master seed and RNG, frequency and internal clock, employer rule, burn-in, connectivity rule, truth mode, and normalization reference.
 
 {title:Connectivity}
@@ -105,6 +108,30 @@ Discovery and configuration resolution do not alter data or Stata's RNG state. T
 {synopt:{cmd:r(config_sources)}}source of each resolved field, when available{p_end}
 {synopt:{cmd:r(parameters)}}scalar parameter matrix with value, default, lower, and upper columns{p_end}
 
+{pstd}A successful simulation returns:{p_end}
+{synoptset 38 tabbed}{...}
+{synopt:{cmd:r(N)}}returned worker-period observations{p_end}
+{synopt:{cmd:r(N_workers)}}returned workers; after {cmd:connectivity(largest)}, the retained count{p_end}
+{synopt:{cmd:r(N_firms)}}requested firm population{p_end}
+{synopt:{cmd:r(N_firms_active)}}firms observed active in the returned panel{p_end}
+{synopt:{cmd:r(periods)}}retained periods per returned worker{p_end}
+{synopt:{cmd:r(employment_rate)}}returned-sample employment share{p_end}
+{synopt:{cmd:r(p_eu_realized)}}observed employment-to-nonemployment rate{p_end}
+{synopt:{cmd:r(p_ue_realized)}}observed nonemployment-to-employment rate{p_end}
+{synopt:{cmd:r(p_ee_realized)}}observed direct employer-change rate{p_end}
+{synopt:{cmd:r(components)}}components in the returned observed graph{p_end}
+{synopt:{cmd:r(largest_component_obs_share)}}returned graph's largest employed-observation share{p_end}
+{synopt:{cmd:r(largest_component_worker_share)}}returned graph's largest ever-employed-worker share{p_end}
+{synopt:{cmd:r(largest_component_firm_share)}}returned graph's largest active-firm share{p_end}
+{synopt:{cmd:r(parameters)}}resolved value/default/bound matrix; requested dimensions remain here{p_end}
+{synopt:{cmd:r(moments)}}common realized and truth moment rows{p_end}
+{synopt:{cmd:r(targets)}}target, realized, difference, and relative-difference columns{p_end}
+{synopt:{cmd:r(network)}}generated and returned graph-diagnostic columns{p_end}
+{synopt:{cmd:r(dgp)}, {cmd:r(dgp_alias)}, {cmd:r(preset)}}canonical identity and requested alias{p_end}
+{synopt:{cmd:r(seed)}, {cmd:r(rng)}}actual master seed and component-stream RNG{p_end}
+{synopt:{cmd:r(frequency)}, {cmd:r(internal_clock)}}output and internal timing{p_end}
+{synopt:{cmd:r(command)}, {cmd:r(version)}, {cmd:r(reference)}}scientific command and package metadata{p_end}
+
 {title:Examples}
 
 {phang2}{cmd:. fesim version}{p_end}
@@ -114,6 +141,8 @@ Discovery and configuration resolution do not alter data or Stata's RNG state. T
 {phang2}{cmd:. fesim describe akm, preset(simple)}{p_end}
 {phang2}{cmd:. fesim, dgp(akmsimple) seed(12345) clear}{p_end}
 {phang2}{cmd:. fesim, workers(5000) periods(8) parameters(sd_worker .45 p_ee .10) clear}{p_end}
+{phang2}{cmd:. fesim, workers(5000) periods(8) seed(12345) connectivity(largest) clear}{p_end}
+{phang2}{cmd:. areg lnwage i.workerid i.time if employed, absorb(firmid) vce(cluster workerid)}{p_end}
 
 {title:Limitations}
 

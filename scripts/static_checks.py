@@ -139,6 +139,7 @@ def check_test_registration() -> None:
             ROOT / "tests/integration",
             ROOT / "tests/regression",
             ROOT / "tests/statistical",
+            ROOT / "tests/docs",
         )
         for path in directory.glob("*.do")
     )

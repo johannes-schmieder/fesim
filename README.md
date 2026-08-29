@@ -27,6 +27,34 @@ fesim, dgp(akmsimple) seed(12345) clear
 
 This is equivalent to `dgp(akm) preset(simple)`. It generates the required worker-period panel, optional basic truth variables, common moments, metadata, and returned results. Retained periods are streamed into the final worker-major Stata dataset; the implementation does not retain a second full panel in Mata.
 
+## Quick start
+
+Generate a reproducible annual panel and inspect its returned configuration, realized moments, targets, and graph:
+
+```stata
+fesim, dgp(akmsimple) workers(5000) firms(250) periods(8) ///
+    seed(12345) truth(basic) connectivity(keep) clear
+
+describe
+summarize employed lnwage alpha_true psi_true epsilon_true
+matrix list r(parameters)
+matrix list r(moments)
+matrix list r(targets)
+matrix list r(network)
+```
+
+Use `connectivity(largest)` to retain every period for workers in the selected largest observed component. Under that mode, `r(N_workers)` is the retained worker count; the originally requested count remains in the `workers` row of `r(parameters)`.
+
+Model-specific overrides stay inside `parameters()`:
+
+```stata
+fesim, dgp(akmsimple) workers(2000) periods(12) frequency(month) ///
+    start(2000m1) seed(9876) ///
+    parameters(sd_worker .45 sd_firm .18 p_ee .10) clear
+```
+
+[`examples/akmsimple.do`](examples/akmsimple.do) is a tested end-to-end example. It simulates a connected panel and runs an AKM-style regression using only Stata's built-in `areg`; the example adds no runtime dependency.
+
 An internal deterministic toy handler exercises the shared Mata lifecycle and typed containers. It is test infrastructure and is not registered as a public DGP. Only the shared output module may translate its results into the frozen Stata panel scaffold. The common blockwise finalizer constructs observed flow indicators and preserves latent transition counts with explicit boundary-period missingness.
 
 The common result finalizer attaches the frozen dataset characteristics, returns named scalars/macros/matrices, and implements compact `report`/`noreport` behavior without changing data or RNG state.
