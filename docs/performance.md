@@ -23,6 +23,8 @@ local build artifacts under `build/benchmarks/<exact-sha>/`.
 | `4b35c071eda405ced743db3fda56988313f21bdc` | 10,000 x 10 | 100,000 | 1.855 s | 1.173 s | 0.541 s | 225,312,768 B | 125,322,464 B |
 | `4b35c071eda405ced743db3fda56988313f21bdc` | 100,000 x 10 | 1,000,000 | 15.016 s | 8.967 s | 5.390 s | 508,542,976 B | 408,634,736 B |
 | `c73c6244227c3c949b3f06224f33b172e04b1c39` | 10,000 x 10 | 100,000 | 1.514 s | 0.837 s | 0.532 s | 221,003,776 B | 124,667,080 B |
+| `67abdc4aa124ad2cfc11ea7ad76455e389706e8a` | 10,000 x 10 | 100,000 | 1.592 s | 0.869 s | 0.544 s | 221,609,984 B | 124,175,536 B |
+| `67abdc4aa124ad2cfc11ea7ad76455e389706e8a` | 100,000 x 10 | 1,000,000 | 12.028 s | 5.805 s | 5.537 s | 515,735,552 B | 415,827,288 B |
 | `56dcb363a1c0b7bd9bf32ea622cf807f9c59c4a2` | 1,000,000 x 10 | 10,000,000 | 148.416 s | 73.630 s | 68.321 s | 2,262,646,784 B | 2,247,887,080 B |
 
 All datasets use 41 bytes per row. The optimized 10,000- and 100,000-worker
@@ -97,6 +99,26 @@ After removing SHA and timing fields, both JSON results exactly match their
 Checkpoint 30 controls. The simple timing improved in this single run, while
 the stylized timing and both memory measurements stayed close to the prior
 measurements; no structural speedup is claimed from one measurement.
+
+## Checkpoint 34 articulation and graph-bridge diagnostics
+
+Checkpoint 34 extends the same distinct undirected observed firm graph with a
+memory-linear iterative depth-first traversal. At exact SHA
+`67abdc4aa124ad2cfc11ea7ad76455e389706e8a`, the 100,000-row control took 1.592
+command seconds, including 0.544 output seconds, with 221,609,984-byte maximum
+RSS. Relative to the behavior-equivalent Checkpoint 31 route, output time was
+0.012 seconds higher and maximum RSS was 0.3 percent higher. The JSON SHA256 is
+`13aa70689e2801f7398e1a7e49f703b1c8ae1b978ffacd06c83d1005c84cf45d`.
+
+The 1,000,000-row control took 12.028 command seconds, including 5.537 output
+seconds, with 515,735,552-byte maximum RSS. Its JSON SHA256 is
+`39817b0baa3c30299d85363d3f688644abe3eaa1488b87ab1847b76142e7d5a0`.
+The closest retained large-scale observed-graph baseline used the same rows,
+firms, seed, employed observations, and worker-firm edges; its output stage was
+5.390 seconds and maximum RSS was 508,542,976 bytes. The 2.7 percent output-time
+and 1.4 percent memory differences do not justify a separate public performance
+switch at this scale. These are single-run complete-route comparisons, so no
+causal overhead estimate is claimed.
 
 ## Reproducing
 
