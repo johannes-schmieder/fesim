@@ -22,6 +22,7 @@ local build artifacts under `build/benchmarks/<exact-sha>/`.
 | `56dcb363a1c0b7bd9bf32ea622cf807f9c59c4a2` | 100,000 x 10 | 1,000,000 | 13.210 s | 7.596 s | 5.032 s | 375,865,344 B | 359,859,112 B |
 | `4b35c071eda405ced743db3fda56988313f21bdc` | 10,000 x 10 | 100,000 | 1.855 s | 1.173 s | 0.541 s | 225,312,768 B | 125,322,464 B |
 | `4b35c071eda405ced743db3fda56988313f21bdc` | 100,000 x 10 | 1,000,000 | 15.016 s | 8.967 s | 5.390 s | 508,542,976 B | 408,634,736 B |
+| `c73c6244227c3c949b3f06224f33b172e04b1c39` | 10,000 x 10 | 100,000 | 1.514 s | 0.837 s | 0.532 s | 221,003,776 B | 124,667,080 B |
 | `56dcb363a1c0b7bd9bf32ea622cf807f9c59c4a2` | 1,000,000 x 10 | 10,000,000 | 148.416 s | 73.630 s | 68.321 s | 2,262,646,784 B | 2,247,887,080 B |
 
 All datasets use 41 bytes per row. The optimized 10,000- and 100,000-worker
@@ -80,6 +81,22 @@ The closest same-route comparison is the 100,000-row stylized default. It took
 increase, while maximum RSS changed from 232,554,496 to 231,243,776 bytes.
 Its output stage rose from 0.508 to 0.549 seconds. The exact stylized JSON has
 SHA256 `3f85518d2e86c38b5edabe3cfec985f754d1939efea8b9eda7f0bfc54bdea983`.
+
+## Checkpoint 31 shared random destination primitive
+
+Checkpoint 31 is a behavior-preserving extraction, not a new destination
+design. At exact SHA `c73c6244227c3c949b3f06224f33b172e04b1c39`,
+the 100,000-row simple route took 1.514 command seconds, including 0.837
+simulation and 0.532 output seconds, with 221,003,776-byte maximum RSS. Its
+JSON SHA256 is `5e4160b4148a61d0c052e1852316581f374d64f58e46fbbc179cfd1d823540c1`.
+
+The corresponding stylized route took 4.460 command seconds, including 3.756
+simulation and 0.551 output seconds, with 231,686,144-byte maximum RSS. Its
+JSON SHA256 is `b2b5ce08ef911aea0f2a18b939400440e0af858b7244c1ab146c8f66ab6f6d38`.
+After removing SHA and timing fields, both JSON results exactly match their
+Checkpoint 30 controls. The simple timing improved in this single run, while
+the stylized timing and both memory measurements stayed close to the prior
+measurements; no structural speedup is claimed from one measurement.
 
 ## Reproducing
 
