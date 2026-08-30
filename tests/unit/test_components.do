@@ -4,7 +4,7 @@ set more off
 set varabbrev off
 
 mata:
-assert(fesim_network_schema_version() == 2)
+assert(fesim_network_schema_version() == 3)
 assert(fesim_network_diagnostic_names() == ///
     ("components", "edges", "employed_observations", "workers", ///
     "firms", "largest_component_id", "largest_edges", ///
@@ -12,16 +12,31 @@ assert(fesim_network_diagnostic_names() == ///
     "largest_observation_share", "largest_worker_share", ///
     "largest_firm_share", "firms_no_movers", "firm_links", ///
     "edge_weight_p10", "edge_weight_p50", "edge_weight_p90", ///
-    "edge_weight_p99"))
+    "edge_weight_p99", "articulation_firms", ///
+    "graph_bridge_links"))
 
 assert(fesim_network_weight_pct((1::10)) == ///
     (1.5 \ 5.5 \ 9.5 \ 10))
 assert(fesim_network_pair_stats(
     (1, 2 \ 2, 1 \ 2, 3 \ 3, 2), 5, 5) == ///
-    (2 \ 2 \ 2 \ 2 \ 2 \ 2))
+    (2 \ 2 \ 2 \ 2 \ 2 \ 2 \ 1 \ 2))
 pairless_stats = fesim_network_pair_stats(J(0, 2, .), 2, 3)
 assert(pairless_stats[1..2] == (2 \ 0))
 assert(all(missing(pairless_stats[3..6])))
+assert(pairless_stats[7..8] == (0 \ 0))
+assert(fesim_network_articulation_stats((1, 2 \ 2, 3), 5) == ///
+    (1 \ 2))
+assert(fesim_network_articulation_stats((1, 2 \ 1, 3 \ 2, 3), 3) == ///
+    (0 \ 0))
+assert(fesim_network_articulation_stats((1, 2 \ 1, 3 \ 1, 4), 4) == ///
+    (1 \ 3))
+assert(fesim_network_articulation_stats(
+    (1, 2 \ 2, 3 \ 3, 4 \ 3, 5 \ 4, 5), 6) == (2 \ 2))
+assert(fesim_network_articulation_stats(
+    (1, 2 \ 2, 3 \ 4, 5), 5) == (1 \ 3))
+chain_stats = fesim_network_articulation_stats(
+    ((1::9999), (2::10000)), 10000)
+assert(chain_stats == (9998 \ 9999))
 
 mobility_workers = (J(3, 1, 1) \ J(3, 1, 2) \ ///
     J(3, 1, 3) \ J(3, 1, 4))
@@ -30,25 +45,26 @@ mobility_employed = mobility_firms :< .
 mobility_jobtojob = (. \ 1 \ 1 \ . \ 1 \ 1 \ . \ 0 \ 0 \ . \ 0 \ 0)
 assert(fesim_network_mobility_stats(
     mobility_workers, mobility_firms, mobility_employed, ///
-    mobility_jobtojob, 5) == (2 \ 2 \ 2 \ 2 \ 2 \ 2))
+    mobility_jobtojob, 5) == (2 \ 2 \ 2 \ 2 \ 2 \ 2 \ 1 \ 2))
 no_move_stats = fesim_network_mobility_stats(
     (1 \ 1 \ 2 \ 2), (1 \ 1 \ 2 \ 2), J(4, 1, 1), ///
     (. \ 0 \ . \ 0), 3)
 assert(no_move_stats[1..2] == (2 \ 0))
 assert(all(missing(no_move_stats[3..6])))
+assert(no_move_stats[7..8] == (0 \ 0))
 
 network_edges = (1, 1, 3 \ 2, 1, 2 \ 2, 2, 1 \ ///
     3, 3, 6 \ 4, 4, 2 \ 5, 4, 4)
 network_result = fesim_network_analyze(network_edges, 5, 4)
 assert(network_result.validated == 1)
-assert(network_result.schema_version == 2)
+assert(network_result.schema_version == 3)
 assert(network_result.diagnostics[1..10] == ///
     (3 \ 6 \ 18 \ 5 \ 4 \ 1 \ 3 \ 6 \ 2 \ 2))
 assert(network_result.diagnostics[11] == 1 / 3)
 assert(network_result.diagnostics[12] == 2 / 5)
 assert(network_result.diagnostics[13] == 1 / 2)
-assert(rows(network_result.diagnostics) == 19)
-assert(all(missing(network_result.diagnostics[14..19])))
+assert(rows(network_result.diagnostics) == 21)
+assert(all(missing(network_result.diagnostics[14..21])))
 assert(network_result.worker_component == (1 \ 1 \ 3 \ 4 \ 4))
 assert(network_result.firm_component == (1 \ 1 \ 3 \ 4))
 
@@ -68,6 +84,7 @@ assert(missing(network_result.diagnostics[6]))
 assert(network_result.diagnostics[7..10] == (0 \ 0 \ 0 \ 0))
 assert(network_result.diagnostics[14..15] == (0 \ 0))
 assert(all(missing(network_result.diagnostics[16..19])))
+assert(network_result.diagnostics[20..21] == (0 \ 0))
 assert(all(missing(network_result.worker_component)))
 assert(all(missing(network_result.firm_component)))
 end
@@ -83,6 +100,10 @@ assert _rc == 3300
 capture mata: fesim_network_mobility_stats( ///
     mobility_workers, mobility_firms, mobility_employed, ///
     J(12, 1, 0), 5)
+assert _rc == 3300
+capture mata: fesim_network_articulation_stats((2, 1), 2)
+assert _rc == 3300
+capture mata: fesim_network_articulation_stats((1, 2 \ 1, 2), 2)
 assert _rc == 3300
 
 clear
@@ -115,6 +136,8 @@ assert r(largest_component_worker_share) == .4
 assert r(largest_component_firm_share) == .5
 assert r(firms_no_movers) == 2
 assert r(firm_links) == 1
+assert r(articulation_firms) == 0
+assert r(graph_bridge_links) == 1
 foreach percentile in 10 50 90 99 {
     assert r(edge_weight_p`percentile') == 1
 }
@@ -137,6 +160,8 @@ assert r(largest_component_worker_share) == 1
 assert r(largest_component_firm_share) == 1
 assert r(firms_no_movers) == 0
 assert r(firm_links) == 1
+assert r(articulation_firms) == 0
+assert r(graph_bridge_links) == 1
 foreach percentile in 10 50 90 99 {
     assert r(edge_weight_p`percentile') == 1
 }
@@ -160,6 +185,8 @@ assert missing(r(largest_component_id))
 assert missing(r(largest_component_obs_share))
 assert r(firms_no_movers) == 0
 assert r(firm_links) == 0
+assert r(articulation_firms) == 0
+assert r(graph_bridge_links) == 0
 assert missing(r(edge_weight_p50))
 capture _fesim_network, workers(3) firms(2) periods(2) connectivity(largest)
 assert _rc == 459

@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_network_schema_version()
 {
-    return(2)
+    return(3)
 }
 
 string rowvector fesim_network_diagnostic_names()
@@ -16,7 +16,8 @@ string rowvector fesim_network_diagnostic_names()
         "largest_observation_share", "largest_worker_share", ///
         "largest_firm_share", "firms_no_movers", "firm_links", ///
         "edge_weight_p10", "edge_weight_p50", ///
-        "edge_weight_p90", "edge_weight_p99"))
+        "edge_weight_p90", "edge_weight_p99", ///
+        "articulation_firms", "graph_bridge_links"))
 }
 
 real colvector fesim_network_union_labels(
@@ -148,6 +149,132 @@ real colvector fesim_network_weight_pct(real colvector values)
     return(result)
 }
 
+real colvector fesim_network_articulation_stats(
+    real matrix links,
+    real scalar firms)
+{
+    real scalar bridge_links
+    real scalar child
+    real scalar firm
+    real scalar link
+    real scalar root
+    real scalar time
+    real scalar top
+    real scalar neighbor
+    real colvector active_firms
+    real colvector adjacency
+    real colvector articulation
+    real colvector child_count
+    real colvector cursor
+    real colvector degree
+    real colvector discovery
+    real colvector endpoints
+    real colvector low
+    real colvector next_neighbor
+    real colvector offset
+    real colvector parent
+    real colvector stack
+    real matrix info
+
+    if (missing(firms) | firms < 1 | firms != floor(firms) | ///
+        cols(links) != 2) {
+        _error(3300, "firm-graph articulation inputs are invalid")
+    }
+    if (!rows(links)) return((0 \ 0))
+    if (any(missing(links)) | any(links :!= floor(links)) | ///
+        any(links :< 1) | any(links :> firms) | ///
+        any(links[, 1] :>= links[, 2])) {
+        _error(3300, "firm-graph links must be sorted, unique, and unordered")
+    }
+    if (rows(links) > 1) {
+        if (any(links[2..rows(links), 1] :< ///
+            links[1..rows(links) - 1, 1]) | ///
+            any((links[2..rows(links), 1] :== ///
+            links[1..rows(links) - 1, 1]) :& ///
+            (links[2..rows(links), 2] :<= ///
+            links[1..rows(links) - 1, 2]))) {
+            _error(3300, "firm-graph links must be sorted, unique, and unordered")
+        }
+    }
+
+    endpoints = sort((links[, 1] \ links[, 2]), 1)
+    info = panelsetup(endpoints, 1)
+    active_firms = endpoints[info[, 1]]
+    degree = J(firms, 1, 0)
+    degree[active_firms] = info[, 2] :- info[, 1] :+ 1
+    offset = J(firms + 1, 1, 1)
+    offset[2..firms + 1] = 1 :+ runningsum(degree)
+    cursor = offset[1..firms]
+    adjacency = J(2 * rows(links), 1, .)
+    for (link = 1; link <= rows(links); link++) {
+        firm = links[link, 1]
+        neighbor = links[link, 2]
+        adjacency[cursor[firm]] = neighbor
+        adjacency[cursor[neighbor]] = firm
+        cursor[firm] = cursor[firm] + 1
+        cursor[neighbor] = cursor[neighbor] + 1
+    }
+
+    discovery = J(firms, 1, 0)
+    low = J(firms, 1, 0)
+    parent = J(firms, 1, 0)
+    child_count = J(firms, 1, 0)
+    articulation = J(firms, 1, 0)
+    next_neighbor = J(firms, 1, 0)
+    stack = J(rows(active_firms), 1, 0)
+    time = 0
+    bridge_links = 0
+    for (root = 1; root <= rows(active_firms); root++) {
+        firm = active_firms[root]
+        if (discovery[firm] != 0) continue
+        time = time + 1
+        discovery[firm] = time
+        low[firm] = time
+        next_neighbor[firm] = offset[firm]
+        top = 1
+        stack[top] = firm
+        while (top > 0) {
+            firm = stack[top]
+            if (next_neighbor[firm] < offset[firm + 1]) {
+                neighbor = adjacency[next_neighbor[firm]]
+                next_neighbor[firm] = next_neighbor[firm] + 1
+                if (discovery[neighbor] == 0) {
+                    parent[neighbor] = firm
+                    child_count[firm] = child_count[firm] + 1
+                    time = time + 1
+                    discovery[neighbor] = time
+                    low[neighbor] = time
+                    next_neighbor[neighbor] = offset[neighbor]
+                    top = top + 1
+                    stack[top] = neighbor
+                }
+                else if (neighbor != parent[firm]) {
+                    low[firm] = min((low[firm], discovery[neighbor]))
+                }
+            }
+            else {
+                top = top - 1
+                if (parent[firm] == 0) {
+                    if (child_count[firm] > 1) articulation[firm] = 1
+                }
+                else {
+                    child = firm
+                    firm = parent[child]
+                    if (parent[firm] != 0 & ///
+                        low[child] >= discovery[firm]) {
+                        articulation[firm] = 1
+                    }
+                    if (low[child] > discovery[firm]) {
+                        bridge_links = bridge_links + 1
+                    }
+                    low[firm] = min((low[firm], low[child]))
+                }
+            }
+        }
+    }
+    return((sum(articulation) \ bridge_links))
+}
+
 real colvector fesim_network_pair_stats(
     real matrix move_pairs,
     real scalar active_firms,
@@ -157,6 +284,8 @@ real colvector fesim_network_pair_stats(
     real colvector incident_firms
     real colvector link_weights
     real colvector starts
+    real colvector articulation_stats
+    real matrix links
     real matrix pairs
 
     if (cols(move_pairs) != 2 | missing(active_firms) | ///
@@ -166,7 +295,7 @@ real colvector fesim_network_pair_stats(
         _error(3300, "network mobility-pair inputs are invalid")
     }
     if (!rows(move_pairs)) {
-        return((active_firms \ 0 \ J(4, 1, .)))
+        return((active_firms \ 0 \ J(4, 1, .) \ 0 \ 0))
     }
     if (any(missing(move_pairs)) | ///
         any(move_pairs :!= floor(move_pairs)) | ///
@@ -195,8 +324,11 @@ real colvector fesim_network_pair_stats(
     if (rows(incident_firms) > active_firms) {
         _error(3300, "network mobility pairs exceed active firms")
     }
+    links = pairs[starts, .]
+    articulation_stats = fesim_network_articulation_stats(links, firms)
     return((active_firms - rows(incident_firms) \
-        rows(starts) \ fesim_network_weight_pct(link_weights)))
+        rows(starts) \ fesim_network_weight_pct(link_weights) \
+        articulation_stats))
 }
 
 real colvector fesim_network_mobility_stats(
@@ -318,7 +450,7 @@ struct fesim_network_results scalar fesim_network_analyze(
     }
 
     result.schema_version = fesim_network_schema_version()
-    result.diagnostics = J(19, 1, .)
+    result.diagnostics = J(21, 1, .)
     result.worker_component = J(workers, 1, .)
     result.firm_component = J(firms, 1, .)
     result.validated = 0
@@ -326,6 +458,7 @@ struct fesim_network_results scalar fesim_network_analyze(
         result.diagnostics[1..5] = (0 \ 0 \ 0 \ 0 \ 0)
         result.diagnostics[7..10] = (0 \ 0 \ 0 \ 0)
         result.diagnostics[14..15] = (0 \ 0)
+        result.diagnostics[20..21] = (0 \ 0)
         result.validated = 1
         return(result)
     }
@@ -462,7 +595,7 @@ void fesim_network_store_panel(
     result = fesim_network_analyze(edges, workers, firms)
     move_pairs = st_data(., ///
         (move_origin_variable, "firmid"), direct_move_variable)
-    result.diagnostics[14..19] = fesim_network_pair_stats(
+    result.diagnostics[14..21] = fesim_network_pair_stats(
         move_pairs, result.diagnostics[5], firms)
     st_matrix(diagnostics_name, result.diagnostics)
     if (mark_largest) {

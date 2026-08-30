@@ -12,7 +12,7 @@ quietly datasignature set, reset
 local rng_before `"`c(rngstate)'"'
 
 mata:
-assert(fesim_mata_api_version() == 21)
+assert(fesim_mata_api_version() == 22)
 assert(fesim_config_schema_version() == 2)
 assert(fesim_population_schema_version() == 3)
 assert(fesim_state_schema_version() == 5)

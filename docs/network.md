@@ -50,9 +50,10 @@ returns `r(bridges_imposed)` plus an exact `r(bridges)` ledger. Its columns are
 the ledger and interval counts are available under every truth mode.
 
 These block labels and bridge transitions are imposed simulation-design
-objects. Completing the adjacent block-level chain does not establish an
-articulation result, leave-one-worker, leave-one-match, or KSS leave-out
-connectedness in the realized worker-firm graph.
+objects. Completing the adjacent block-level chain does not establish a
+leave-one-worker, leave-one-match, or KSS leave-out result in the realized
+worker-firm graph. The observed-graph articulation and bridge-link counts below
+are separate descriptive diagnostics.
 
 The installed internal `_fesim_network` ado constructs two observed graphs after the panel and common flow variables are finalized. The bipartite worker-firm graph supplies connected-component diagnostics. The undirected firm mobility graph supplies direct-move link diagnostics. Both are computed from the retained output panel; neither reconstructs unobserved events between output snapshots.
 
@@ -70,7 +71,17 @@ Firm nodes are the active firms defined above. An unordered firm pair is linked 
 
 `firms_no_movers` counts active firms incident to no observed mobility link. `firm_links` counts distinct unordered linked pairs. `edge_weight_p10`, `edge_weight_p50`, `edge_weight_p90`, and `edge_weight_p99` are percentiles across the distinct links' weights using Stata's default percentile convention: for probability `p`, average order statistics `Np` and `Np + 1` when `Np` is an integer and otherwise use order statistic `ceil(Np)`. The percentiles are missing when there are no links.
 
-These are descriptive observed-graph summaries. They do not establish articulation, bridge, leave-one-worker, leave-one-match, or KSS leave-out connectedness.
+`articulation_firms` counts active firms whose deletion with all incident links
+increases the number of connected components in the undirected firm graph.
+`graph_bridge_links` counts distinct unordered firm links whose deletion
+increases that component count. Both use the unweighted distinct-link topology;
+move counts do not change their status. Isolated active firms are not
+articulation firms, and both counts are zero when the graph has no links. The
+iterative depth-first traversal runs in linear time after link construction and
+does not allocate a dense firm-by-firm matrix.
+
+These remain descriptive observed-graph summaries. They do not establish
+leave-one-worker, leave-one-match, or KSS leave-out connectedness.
 
 ## Returned matrix
 
@@ -95,10 +106,12 @@ These are descriptive observed-graph summaries. They do not establish articulati
 17. `edge_weight_p50`
 18. `edge_weight_p90`
 19. `edge_weight_p99`
+20. `articulation_firms`
+21. `graph_bridge_links`
 
 With `connectivity(keep)`, both columns describe the unfiltered generated sample and are identical. If the panel has no employment, component, edge, worker, firm, no-mover, and firm-link counts are zero; the largest component ID, its shares, and the link-weight percentiles are missing.
 
-With `connectivity(largest)`, `generated` preserves the pre-filter diagnostics. `returned` describes the retained sample: its component count is one, rows 2–5 equal the selected component's rows 7–10, and all three shares are one. Rows 14–19 are recomputed from the retained workers' complete output histories, rather than copied from the generated graph. The original selected component ID and largest-component counts remain available. The common scalar component/share returns describe the `returned` column; the expanded mobility summaries are exposed through `r(network)`.
+With `connectivity(largest)`, `generated` preserves the pre-filter diagnostics. `returned` describes the retained sample: its component count is one, rows 2–5 equal the selected component's rows 7–10, and all three shares are one. Rows 14–21 are recomputed from the retained workers' complete output histories, rather than copied from the generated graph. The original selected component ID and largest-component counts remain available. The common scalar component/share returns describe the `returned` column; the expanded mobility summaries are exposed through `r(network)`.
 
 ## Filtering and moments
 

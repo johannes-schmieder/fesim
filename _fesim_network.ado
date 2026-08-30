@@ -1,4 +1,4 @@
-*! fesim observed bipartite network diagnostics 0.2.0-dev 29aug2026
+*! fesim observed bipartite network diagnostics 0.2.0-dev 30aug2026
 program define _fesim_network, rclass
     version 16.0
     syntax , WORKERS(integer) FIRMS(integer) PERIODS(integer) ///
@@ -81,7 +81,7 @@ program define _fesim_network, rclass
             di as error "connectivity(largest) is undefined without observed employment"
             exit 459
         }
-        matrix `generated' = J(19, 1, .)
+        matrix `generated' = J(21, 1, .)
         forvalues row = 1/5 {
             matrix `generated'[`row', 1] = 0
         }
@@ -90,6 +90,8 @@ program define _fesim_network, rclass
         }
         matrix `generated'[14, 1] = 0
         matrix `generated'[15, 1] = 0
+        matrix `generated'[20, 1] = 0
+        matrix `generated'[21, 1] = 0
     }
     else {
         capture noisily mata: fesim_network_store_panel( ///
@@ -101,7 +103,7 @@ program define _fesim_network, rclass
     }
 
     local diagnostic_names ///
-        "components edges employed_observations workers firms largest_component_id largest_edges largest_observations largest_workers largest_firms largest_observation_share largest_worker_share largest_firm_share firms_no_movers firm_links edge_weight_p10 edge_weight_p50 edge_weight_p90 edge_weight_p99"
+        "components edges employed_observations workers firms largest_component_id largest_edges largest_observations largest_workers largest_firms largest_observation_share largest_worker_share largest_firm_share firms_no_movers firm_links edge_weight_p10 edge_weight_p50 edge_weight_p90 edge_weight_p99 articulation_firms graph_bridge_links"
     matrix rownames `generated' = `diagnostic_names'
     matrix colnames `generated' = generated
     matrix `returned' = `generated'
@@ -143,5 +145,7 @@ program define _fesim_network, rclass
     return scalar edge_weight_p50 = el(`returned', 17, 1)
     return scalar edge_weight_p90 = el(`returned', 18, 1)
     return scalar edge_weight_p99 = el(`returned', 19, 1)
+    return scalar articulation_firms = el(`returned', 20, 1)
+    return scalar graph_bridge_links = el(`returned', 21, 1)
     return matrix network = `network'
 end

@@ -20,8 +20,9 @@
   Germany-labeled preset.
 - Expanded `r(network)` with an undirected observed firm mobility graph:
   distinct firm links, direction-pooled observed move-count weights, active
-  firms with no movers, and p10/p50/p90/p99 link-weight summaries. Returned
-  diagnostics are recomputed after largest-component filtering.
+  firms with no movers, p10/p50/p90/p99 link-weight summaries, articulation
+  firms, and graph-bridge links. Returned diagnostics are recomputed after
+  largest-component filtering; no leave-out-connectedness claim is made.
 - Shared `network(random)` destination primitives for attraction-weighted
   common assignments and current-firm-excluding direct moves. Both public AKM
   routes preserve their frozen draws and output.

@@ -67,11 +67,15 @@ assert rowsof(stylized_targets) == 9
 assert colsof(stylized_targets) == 4
 assert rowsof(stylized_durations) == 12
 assert colsof(stylized_durations) == 1
-assert rowsof(stylized_network) == 19
+assert rowsof(stylized_network) == 21
 assert colsof(stylized_network) == 2
 assert inrange(stylized_network["firms_no_movers", "generated"], 0, ///
     stylized_network["firms", "generated"])
 assert stylized_network["firm_links", "generated"] >= 0
+assert inrange(stylized_network["articulation_firms", "generated"], 0, ///
+    stylized_network["firms", "generated"])
+assert inrange(stylized_network["graph_bridge_links", "generated"], 0, ///
+    stylized_network["firm_links", "generated"])
 if stylized_network["firm_links", "generated"] > 0 {
     assert stylized_network["edge_weight_p10", "generated"] >= 1
     assert stylized_network["edge_weight_p10", "generated"] <= ///
