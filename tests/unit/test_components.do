@@ -16,6 +16,12 @@ assert(fesim_network_diagnostic_names() == ///
 
 assert(fesim_network_weight_pct((1::10)) == ///
     (1.5 \ 5.5 \ 9.5 \ 10))
+assert(fesim_network_pair_stats(
+    (1, 2 \ 2, 1 \ 2, 3 \ 3, 2), 5, 5) == ///
+    (2 \ 2 \ 2 \ 2 \ 2 \ 2))
+pairless_stats = fesim_network_pair_stats(J(0, 2, .), 2, 3)
+assert(pairless_stats[1..2] == (2 \ 0))
+assert(all(missing(pairless_stats[3..6])))
 
 mobility_workers = (J(3, 1, 1) \ J(3, 1, 2) \ ///
     J(3, 1, 3) \ J(3, 1, 4))

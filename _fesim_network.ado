@@ -49,8 +49,24 @@ program define _fesim_network, rclass
         di as error "firmid missingness must match employment"
         exit 459
     }
+    capture by workerid (time): assert missing(jobtojob) if _n == 1
+    if _rc {
+        di as error "first worker observations require missing job-to-job indicators"
+        exit 459
+    }
+    capture by workerid (time): assert inlist(jobtojob, 0, 1) & ///
+        jobtojob == (employed & employed[_n - 1] & ///
+        firmid != firmid[_n - 1]) if _n > 1
+    if _rc {
+        di as error "job-to-job indicators do not match the observed panel"
+        exit 459
+    }
 
     tempname generated returned network
+    tempvar direct_move move_origin
+    quietly generate byte `direct_move' = jobtojob == 1
+    quietly by workerid (time): generate double `move_origin' = ///
+        firmid[_n - 1] if `direct_move'
     local mark_largest = `"`connectivity'"' == "largest"
     local keep_variable ""
     if `mark_largest' {
@@ -78,7 +94,8 @@ program define _fesim_network, rclass
     else {
         capture noisily mata: fesim_network_store_panel( ///
             `workers', `firms', "`generated'", ///
-            "`keep_variable'", `mark_largest')
+            "`keep_variable'", `mark_largest', ///
+            "`move_origin'", "`direct_move'")
         local graph_rc = _rc
         if `graph_rc' exit `graph_rc'
     }
@@ -96,7 +113,8 @@ program define _fesim_network, rclass
         quietly drop `in_largest'
         quietly sort workerid time
         capture noisily mata: fesim_network_store_panel( ///
-            `workers', `firms', "`returned'", "", 0)
+            `workers', `firms', "`returned'", "", 0, ///
+            "`move_origin'", "`direct_move'")
         local graph_rc = _rc
         if `graph_rc' exit `graph_rc'
         local sample_workers = el(`returned', 4, 1)

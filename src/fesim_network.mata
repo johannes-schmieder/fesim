@@ -148,6 +148,57 @@ real colvector fesim_network_weight_pct(real colvector values)
     return(result)
 }
 
+real colvector fesim_network_pair_stats(
+    real matrix move_pairs,
+    real scalar active_firms,
+    real scalar firms)
+{
+    real colvector boundaries
+    real colvector incident_firms
+    real colvector link_weights
+    real colvector starts
+    real matrix pairs
+
+    if (cols(move_pairs) != 2 | missing(active_firms) | ///
+        active_firms < 0 | active_firms != floor(active_firms) | ///
+        missing(firms) | firms < 1 | firms != floor(firms) | ///
+        active_firms > firms) {
+        _error(3300, "network mobility-pair inputs are invalid")
+    }
+    if (!rows(move_pairs)) {
+        return((active_firms \ 0 \ J(4, 1, .)))
+    }
+    if (any(missing(move_pairs)) | ///
+        any(move_pairs :!= floor(move_pairs)) | ///
+        any(move_pairs :< 1) | any(move_pairs :> firms) | ///
+        any(move_pairs[, 1] :== move_pairs[, 2])) {
+        _error(3300, "network mobility pairs are invalid")
+    }
+
+    pairs = sort((rowmin(move_pairs), rowmax(move_pairs)), (1, 2))
+    if (rows(pairs) == 1) {
+        starts = 1
+        link_weights = 1
+    }
+    else {
+        boundaries = selectindex((1 \
+            ((pairs[2..rows(pairs), 1] :!= ///
+            pairs[1..rows(pairs) - 1, 1]) :| ///
+            (pairs[2..rows(pairs), 2] :!= ///
+            pairs[1..rows(pairs) - 1, 2])) \
+            1))
+        starts = boundaries[1..rows(boundaries) - 1]
+        link_weights = boundaries[2..rows(boundaries)] :- starts
+    }
+    incident_firms = uniqrows(sort((pairs[starts, 1] \
+        pairs[starts, 2]), 1))
+    if (rows(incident_firms) > active_firms) {
+        _error(3300, "network mobility pairs exceed active firms")
+    }
+    return((active_firms - rows(incident_firms) \
+        rows(starts) \ fesim_network_weight_pct(link_weights)))
+}
+
 real colvector fesim_network_mobility_stats(
     real colvector worker_id,
     real colvector firm_id,
@@ -157,18 +208,11 @@ real colvector fesim_network_mobility_stats(
 {
     real scalar observations
     real colvector active_firms
-    real colvector boundaries
     real colvector continuation_rows
-    real colvector destination_firm
     real colvector expected_move
-    real colvector incident_firms
-    real colvector link_weights
     real colvector move_rows
     real colvector new_worker
-    real colvector origin_firm
-    real colvector starts
-    real colvector percentiles
-    real matrix pairs
+    real matrix move_pairs
 
     observations = rows(worker_id)
     if (observations < 1 | cols(worker_id) != 1 | ///
@@ -214,32 +258,12 @@ real colvector fesim_network_mobility_stats(
 
     active_firms = uniqrows(sort(select(firm_id, employed), 1))
     move_rows = selectindex(job_to_job :== 1)
-    if (!rows(move_rows)) {
-        return((rows(active_firms) \ 0 \ J(4, 1, .)))
+    if (rows(move_rows)) {
+        move_pairs = (firm_id[move_rows :- 1], firm_id[move_rows])
     }
-    origin_firm = firm_id[move_rows :- 1]
-    destination_firm = firm_id[move_rows]
-    pairs = sort((rowmin((origin_firm, destination_firm)), ///
-        rowmax((origin_firm, destination_firm))), (1, 2))
-    if (rows(pairs) == 1) {
-        starts = 1
-        link_weights = 1
-    }
-    else {
-        boundaries = selectindex((1 \
-            ((pairs[2..rows(pairs), 1] :!= ///
-            pairs[1..rows(pairs) - 1, 1]) :| ///
-            (pairs[2..rows(pairs), 2] :!= ///
-            pairs[1..rows(pairs) - 1, 2])) \
-            1))
-        starts = boundaries[1..rows(boundaries) - 1]
-        link_weights = boundaries[2..rows(boundaries)] :- starts
-    }
-    incident_firms = uniqrows(sort((pairs[starts, 1] \
-        pairs[starts, 2]), 1))
-    percentiles = fesim_network_weight_pct(link_weights)
-    return((rows(active_firms) - rows(incident_firms) \
-        rows(starts) \ percentiles))
+    else move_pairs = J(0, 2, .)
+    return(fesim_network_pair_stats(
+        move_pairs, rows(active_firms), firms))
 }
 
 struct fesim_network_results scalar fesim_network_analyze(
@@ -384,11 +408,14 @@ void fesim_network_store_panel(
     real scalar firms,
     string scalar diagnostics_name,
     string scalar keep_variable,
-    real scalar mark_largest)
+    real scalar mark_largest,
+    string scalar move_origin_variable,
+    string scalar direct_move_variable)
 {
     struct fesim_network_results scalar result
     real matrix boundaries
     real matrix edges
+    real matrix move_pairs
     real matrix panel
     real colvector employed
     real colvector firm_id
@@ -396,21 +423,13 @@ void fesim_network_store_panel(
     real colvector starts
     real colvector unique_keys
     real colvector worker_id
-    real colvector all_worker_id
-    real colvector all_firm_id
-    real colvector all_employed
-    real colvector all_job_to_job
 
     if (mark_largest != 0 & mark_largest != 1) {
         _error(3300, "network largest-component marker must be zero or one")
     }
-    all_worker_id = st_data(., "workerid")
-    all_firm_id = st_data(., "firmid")
-    all_employed = st_data(., "employed")
-    all_job_to_job = st_data(., "jobtojob")
-    employed = all_employed
-    worker_id = select(all_worker_id, employed)
-    firm_id = select(all_firm_id, employed)
+    employed = st_data(., "employed")
+    worker_id = select(st_data(., "workerid"), employed)
+    firm_id = select(st_data(., "firmid"), employed)
     if (rows(worker_id) < 1) {
         _error(3300, "network panel does not contain employed observations")
     }
@@ -441,8 +460,10 @@ void fesim_network_store_panel(
             boundaries[2..rows(boundaries)] :- starts)
     }
     result = fesim_network_analyze(edges, workers, firms)
-    result.diagnostics[14..19] = fesim_network_mobility_stats(
-        all_worker_id, all_firm_id, all_employed, all_job_to_job, firms)
+    move_pairs = st_data(., ///
+        (move_origin_variable, "firmid"), direct_move_variable)
+    result.diagnostics[14..19] = fesim_network_pair_stats(
+        move_pairs, result.diagnostics[5], firms)
     st_matrix(diagnostics_name, result.diagnostics)
     if (mark_largest) {
         worker_id = st_data(., "workerid")
