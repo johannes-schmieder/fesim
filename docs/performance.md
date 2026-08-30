@@ -120,6 +120,35 @@ and 1.4 percent memory differences do not justify a separate public performance
 switch at this scale. These are single-run complete-route comparisons, so no
 causal overhead estimate is claimed.
 
+## Checkpoint 35 reduced-form ladder destinations
+
+Checkpoint 35 compares the frozen random destination rule with the default
+reduced-form ladder at 10,000 workers, 500 firms, and 10 output periods for
+both public AKM routes. The ladder implementation conditions an ordinary EE
+probability vector over firms for each realized direct move; it constructs no
+worker-by-firm matrix. The benchmark therefore measures the complete public
+design rather than an isolated primitive.
+
+Exact results at `e247f283bbc3f9c083a6dd54c529784819b7e4ec` are:
+
+| Route/design | Rows | Command | Internal total | Simulate | Output | Components | Edges |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| simple/random | 100,000 | 1.624 s | 1.445 s | 0.889 s | 0.556 s | 1 | 24,535 |
+| simple/ladder | 100,000 | 5.078 s | 4.997 s | 4.452 s | 0.545 s | 2 | 24,552 |
+| stylized/random | 100,000 | 4.498 s | 4.409 s | 3.842 s | 0.567 s | 2 | 21,928 |
+| stylized/ladder | 100,000 | 12.321 s | 12.237 s | 11.649 s | 0.588 s | 2 | 21,713 |
+
+The standards-compliant four-case JSON has SHA256
+`00708aee34c0eb22d6ba20771442eb6dbc2176c07c9c04bb2dc7d6642763c280`.
+The shared process reached 268,959,744 bytes maximum RSS and 165,627,080 bytes
+peak memory footprint. Relative to random, internal total time was 3.46 times
+as large for simple and 2.78 times as large for stylized; output time stayed
+within 0.021 seconds, locating the measured cost in simulation as expected.
+The component and edge counts are realized outcomes under
+`connectivity(keep)`, not connectedness targets. These are single-run
+complete-design comparisons, so they do not identify the marginal cost of one
+EE redirection.
+
 ## Reproducing
 
 From a clean checkout:
@@ -192,6 +221,16 @@ the finite-bonus block control at this scale. The stylized bridge command was
 54.9 percent slower, with the difference concentrated in simulation as
 expected from replaying the monthly post-burn path. These are complete-design
 comparisons from one run, not isolated causal estimates of replay overhead.
+
+The Checkpoint 35 ladder harness compares random and ladder destinations at
+10,000 workers, 500 firms, and 10 periods for both public routes:
+
+```bash
+scripts/run_ladder_benchmarks.sh /path/to/stata-mp
+```
+
+It emits a standards-compliant JSON result plus the Stata log and shared
+process-resource receipt under the exact-SHA benchmark directory.
 
 ## Grouped empirical destination engine
 
