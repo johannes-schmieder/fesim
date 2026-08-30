@@ -20,6 +20,8 @@ local build artifacts under `build/benchmarks/<exact-sha>/`.
 | `56dcb363a1c0b7bd9bf32ea622cf807f9c59c4a2` | 10,000 x 10 | 100,000 | 1.623 s | 1.039 s | 0.481 s | 94,519,296 B | 78,348,984 B |
 | `9e09109237c11baab9922e34d1579b644735718c` | 100,000 x 10 | 1,000,000 | 85.755 s | 7.930 s | 77.147 s | 465,666,048 B | 449,381,360 B |
 | `56dcb363a1c0b7bd9bf32ea622cf807f9c59c4a2` | 100,000 x 10 | 1,000,000 | 13.210 s | 7.596 s | 5.032 s | 375,865,344 B | 359,859,112 B |
+| `4b35c071eda405ced743db3fda56988313f21bdc` | 10,000 x 10 | 100,000 | 1.855 s | 1.173 s | 0.541 s | 225,312,768 B | 125,322,464 B |
+| `4b35c071eda405ced743db3fda56988313f21bdc` | 100,000 x 10 | 1,000,000 | 15.016 s | 8.967 s | 5.390 s | 508,542,976 B | 408,634,736 B |
 | `56dcb363a1c0b7bd9bf32ea622cf807f9c59c4a2` | 1,000,000 x 10 | 10,000,000 | 148.416 s | 73.630 s | 68.321 s | 2,262,646,784 B | 2,247,887,080 B |
 
 All datasets use 41 bytes per row. The optimized 10,000- and 100,000-worker
@@ -55,6 +57,29 @@ moment calculations and simulation engine before revisiting graph traversal.
 Performance changes passed the frozen deterministic fixtures, statistical
 tests, graph tie-breaking fixtures, source-only install test, and complete
 exact-SHA Stata suite.
+
+## Checkpoint 30 observed mobility summaries
+
+Checkpoint 30 adds an undirected firm mobility graph after the established
+bipartite component pass. The runtime validates the finalized `jobtojob`
+indicators in Stata and transfers only observed mover origin-destination pairs
+to Mata. It sorts unordered pairs, collapses distinct links, counts incident
+firms, and computes link-weight percentiles. No dense firm-by-firm or projected
+worker matrix is allocated.
+
+The first exact implementation transferred four complete panel columns and
+peaked at 579,715,072 bytes on the 1,000,000-row simple benchmark. The final
+`4b35c071eda405ced743db3fda56988313f21bdc` mover-pair transfer reduced that
+maximum by 12.3 percent to 508,542,976 bytes. It completed in 15.016 command
+seconds, including 5.390 output seconds, with the same 882,622 employed
+observations, 246,078 worker-firm edges, and one component as the earlier
+baseline.
+
+The closest same-route comparison is the 100,000-row stylized default. It took
+4.458 command seconds versus 4.421 before the expanded graph, a 0.8 percent
+increase, while maximum RSS changed from 232,554,496 to 231,243,776 bytes.
+Its output stage rose from 0.508 to 0.549 seconds. The exact stylized JSON has
+SHA256 `3f85518d2e86c38b5edabe3cfec985f754d1939efea8b9eda7f0bfc54bdea983`.
 
 ## Reproducing
 
