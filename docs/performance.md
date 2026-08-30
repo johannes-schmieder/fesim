@@ -152,8 +152,24 @@ alone. It can be reproduced from a clean checkout with:
 scripts/run_bridge_benchmarks.sh /path/to/stata-mp
 ```
 
-Exact-source timing and process-resource evidence is recorded after the
-Checkpoint 33 implementation commit is frozen.
+Exact Checkpoint 33 results at
+`137755f04ac3c542b9303f4a162b524a73f44fdd` are:
+
+| Route/design | Rows | Bridges | Command | Internal total | Simulate | Output | Components | Edges |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| simple/blocks | 100,000 | 0 | 1.393 s | 1.226 s | 0.686 s | 0.540 s | 1 | 24,472 |
+| simple/bridges | 100,000 | 3 | 1.408 s | 1.333 s | 0.812 s | 0.521 s | 2 | 24,341 |
+| stylized/blocks | 100,000 | 0 | 4.502 s | 4.421 s | 3.885 s | 0.536 s | 2 | 21,825 |
+| stylized/bridges | 100,000 | 3 | 6.974 s | 6.891 s | 6.349 s | 0.542 s | 1 | 21,685 |
+
+The four-case JSON SHA256 is
+`5843ccad28ff399bcbb39587f682271dcdf8d2e6920246cec151a69b0ce016c6`.
+The single process reached 256,868,352 bytes maximum RSS and 156,697,848 bytes
+peak memory footprint. The simple bridge command was 1.1 percent slower than
+the finite-bonus block control at this scale. The stylized bridge command was
+54.9 percent slower, with the difference concentrated in simulation as
+expected from replaying the monthly post-burn path. These are complete-design
+comparisons from one run, not isolated causal estimates of replay overhead.
 
 ## Grouped empirical destination engine
 
