@@ -40,6 +40,7 @@ if `build_rc' {
 }
 
 local tests install_smoke smoke unit/test_parser unit/test_registry ///
+    unit/test_loader ///
     unit/test_config unit/test_calibration_registry unit/test_time ///
     unit/test_rates unit/test_hazards ///
     unit/test_destinations unit/test_rng ///

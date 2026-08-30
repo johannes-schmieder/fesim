@@ -16,7 +16,7 @@ The resolver and discovery commands neither set a seed nor request random draws.
 
 Mata source files under `src/` are authoritative. `src/build_mlib.do` compiles the current `fesim_*()` functions into an ignored development library at `build/lfesim.mlib`, clears Mata, reindexes libraries, and calls the compiled API as a load test.
 
-The development library is not distributed by `fesim.pkg`. The package installs authoritative Mata source and loads it in a fixed dependency order when a compatible indexed library is unavailable. This source-only runtime strategy was fixed at Checkpoint 15 and is exercised by the clean-install suite.
+The development library is not distributed by `fesim.pkg`. The package installs authoritative Mata source and loads it in a fixed dependency order when a compatible indexed library is unavailable. A loader invoked from a checkout first uses that checkout's colocated `src/` tree, so an older installed package cannot supply a mixed-API source file; an installed loader falls back to the normal ado-path lookup. This source-only runtime strategy was fixed at Checkpoint 15 and is exercised by the clean-install and stale-source-precedence suites.
 
 Checkpoint 3 adds two qualified shared prototypes to that library. `src/fesim_rng.mata` manages fixed `mt64s` component states without exposing long RNG-state strings to ado code; details are in [`docs/rng.md`](rng.md). `src/fesim_output.mata` validates observation counts, computes conservative memory estimates, and writes deterministic worker-major blocks through vectorized `st_store()` calls; details are in [`docs/output.md`](output.md). Neither module yet dispatches a DGP.
 

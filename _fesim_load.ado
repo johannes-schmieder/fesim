@@ -12,15 +12,15 @@ program define _fesim_load
         strlen(`"`loader_path'"') - strlen(`"`loader_name'"') - 1)
     foreach source in types rng time hazards destinations flows moments network runtime output lifecycle ///
         akm_simple empirical akm_handler emp_handler dispatch {
-        capture quietly findfile fesim_`source'.mata
-        if !_rc local source_path `"`r(fn)'"'
-        else {
-            local source_path `"`package_root'/src/fesim_`source'.mata"'
-            capture confirm file `"`source_path'"'
+        local source_path `"`package_root'/src/fesim_`source'.mata"'
+        capture confirm file `"`source_path'"'
+        if _rc {
+            capture quietly findfile fesim_`source'.mata
             if _rc {
                 di as error "installed fesim Mata source is missing: fesim_`source'.mata"
                 exit 601
             }
+            local source_path `"`r(fn)'"'
         }
         quietly do `"`source_path'"'
     }
