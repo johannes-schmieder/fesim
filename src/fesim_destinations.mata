@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_destination_schema_version()
 {
-    return(1)
+    return(2)
 }
 
 real rowvector fesim_destination_type_support()
@@ -21,6 +21,13 @@ void fesim_destination_assert_valid(
     types = cols(tables.worker_type_support)
     if (tables.schema_version != fesim_destination_schema_version() | ///
         tables.validated != 1 | firms < 1 | types != 5 | ///
+        (tables.network_mode != "random" & ///
+        tables.network_mode != "blocks" & ///
+        tables.network_mode != "bridges") | ///
+        missing(tables.block_count) | tables.block_count < 1 | ///
+        tables.block_count != floor(tables.block_count) | ///
+        missing(tables.block_log_bonus) | tables.block_log_bonus < 0 | ///
+        rows(tables.firm_block) != firms | ///
         rows(tables.firm_quality) != firms | ///
         rows(tables.firm_weight) != firms | ///
         rows(tables.firm_order) != firms | ///
@@ -32,6 +39,29 @@ void fesim_destination_assert_valid(
         rows(tables.ee_upper_reverse_cumulative) != types | ///
         cols(tables.ee_upper_reverse_cumulative) != firms) {
         _error(3300, "invalid fesim destination tables")
+    }
+    if (tables.network_mode == "random") {
+        if (tables.block_count != 1 | tables.block_log_bonus != 0 | ///
+            any(tables.firm_block :!= 1)) {
+            _error(3300, "invalid random destination tables")
+        }
+    }
+    else if (rows(tables.ue_block_cumulative) != types * tables.block_count | ///
+        cols(tables.ue_block_cumulative) != firms | ///
+        rows(tables.ue_block_log_scale) != types * tables.block_count | ///
+        rows(tables.ee_lower_block_cumulative) != ///
+            types * tables.block_count | ///
+        cols(tables.ee_lower_block_cumulative) != firms | ///
+        rows(tables.ee_lower_block_log_scale) != ///
+            types * tables.block_count | ///
+        rows(tables.ee_upper_block_reverse) != types * tables.block_count | ///
+        cols(tables.ee_upper_block_reverse) != firms | ///
+        rows(tables.ee_upper_block_log_scale) != ///
+            types * tables.block_count | ///
+        any(missing(tables.ue_block_cumulative)) | ///
+        any(missing(tables.ee_lower_block_cumulative)) | ///
+        any(missing(tables.ee_upper_block_reverse))) {
+        _error(3300, "invalid block destination tables")
     }
 }
 
@@ -69,6 +99,16 @@ struct fesim_destination_tables scalar fesim_destination_build(
     tables.theta_quality = theta_quality
     tables.theta_up = theta_up
     tables.theta_down = theta_down
+    tables.network_mode = "random"
+    tables.block_count = 1
+    tables.block_log_bonus = 0
+    tables.firm_block = J(firms, 1, 1)
+    tables.ue_block_cumulative = J(0, firms, .)
+    tables.ue_block_log_scale = J(0, 1, .)
+    tables.ee_lower_block_cumulative = J(0, firms, .)
+    tables.ee_lower_block_log_scale = J(0, 1, .)
+    tables.ee_upper_block_reverse = J(0, firms, .)
+    tables.ee_upper_block_log_scale = J(0, 1, .)
 
     order_index = order((firm_quality, firm_id), (1, 2))
     tables.firm_order = firm_id[order_index]
@@ -120,6 +160,100 @@ struct fesim_destination_tables scalar fesim_destination_build(
         tables.ee_upper_reverse_cumulative[type_index, .] = ///
             runningsum(scaled_weight[firms::1]')
         tables.ee_upper_log_scale[type_index] = log_scale
+    }
+    tables.validated = 1
+    fesim_destination_assert_valid(tables)
+    return(tables)
+}
+
+struct fesim_destination_tables scalar fesim_destination_build_blocks(
+    real colvector firm_id,
+    real colvector firm_weight,
+    real colvector firm_quality,
+    real colvector firm_block,
+    real scalar block_count,
+    real scalar block_log_bonus,
+    real scalar theta_sort,
+    real scalar theta_quality,
+    real scalar theta_up,
+    real scalar theta_down)
+{
+    struct fesim_destination_tables scalar tables
+    real scalar beta
+    real scalar block
+    real scalar firms
+    real scalar log_scale
+    real scalar row
+    real scalar type_index
+    real scalar types
+    real colvector log_weight
+    real colvector order_index
+    real colvector scaled_weight
+    real colvector sorted_block
+    real colvector sorted_quality
+    real colvector sorted_weight
+
+    tables = fesim_destination_build(firm_id, firm_weight, firm_quality, ///
+        theta_sort, theta_quality, theta_up, theta_down)
+    firms = rows(firm_id)
+    if (cols(firm_block) != 1 | rows(firm_block) != firms | ///
+        missing(block_count) | block_count < 2 | ///
+        block_count != floor(block_count) | block_count > firms | ///
+        any(missing(firm_block)) | any(firm_block :< 1) | ///
+        any(firm_block :> block_count) | ///
+        any(firm_block :!= floor(firm_block)) | ///
+        missing(block_log_bonus) | block_log_bonus < 0 | ///
+        block_log_bonus > 30) {
+        _error(3300, "block destination table inputs are invalid")
+    }
+    tables.validated = 0
+    tables.network_mode = "blocks"
+    tables.block_count = block_count
+    tables.block_log_bonus = block_log_bonus
+    tables.firm_block = firm_block
+    types = cols(tables.worker_type_support)
+    tables.ue_block_cumulative = J(types * block_count, firms, .)
+    tables.ue_block_log_scale = J(types * block_count, 1, .)
+    tables.ee_lower_block_cumulative = J(types * block_count, firms, .)
+    tables.ee_lower_block_log_scale = J(types * block_count, 1, .)
+    tables.ee_upper_block_reverse = J(types * block_count, firms, .)
+    tables.ee_upper_block_log_scale = J(types * block_count, 1, .)
+
+    order_index = order((firm_quality, firm_id), (1, 2))
+    sorted_weight = firm_weight[order_index]
+    sorted_quality = firm_quality[order_index]
+    sorted_block = firm_block[order_index]
+    for (type_index = 1; type_index <= types; type_index++) {
+        beta = theta_sort * tables.worker_type_support[type_index] + ///
+            theta_quality
+        for (block = 1; block <= block_count; block++) {
+            row = (type_index - 1) * block_count + block
+            log_weight = ln(firm_weight) :+ beta :* firm_quality :+ ///
+                block_log_bonus :* (firm_block :== block)
+            log_scale = max(log_weight)
+            scaled_weight = exp(log_weight :- log_scale)
+            tables.ue_block_cumulative[row, .] = ///
+                runningsum(scaled_weight')
+            tables.ue_block_log_scale[row] = log_scale
+
+            log_weight = ln(sorted_weight) :+ ///
+                (beta - theta_down) :* sorted_quality :+ ///
+                block_log_bonus :* (sorted_block :== block)
+            log_scale = max(log_weight)
+            scaled_weight = exp(log_weight :- log_scale)
+            tables.ee_lower_block_cumulative[row, .] = ///
+                runningsum(scaled_weight')
+            tables.ee_lower_block_log_scale[row] = log_scale
+
+            log_weight = ln(sorted_weight) :+ ///
+                (beta + theta_up) :* sorted_quality :+ ///
+                block_log_bonus :* (sorted_block :== block)
+            log_scale = max(log_weight)
+            scaled_weight = exp(log_weight :- log_scale)
+            tables.ee_upper_block_reverse[row, .] = ///
+                runningsum(scaled_weight[firms::1]')
+            tables.ee_upper_block_log_scale[row] = log_scale
+        }
     }
     tables.validated = 1
     fesim_destination_assert_valid(tables)
@@ -249,6 +383,53 @@ real colvector fesim_destination_sample_ue(
     return(destination)
 }
 
+real colvector fesim_dest_sample_ue_blocks(
+    struct fesim_destination_tables scalar tables,
+    real colvector worker_type_index,
+    real colvector reference_block,
+    real colvector uniform_draw)
+{
+    real scalar i
+    real scalar row
+    real scalar target
+    real scalar total
+    real colvector destination
+
+    fesim_destination_assert_valid(tables)
+    if (tables.network_mode != "blocks" | ///
+        cols(worker_type_index) != 1 | cols(reference_block) != 1 | ///
+        cols(uniform_draw) != 1 | ///
+        rows(worker_type_index) != rows(reference_block) | ///
+        rows(worker_type_index) != rows(uniform_draw) | ///
+        any(missing(worker_type_index)) | ///
+        any(worker_type_index :!= floor(worker_type_index)) | ///
+        any(worker_type_index :< 1) | any(worker_type_index :> 5) | ///
+        any(missing(reference_block)) | ///
+        any(reference_block :!= floor(reference_block)) | ///
+        any(reference_block :< 1) | ///
+        any(reference_block :> tables.block_count) | ///
+        any(missing(uniform_draw)) | any(uniform_draw :< 0) | ///
+        any(uniform_draw :>= 1)) {
+        _error(3300, "block UE destination inputs are invalid")
+    }
+    if (tables.block_log_bonus == 0) {
+        return(fesim_destination_sample_ue(
+            tables, worker_type_index, uniform_draw))
+    }
+    destination = J(rows(uniform_draw), 1, .)
+    for (i = 1; i <= rows(uniform_draw); i++) {
+        row = (worker_type_index[i] - 1) * tables.block_count + ///
+            reference_block[i]
+        total = tables.ue_block_cumulative[
+            row, cols(tables.ue_block_cumulative)]
+        target = uniform_draw[i] * total
+        destination[i] = fesim_destination_prefix_index(
+            tables.ue_block_cumulative[row, .], ///
+            cols(tables.ue_block_cumulative), target)
+    }
+    return(destination)
+}
+
 real scalar fesim_dest_lower_probability(
     real scalar log_lower,
     real scalar log_upper)
@@ -326,6 +507,96 @@ real colvector fesim_destination_sample_ee(
             target = conditional * upper_total
             reverse_index = fesim_destination_prefix_index(
                 tables.ee_upper_reverse_cumulative[type_index, .], ///
+                firms - position, target)
+            sorted_position = firms - reverse_index + 1
+        }
+        destination[i] = tables.firm_order[sorted_position]
+    }
+    return(destination)
+}
+
+real colvector fesim_dest_sample_ee_blocks(
+    struct fesim_destination_tables scalar tables,
+    real colvector worker_type_index,
+    real colvector current_firm,
+    real colvector uniform_draw)
+{
+    real scalar conditional
+    real scalar firm
+    real scalar firms
+    real scalar i
+    real scalar log_lower
+    real scalar log_upper
+    real scalar lower_total
+    real scalar p_lower
+    real scalar position
+    real scalar reverse_index
+    real scalar row
+    real scalar sorted_position
+    real scalar target
+    real scalar upper_total
+    real colvector destination
+
+    fesim_destination_assert_valid(tables)
+    firms = rows(tables.firm_id)
+    if (tables.network_mode != "blocks" | firms < 2 | ///
+        cols(worker_type_index) != 1 | cols(current_firm) != 1 | ///
+        cols(uniform_draw) != 1 | ///
+        rows(worker_type_index) != rows(current_firm) | ///
+        rows(worker_type_index) != rows(uniform_draw) | ///
+        any(missing(worker_type_index)) | ///
+        any(worker_type_index :!= floor(worker_type_index)) | ///
+        any(worker_type_index :< 1) | any(worker_type_index :> 5) | ///
+        any(missing(current_firm)) | ///
+        any(current_firm :!= floor(current_firm)) | ///
+        any(current_firm :< 1) | any(current_firm :> firms) | ///
+        any(missing(uniform_draw)) | any(uniform_draw :< 0) | ///
+        any(uniform_draw :>= 1)) {
+        _error(3300, "block EE destination inputs are invalid")
+    }
+    if (tables.block_log_bonus == 0) {
+        return(fesim_destination_sample_ee(
+            tables, worker_type_index, current_firm, uniform_draw))
+    }
+    destination = J(rows(uniform_draw), 1, .)
+    for (i = 1; i <= rows(uniform_draw); i++) {
+        firm = current_firm[i]
+        position = tables.firm_position[firm]
+        row = (worker_type_index[i] - 1) * tables.block_count + ///
+            tables.firm_block[firm]
+        lower_total = 0
+        upper_total = 0
+        if (position > 1) {
+            lower_total = tables.ee_lower_block_cumulative[
+                row, position - 1]
+        }
+        if (position < firms) {
+            upper_total = tables.ee_upper_block_reverse[
+                row, firms - position]
+        }
+        if (lower_total == 0) p_lower = 0
+        else if (upper_total == 0) p_lower = 1
+        else {
+            log_lower = tables.ee_lower_block_log_scale[row] + ///
+                ln(lower_total) + tables.theta_down * ///
+                tables.firm_quality[firm]
+            log_upper = tables.ee_upper_block_log_scale[row] + ///
+                ln(upper_total) - tables.theta_up * ///
+                tables.firm_quality[firm]
+            p_lower = fesim_dest_lower_probability(log_lower, log_upper)
+        }
+        if (uniform_draw[i] < p_lower) {
+            conditional = uniform_draw[i] / p_lower
+            target = conditional * lower_total
+            sorted_position = fesim_destination_prefix_index(
+                tables.ee_lower_block_cumulative[row, .], ///
+                position - 1, target)
+        }
+        else {
+            conditional = (uniform_draw[i] - p_lower) / (1 - p_lower)
+            target = conditional * upper_total
+            reverse_index = fesim_destination_prefix_index(
+                tables.ee_upper_block_reverse[row, .], ///
                 firms - position, target)
             sorted_position = firms - reverse_index + 1
         }

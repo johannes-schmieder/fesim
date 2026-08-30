@@ -92,6 +92,20 @@ struct fesim_network_results {
     real scalar validated
 }
 
+struct fesim_network_design {
+    real scalar schema_version
+    string scalar mode
+    real scalar block_count
+    real scalar block_log_bonus
+    real scalar bridge_count
+    real colvector worker_block
+    real colvector firm_block
+    real colvector worker_priority
+    real matrix firm_cumulative
+    real scalar prepared
+    real scalar validated
+}
+
 struct fesim_destination_tables {
     real scalar schema_version
     real rowvector worker_type_support
@@ -110,6 +124,16 @@ struct fesim_destination_tables {
     real scalar theta_quality
     real scalar theta_up
     real scalar theta_down
+    string scalar network_mode
+    real scalar block_count
+    real scalar block_log_bonus
+    real colvector firm_block
+    real matrix ue_block_cumulative
+    real colvector ue_block_log_scale
+    real matrix ee_lower_block_cumulative
+    real colvector ee_lower_block_log_scale
+    real matrix ee_upper_block_reverse
+    real colvector ee_upper_block_log_scale
     real scalar validated
 }
 
@@ -131,7 +155,7 @@ struct fesim_empirical_params {
 
 real scalar fesim_mata_api_version()
 {
-    return(19)
+    return(20)
 }
 
 real scalar fesim_config_schema_version()

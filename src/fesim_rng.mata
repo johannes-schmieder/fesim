@@ -19,19 +19,19 @@ struct fesim_rng_state {
 
 real scalar fesim_rng_schema_version()
 {
-    return(1)
+    return(2)
 }
 
 string rowvector fesim_rng_component_names()
 {
     return(("worker_primitives", "firm_primitives", "initial_states", ///
         "mobility_events", "destination_draws", "wage_shocks", ///
-        "observation_error", "solver"))
+        "observation_error", "solver", "network_design"))
 }
 
 real rowvector fesim_rng_stream_ids()
 {
-    return((101, 102, 103, 104, 105, 106, 107, 108))
+    return((101, 102, 103, 104, 105, 106, 107, 108, 109))
 }
 
 void fesim_rng_restore_state(string scalar rng_name, string scalar state)

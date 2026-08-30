@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_output_schema_version()
 {
-    return(5)
+    return(6)
 }
 
 real scalar fesim_output_initialize_panel(
@@ -45,6 +45,79 @@ real scalar fesim_output_initialize_panel(
     }
     st_varformat("time", time_format)
     return(requested)
+}
+
+void fesim_output_init_net_truth(
+    struct fesim_network_design scalar design,
+    string scalar truth)
+{
+    real rowvector indices
+
+    fesim_netdesign_validate(design)
+    truth = strlower(strtrim(truth))
+    if (truth != "none" & truth != "basic" & truth != "full") {
+        _error(3300, "network truth mode is invalid")
+    }
+    if (truth == "full" & design.mode != "random") {
+        indices = st_addvar(("long", "long"), ///
+            ("worker_block_true", "firm_block_true"))
+    }
+}
+
+void fesim_output_store_net_truth(
+    struct fesim_network_design scalar design,
+    struct fesim_state scalar state,
+    real scalar output_period,
+    real scalar periods,
+    string scalar truth)
+{
+    real colvector firm_block
+    real colvector employed_rows
+    real colvector rows_to_write
+
+    fesim_netdesign_validate(design)
+    truth = strlower(strtrim(truth))
+    if (truth != "none" & truth != "basic" & truth != "full" | ///
+        output_period < 1 | output_period > periods | ///
+        output_period != floor(output_period) | periods < 1 | ///
+        periods != floor(periods) | ///
+        rows(state.employed) != rows(design.worker_block)) {
+        _error(3300, "network period truth inputs are invalid")
+    }
+    if (truth != "full" | design.mode == "random") return
+    if (st_varindex("worker_block_true") == . | ///
+        st_varindex("firm_block_true") == .) {
+        _error(3300, "network truth variables are missing")
+    }
+    rows_to_write = (0::(rows(state.employed) - 1)) :* periods :+ ///
+        output_period
+    firm_block = J(rows(state.employed), 1, .)
+    employed_rows = selectindex(state.employed :== 1)
+    if (length(employed_rows)) {
+        firm_block[employed_rows] = ///
+            design.firm_block[state.firm_id[employed_rows]]
+    }
+    st_store(rows_to_write, "worker_block_true", design.worker_block)
+    st_store(rows_to_write, "firm_block_true", firm_block)
+}
+
+void fesim_output_finalize_net_truth(
+    struct fesim_network_design scalar design,
+    string scalar truth)
+{
+    fesim_netdesign_validate(design)
+    truth = strlower(strtrim(truth))
+    if (truth != "none" & truth != "basic" & truth != "full") {
+        _error(3300, "network truth mode is invalid")
+    }
+    if (truth == "full" & design.mode != "random") {
+        if (st_varindex("worker_block_true") == . | ///
+            st_varindex("firm_block_true") == .) {
+            _error(3300, "network truth output is incomplete")
+        }
+        st_varlabel("worker_block_true", "True worker home community")
+        st_varlabel("firm_block_true", "True observed-firm community")
+    }
 }
 
 void fesim_output_store_akm_period(

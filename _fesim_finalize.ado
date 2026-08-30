@@ -5,7 +5,8 @@ program define _fesim_finalize, rclass
         CALIBRATIONCLASS(string) COMMAND(string) SEED(string) ///
         RNG(string) RNGMETHOD(string) FREQUENCY(string) ///
         INTERNALCLOCK(string) JOBRULE(string) TRUTH(string) ///
-        BURNIN(integer) CONNECTIVITY(string) REFERENCE(string) ///
+        BURNIN(integer) CONNECTIVITY(string) NETWORKDESIGN(string) ///
+        REFERENCE(string) ///
         WORKERS(integer) FIRMS(integer) PERIODS(integer) ///
         PARAMETERS(name) MOMENTS(name) ///
         [ TARGETS(name) NETWORK(name) SOLVER(name) DURATIONS(name) ///
@@ -19,7 +20,8 @@ program define _fesim_finalize, rclass
         REPORTING(string) ]
 
     foreach name in dgp dgpalias preset calibrationclass command seed rng ///
-        rngmethod frequency internalclock jobrule truth connectivity reference {
+        rngmethod frequency internalclock jobrule truth connectivity ///
+        networkdesign reference {
         if strtrim(`"``name''"') == "" {
             di as error "`name'() must be nonempty"
             exit 198
@@ -130,6 +132,7 @@ program define _fesim_finalize, rclass
     char _dta[fesim_jobrule] `"`jobrule'"'
     char _dta[fesim_burnin] `"`burnin'"'
     char _dta[fesim_connectivity] `"`connectivity'"'
+    char _dta[fesim_network_design] `"`networkdesign'"'
     char _dta[fesim_reference] `"`reference'"'
     char _dta[fesim_rng_method] `"`rngmethod'"'
     char _dta[fesim_stata_version] `"`c(stata_version)'"'
@@ -179,6 +182,7 @@ program define _fesim_finalize, rclass
     return local frequency `"`frequency'"'
     return local internal_clock `"`internalclock'"'
     return local jobrule `"`jobrule'"'
+    return local network_design `"`networkdesign'"'
     return local seed `"`seed'"'
     return local rng `"`rng'"'
     return local command `"`command'"'

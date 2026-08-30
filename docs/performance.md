@@ -110,6 +110,17 @@ INCLUDE_MILLION=1 scripts/run_public_benchmarks.sh /path/to/stata-mp
 The second command repeats the two smaller controls before attempting the
 million-worker run.
 
+The Checkpoint 32 network-design harness runs 10,000-worker random and default
+four-block controls for both public AKM presets in one exact-source process:
+
+```bash
+scripts/run_block_benchmarks.sh /path/to/stata-mp
+```
+
+It writes ignored JSON, log, and process-resource receipts under the same exact
+SHA directory. The result records public command and internal stage times plus
+the realized component and edge counts for each design.
+
 ## Grouped empirical destination engine
 
 Checkpoint 27 separately benchmarks construction and sampling for the D-025

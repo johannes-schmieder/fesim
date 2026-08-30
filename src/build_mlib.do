@@ -23,6 +23,7 @@ quietly do `"`repository_root'/src/fesim_rng.mata"'
 quietly do `"`repository_root'/src/fesim_time.mata"'
 quietly do `"`repository_root'/src/fesim_hazards.mata"'
 quietly do `"`repository_root'/src/fesim_destinations.mata"'
+quietly do `"`repository_root'/src/fesim_network_design.mata"'
 quietly do `"`repository_root'/src/fesim_flows.mata"'
 quietly do `"`repository_root'/src/fesim_moments.mata"'
 quietly do `"`repository_root'/src/fesim_network.mata"'
@@ -41,25 +42,26 @@ mata: mata mlib add lfesim fesim_*(), dir(`"`output_dir'"') complete
 quietly adopath ++ `"`output_dir'"'
 mata: mata clear
 mata: mata mlib index
-mata: assert(fesim_mata_api_version() == 19)
+mata: assert(fesim_mata_api_version() == 20)
 mata: assert(fesim_config_schema_version() == 2)
-mata: assert(fesim_rng_schema_version() == 1)
-mata: assert(cols(fesim_rng_component_names()) == 8)
+mata: assert(fesim_rng_schema_version() == 2)
+mata: assert(cols(fesim_rng_component_names()) == 9)
+mata: assert(fesim_netdesign_schema_version() == 1)
 mata: assert(fesim_time_schema_version() == 1)
 mata: assert(fesim_time_delta_years("quarter") == .25)
 mata: assert(fesim_hazard_schema_version() == 1)
-mata: assert(fesim_destination_schema_version() == 1)
+mata: assert(fesim_destination_schema_version() == 2)
 mata: assert(fesim_flow_schema_version() == 1)
 mata: assert(fesim_moment_schema_version() == 1)
 mata: assert(fesim_network_schema_version() == 2)
 mata: assert(fesim_runtime_schema_version() == 1)
-mata: assert(fesim_output_schema_version() == 5)
+mata: assert(fesim_output_schema_version() == 6)
 mata: assert(fesim_output_checked_rows(10000, 10) == 100000)
 mata: assert(fesim_population_schema_version() == 3)
-mata: assert(fesim_akm_simple_schema_version() == 3)
-mata: assert(fesim_emp_schema_version() == 1)
-mata: assert(fesim_akm_handler_schema_version() == 2)
-mata: assert(fesim_emp_handler_schema_version() == 1)
+mata: assert(fesim_akm_simple_schema_version() == 4)
+mata: assert(fesim_emp_schema_version() == 2)
+mata: assert(fesim_akm_handler_schema_version() == 3)
+mata: assert(fesim_emp_handler_schema_version() == 2)
 mata: assert(fesim_state_schema_version() == 4)
 mata: assert(fesim_results_schema_version() == 2)
 mata: assert(fesim_handler_schema_version() == 1)

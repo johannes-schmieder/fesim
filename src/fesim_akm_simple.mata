@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_akm_simple_schema_version()
 {
-    return(3)
+    return(4)
 }
 
 string rowvector fesim_akm_pop_moment_names()
@@ -560,6 +560,332 @@ real colvector fesim_akm_population_targets(
     }
     return((0 \ worker_sd \ worker_sd ^ 2 \ ///
         0 \ firm_sd \ firm_sd ^ 2 \ J(3, 1, .)))
+}
+
+real matrix fesim_akm_block_stationary(
+    struct fesim_population scalar population,
+    struct fesim_network_design scalar design,
+    real scalar delta_years,
+    real scalar annual_eu,
+    real scalar annual_ee,
+    real scalar annual_ue)
+{
+    real scalar block
+    real scalar denominator
+    real scalar employment_probability
+    real scalar firm
+    real scalar firms
+    real rowvector rates
+    real colvector rhs
+    real colvector stationary_firm
+    real matrix common_probability
+    real matrix direct_transition
+    real matrix equations
+    real matrix firm_probability
+    real matrix stationary
+
+    fesim_population_validate(population)
+    fesim_netdesign_validate(design)
+    if (design.mode != "blocks" | design.prepared != 1 | ///
+        rows(design.firm_block) != population.firms) {
+        _error(3300, "simple AKM block stationary design is invalid")
+    }
+    rates = fesim_akm_interval_rates(
+        delta_years, annual_eu, annual_ee, annual_ue)
+    if (rates[1] + rates[3] == 0) {
+        _error(3300, "stationary employment is not unique when EU and UE are zero")
+    }
+    firms = population.firms
+    stationary = J(firms + 1, design.block_count, 0)
+    if (rates[3] == 0) {
+        stationary[1, .] = J(1, design.block_count, 1)
+        return(stationary)
+    }
+    employment_probability = rates[3] / (rates[1] + rates[3])
+    common_probability = J(firms, design.block_count, .)
+    for (block = 1; block <= design.block_count; block++) {
+        common_probability[, block] = ///
+            fesim_netdesign_common_probs(design, block)
+    }
+    if (rates[1] == 0 & rates[2] == 0) {
+        firm_probability = common_probability
+    }
+    else {
+        direct_transition = J(firms, firms, .)
+        for (firm = 1; firm <= firms; firm++) {
+            direct_transition[firm, .] = fesim_netdesign_excl_probs(
+                design, design.firm_block[firm], firm)'
+        }
+        if (rates[1] > 0) {
+            denominator = rates[1] + rates[2]
+            equations = I(firms) - ///
+                (rates[2] / denominator) :* direct_transition'
+            firm_probability = qrsolve(equations, ///
+                (rates[1] / denominator) :* common_probability)
+        }
+        else {
+            equations = direct_transition' - I(firms)
+            equations[firms, .] = J(1, firms, 1)
+            rhs = J(firms, 1, 0)
+            rhs[firms] = 1
+            stationary_firm = qrsolve(equations, rhs)
+            firm_probability = stationary_firm * ///
+                J(1, design.block_count, 1)
+        }
+    }
+    if (any(missing(firm_probability)) | min(firm_probability) < -1e-10) {
+        _error(3300, "simple AKM block stationary distribution failed")
+    }
+    firm_probability = firm_probability :* (firm_probability :> 0)
+    for (block = 1; block <= design.block_count; block++) {
+        firm_probability[, block] = firm_probability[, block] / ///
+            sum(firm_probability[, block])
+    }
+    stationary[1, .] = J(1, design.block_count, ///
+        1 - employment_probability)
+    stationary[2..(firms + 1), .] = ///
+        employment_probability :* firm_probability
+    if (max(abs(colsum(stationary) :- 1)) > 1e-10) {
+        _error(3300, "simple AKM block stationary probabilities are invalid")
+    }
+    return(stationary)
+}
+
+struct fesim_state scalar fesim_akm_initialize_block(
+    struct fesim_population scalar population,
+    struct fesim_network_design scalar design,
+    string scalar initial,
+    real scalar delta_years,
+    real scalar annual_eu,
+    real scalar annual_ee,
+    real scalar annual_ue,
+    struct fesim_rng_state scalar rng_state)
+{
+    struct fesim_state scalar state
+    real scalar block
+    real scalar employment_probability
+    real rowvector rates
+    real colvector block_rows
+    real colvector employed_rows
+    real colvector employment_draws
+    real colvector firm_draws
+    real colvector firm_probability
+    real colvector tenure_ages
+    real colvector tenure_draws
+    real colvector unemployment_ages
+    real colvector unemployment_draws
+    real colvector unemployed_rows
+    real matrix stationary
+
+    fesim_population_validate(population)
+    fesim_netdesign_validate(design)
+    initial = strlower(strtrim(initial))
+    if (design.mode != "blocks" | design.prepared != 1 | ///
+        (initial != "stationary" & initial != "random" & ///
+        initial != "allunemployed")) {
+        _error(3300, "simple AKM block initialization is invalid")
+    }
+    if (design.block_log_bonus == 0) {
+        return(fesim_akm_initialize_state(population, initial, ///
+            delta_years, annual_eu, annual_ee, annual_ue, rng_state))
+    }
+    rates = fesim_akm_interval_rates(
+        delta_years, annual_eu, annual_ee, annual_ue)
+    if (initial == "stationary") {
+        stationary = fesim_akm_block_stationary(population, design, ///
+            delta_years, annual_eu, annual_ee, annual_ue)
+        employment_probability = 1 - stationary[1, 1]
+    }
+    else if (initial == "random") employment_probability = .5
+
+    state.schema_version = fesim_state_schema_version()
+    state.period = 1
+    state.employed = J(population.workers, 1, 0)
+    state.firm_id = J(population.workers, 1, .)
+    state.spell_id = J(population.workers, 1, 0)
+    state.tenure = J(population.workers, 1, .)
+    state.unemployment_duration = J(population.workers, 1, 0)
+    state.ntransitions = J(population.workers, 1, 0)
+    state.current_value = J(population.workers, 1, .)
+    if (initial != "allunemployed") {
+        employment_draws = fesim_rng_runiform(
+            rng_state, "initial_states", population.workers, 1)
+        firm_draws = fesim_rng_runiform(
+            rng_state, "destination_draws", population.workers, 1)
+        if (initial == "stationary") {
+            tenure_draws = fesim_rng_runiform(
+                rng_state, "initial_states", population.workers, 1)
+            tenure_ages = fesim_akm_geometric_ages(
+                tenure_draws, rates[1] + rates[2])
+            unemployment_draws = fesim_rng_runiform(
+                rng_state, "initial_states", population.workers, 1)
+            unemployment_ages = fesim_akm_geometric_ages(
+                unemployment_draws, rates[3])
+        }
+        else tenure_ages = J(population.workers, 1, 0)
+        state.employed = employment_draws :< employment_probability
+        for (block = 1; block <= design.block_count; block++) {
+            block_rows = selectindex(state.employed :== 1 :& ///
+                design.worker_block :== block)
+            if (length(block_rows)) {
+                if (initial == "stationary") {
+                    firm_probability = stationary[
+                        2..rows(stationary), block] / employment_probability
+                    state.firm_id[block_rows] = ///
+                        fesim_destination_sample_common(
+                            firm_probability, firm_draws[block_rows])
+                }
+                else {
+                    state.firm_id[block_rows] = ///
+                        fesim_netdesign_sample_common(design, ///
+                            population.firm_weight, ///
+                            J(length(block_rows), 1, block), ///
+                            firm_draws[block_rows])
+                }
+            }
+        }
+        employed_rows = selectindex(state.employed :== 1)
+        if (length(employed_rows)) {
+            state.spell_id[employed_rows] = J(length(employed_rows), 1, 1)
+            state.tenure[employed_rows] = tenure_ages[employed_rows]
+            state.unemployment_duration[employed_rows] = ///
+                J(length(employed_rows), 1, .)
+            state.current_value[employed_rows] = ///
+                population.worker_value[employed_rows] + ///
+                population.firm_value[state.firm_id[employed_rows], 1]
+        }
+        if (initial == "stationary") {
+            unemployed_rows = selectindex(state.employed :== 0)
+            if (length(unemployed_rows)) {
+                state.unemployment_duration[unemployed_rows] = ///
+                    unemployment_ages[unemployed_rows]
+            }
+        }
+    }
+    state.validated = 0
+    fesim_state_validate(state, population)
+    state.validated = 1
+    return(state)
+}
+
+struct fesim_state scalar fesim_akm_advance_block(
+    struct fesim_state scalar state,
+    struct fesim_population scalar population,
+    struct fesim_network_design scalar design,
+    real scalar delta_years,
+    real scalar annual_eu,
+    real scalar annual_ee,
+    real scalar annual_ue,
+    struct fesim_rng_state scalar rng_state)
+{
+    real rowvector rates
+    real colvector current_firm
+    real colvector destination_draws
+    real colvector direct_rows
+    real colvector employed_before
+    real colvector entry_rows
+    real colvector event_draws
+    real colvector exit_rows
+    real colvector retained_employed
+    real colvector stay_rows
+    real colvector stay_unemployed
+
+    fesim_population_validate(population)
+    fesim_state_validate(state, population)
+    fesim_netdesign_validate(design)
+    if (design.mode != "blocks" | design.prepared != 1) {
+        _error(3300, "simple AKM block mobility design is invalid")
+    }
+    if (design.block_log_bonus == 0) {
+        return(fesim_akm_advance(state, population, delta_years, ///
+            annual_eu, annual_ee, annual_ue, rng_state))
+    }
+    rates = fesim_akm_interval_rates(
+        delta_years, annual_eu, annual_ee, annual_ue)
+    event_draws = fesim_rng_runiform(
+        rng_state, "mobility_events", population.workers, 1)
+    destination_draws = fesim_rng_runiform(
+        rng_state, "destination_draws", population.workers, 1)
+    employed_before = state.employed
+    entry_rows = selectindex(employed_before :== 0 :& ///
+        event_draws :< rates[3])
+    exit_rows = selectindex(employed_before :== 1 :& ///
+        event_draws :< rates[1])
+    direct_rows = selectindex(employed_before :== 1 :& ///
+        event_draws :>= rates[1] :& ///
+        event_draws :< rates[1] + rates[2])
+    stay_rows = selectindex(employed_before :== 1 :& ///
+        event_draws :>= rates[1] + rates[2])
+    stay_unemployed = selectindex(employed_before :== 0 :& ///
+        event_draws :>= rates[3])
+    current_firm = state.firm_id[direct_rows]
+
+    state.period = state.period + 1
+    state.ntransitions = J(population.workers, 1, 0)
+    if (length(stay_rows)) state.tenure[stay_rows] = state.tenure[stay_rows] :+ 1
+    if (length(stay_unemployed)) {
+        state.unemployment_duration[stay_unemployed] = ///
+            state.unemployment_duration[stay_unemployed] :+ 1
+    }
+    if (length(exit_rows)) {
+        state.employed[exit_rows] = J(length(exit_rows), 1, 0)
+        state.firm_id[exit_rows] = J(length(exit_rows), 1, .)
+        state.tenure[exit_rows] = J(length(exit_rows), 1, .)
+        state.unemployment_duration[exit_rows] = J(length(exit_rows), 1, 0)
+        state.current_value[exit_rows] = J(length(exit_rows), 1, .)
+        state.ntransitions[exit_rows] = J(length(exit_rows), 1, 1)
+    }
+    if (length(direct_rows)) {
+        state.firm_id[direct_rows] = fesim_netdesign_sample_excl(
+            design, population.firm_weight, ///
+            design.firm_block[current_firm], current_firm, ///
+            destination_draws[direct_rows])
+        state.spell_id[direct_rows] = state.spell_id[direct_rows] :+ 1
+        state.tenure[direct_rows] = J(length(direct_rows), 1, 0)
+        state.ntransitions[direct_rows] = J(length(direct_rows), 1, 1)
+    }
+    if (length(entry_rows)) {
+        state.employed[entry_rows] = J(length(entry_rows), 1, 1)
+        state.firm_id[entry_rows] = fesim_netdesign_sample_common(
+            design, population.firm_weight, ///
+            design.worker_block[entry_rows], destination_draws[entry_rows])
+        state.spell_id[entry_rows] = state.spell_id[entry_rows] :+ 1
+        state.tenure[entry_rows] = J(length(entry_rows), 1, 0)
+        state.unemployment_duration[entry_rows] = J(length(entry_rows), 1, .)
+        state.ntransitions[entry_rows] = J(length(entry_rows), 1, 1)
+    }
+    retained_employed = selectindex(state.employed :== 1)
+    if (length(retained_employed)) {
+        state.current_value[retained_employed] = ///
+            population.worker_value[retained_employed] + ///
+            population.firm_value[state.firm_id[retained_employed], 1]
+    }
+    fesim_state_validate(state, population)
+    state.validated = 1
+    return(state)
+}
+
+struct fesim_state scalar fesim_akm_burn_in_block(
+    struct fesim_state scalar state,
+    struct fesim_population scalar population,
+    struct fesim_network_design scalar design,
+    real scalar burnin,
+    real scalar delta_years,
+    real scalar annual_eu,
+    real scalar annual_ee,
+    real scalar annual_ue,
+    struct fesim_rng_state scalar rng_state)
+{
+    real scalar period
+
+    if (missing(burnin) | burnin < 0 | burnin != floor(burnin)) {
+        _error(3300, "simple AKM block burn-in must be a nonnegative integer")
+    }
+    for (period = 1; period <= burnin; period++) {
+        state = fesim_akm_advance_block(state, population, design, ///
+            delta_years, annual_eu, annual_ee, annual_ue, rng_state)
+    }
+    return(state)
 }
 
 end

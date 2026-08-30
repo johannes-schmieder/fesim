@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_akm_handler_schema_version()
 {
-    return(2)
+    return(3)
 }
 
 real scalar fesim_akm_variance_from_sums(
@@ -49,6 +49,9 @@ real scalar fesim_akm_simulate_to_stata(
     string scalar initial,
     real scalar burnin,
     string scalar truth,
+    string scalar network_mode,
+    real scalar block_count,
+    real scalar block_log_bonus,
     real scalar mean_log_wage,
     real scalar worker_sd,
     real scalar firm_sd,
@@ -61,6 +64,7 @@ real scalar fesim_akm_simulate_to_stata(
     string scalar truth_moment_matrix,
     string scalar truth_target_matrix)
 {
+    struct fesim_network_design scalar design
     struct fesim_population scalar population
     struct fesim_rng_state scalar rng_state
     struct fesim_state scalar state
@@ -95,6 +99,7 @@ real scalar fesim_akm_simulate_to_stata(
         missing(annual_eu) | missing(annual_ee) | missing(annual_ue) | ///
         missing(wage_trend) | worker_sd < 0 | firm_sd < 0 | ///
         error_sd < 0 | firm_size_sd < 0 | ///
+        missing(block_count) | missing(block_log_bonus) | ///
         annual_eu < 0 | annual_eu > 1 | annual_ee < 0 | ///
         annual_ee > 1 | annual_ue < 0 | annual_ue > 1 | ///
         annual_eu + annual_ee >= 1 | ///
@@ -104,16 +109,33 @@ real scalar fesim_akm_simulate_to_stata(
         strtrim(truth_target_matrix) == "") {
         _error(3300, "simple AKM handler inputs are invalid")
     }
+    network_mode = strlower(strtrim(network_mode))
+    if (network_mode != "random" & network_mode != "blocks") {
+        _error(3300, "simple AKM network design is invalid")
+    }
 
     rng_state = fesim_rng_init(requested_seed, seed_was_requested)
     population = fesim_akm_generate_population(
         workers, firms, worker_sd, firm_sd, firm_size_sd, rng_state)
-    state = fesim_akm_initialize_state(
-        population, initial, delta_years, annual_eu, annual_ee, ///
-        annual_ue, rng_state)
-    state = fesim_akm_burn_in(
-        state, population, burnin, delta_years, annual_eu, annual_ee, ///
-        annual_ue, rng_state)
+    design = fesim_netdesign_build(network_mode, workers, firms, ///
+        block_count, block_log_bonus, 0, rng_state)
+    fesim_netdesign_prepare(design, population.firm_weight)
+    if (network_mode == "random") {
+        state = fesim_akm_initialize_state(
+            population, initial, delta_years, annual_eu, annual_ee, ///
+            annual_ue, rng_state)
+        state = fesim_akm_burn_in(
+            state, population, burnin, delta_years, annual_eu, annual_ee, ///
+            annual_ue, rng_state)
+    }
+    else {
+        state = fesim_akm_initialize_block(
+            population, design, initial, delta_years, annual_eu, ///
+            annual_ee, annual_ue, rng_state)
+        state = fesim_akm_burn_in_block(
+            state, population, design, burnin, delta_years, annual_eu, ///
+            annual_ee, annual_ue, rng_state)
+    }
 
     block_workers = fesim_output_default_block(workers, periods)
     active_firms = J(firms, 1, 0)
@@ -125,11 +147,19 @@ real scalar fesim_akm_simulate_to_stata(
     alpha_psi_sum = 0
     fesim_output_initialize_panel(
         workers, periods, start_value, time_format, truth)
+    fesim_output_init_net_truth(design, truth)
     for (output_period = 1; output_period <= periods; output_period++) {
         if (output_period > 1) {
-            state = fesim_akm_advance(
-                state, population, delta_years, annual_eu, annual_ee, ///
-                annual_ue, rng_state)
+            if (network_mode == "random") {
+                state = fesim_akm_advance(
+                    state, population, delta_years, annual_eu, annual_ee, ///
+                    annual_ue, rng_state)
+            }
+            else {
+                state = fesim_akm_advance_block(
+                    state, population, design, delta_years, annual_eu, ///
+                    annual_ee, annual_ue, rng_state)
+            }
         }
         wage_components = fesim_akm_wage_components(
             state, population, mean_log_wage, error_sd, wage_trend, ///
@@ -154,8 +184,11 @@ real scalar fesim_akm_simulate_to_stata(
         fesim_output_store_akm_period(
             state, population, wage_components, output_period, periods, ///
             start_value, truth)
+        fesim_output_store_net_truth(
+            design, state, output_period, periods, truth)
     }
     fesim_output_finalize_panel(workers, periods, block_workers, truth)
+    fesim_output_finalize_net_truth(design, truth)
 
     alpha_variance = fesim_sample_variance(population.worker_value)
     active_rows = selectindex(active_firms :== 1)

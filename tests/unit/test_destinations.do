@@ -4,7 +4,7 @@ set more off
 set varabbrev off
 
 mata:
-assert(fesim_destination_schema_version() == 1)
+assert(fesim_destination_schema_version() == 2)
 assert(fesim_destination_type_support() == ///
     (-2, -1, 0, 1, 2) / sqrt(2))
 

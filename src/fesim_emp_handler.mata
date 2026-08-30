@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_emp_handler_schema_version()
 {
-    return(1)
+    return(2)
 }
 
 real colvector fesim_emp_truth_targets(
@@ -33,6 +33,9 @@ real scalar fesim_emp_simulate_to_stata(
     string scalar initial,
     real scalar burnin_years,
     string scalar truth,
+    string scalar network_mode,
+    real scalar block_count,
+    real scalar block_log_bonus,
     real scalar mean_log_wage,
     real scalar worker_sd,
     real scalar firm_sd,
@@ -61,6 +64,7 @@ real scalar fesim_emp_simulate_to_stata(
 {
     struct fesim_destination_tables scalar tables
     struct fesim_empirical_params scalar params
+    struct fesim_network_design scalar design
     struct fesim_population scalar population
     struct fesim_rng_state scalar rng_state
     struct fesim_state scalar state
@@ -98,6 +102,7 @@ real scalar fesim_emp_simulate_to_stata(
         missing(mean_log_wage) | missing(worker_sd) | missing(firm_sd) | ///
         missing(error_sd) | missing(firm_size_sd) | missing(wage_trend) | ///
         worker_sd < 0 | firm_sd < 0 | error_sd < 0 | firm_size_sd < 0 | ///
+        missing(block_count) | missing(block_log_bonus) | ///
         missing(rho_z_alpha) | abs(rho_z_alpha) > 1 | ///
         missing(rho_q_psi) | abs(rho_q_psi) > 1 | ///
         (worker_sd == 0 & rho_z_alpha != 0) | ///
@@ -113,8 +118,10 @@ real scalar fesim_emp_simulate_to_stata(
     }
     initial = strlower(strtrim(initial))
     truth = strlower(strtrim(truth))
+    network_mode = strlower(strtrim(network_mode))
     if ((initial != "random" & initial != "allunemployed") | ///
-        (truth != "none" & truth != "basic" & truth != "full")) {
+        (truth != "none" & truth != "basic" & truth != "full") | ///
+        (network_mode != "random" & network_mode != "blocks")) {
         _error(3300, "stylized AKM initialization or truth mode is invalid")
     }
     months_per_output = floor(months_per_output + .5)
@@ -123,17 +130,34 @@ real scalar fesim_emp_simulate_to_stata(
     population = fesim_emp_generate_population(
         workers, firms, worker_sd, firm_sd, firm_size_sd, ///
         rho_z_alpha, rho_q_psi, rng_state)
+    design = fesim_netdesign_build(network_mode, workers, firms, ///
+        block_count, block_log_bonus, 0, rng_state)
+    fesim_netdesign_prepare(design, population.firm_weight)
     params = fesim_emp_params_build(
         kappa_eu, eu_worker, eu_firm, eu_duration, ///
         kappa_ee, ee_worker, ee_firm, ee_duration, ///
         kappa_ue, ue_worker, ue_duration)
-    tables = fesim_destination_build(
-        population.firm_id, population.firm_weight, ///
-        population.firm_quality, theta_sort, theta_quality, ///
-        theta_up, theta_down)
-    state = fesim_emp_initialize_state(population, initial, rng_state)
-    state = fesim_emp_burn_in(
-        state, population, burnin_years, params, tables, rng_state)
+    if (network_mode == "random") {
+        tables = fesim_destination_build(
+            population.firm_id, population.firm_weight, ///
+            population.firm_quality, theta_sort, theta_quality, ///
+            theta_up, theta_down)
+        state = fesim_emp_initialize_state(population, initial, rng_state)
+        state = fesim_emp_burn_in(
+            state, population, burnin_years, params, tables, rng_state)
+    }
+    else {
+        tables = fesim_destination_build_blocks(
+            population.firm_id, population.firm_weight, ///
+            population.firm_quality, design.firm_block, ///
+            design.block_count, design.block_log_bonus, ///
+            theta_sort, theta_quality, theta_up, theta_down)
+        state = fesim_emp_initialize_block(
+            population, design, initial, rng_state)
+        state = fesim_emp_burn_in_block(
+            state, population, design, burnin_years, params, tables, ///
+            rng_state)
+    }
     state.ntransitions = J(workers, 1, 0)
 
     block_workers = fesim_output_default_block(workers, periods)
@@ -146,12 +170,19 @@ real scalar fesim_emp_simulate_to_stata(
     alpha_psi_sum = 0
     fesim_output_init_emp_panel(
         workers, periods, start_value, time_format, truth)
+    fesim_output_init_net_truth(design, truth)
     for (output_period = 1; output_period <= periods; output_period++) {
         if (output_period > 1) {
             interval_transitions = J(workers, 1, 0)
             for (month = 1; month <= months_per_output; month++) {
-                state = fesim_emp_advance(
-                    state, population, params, tables, rng_state)
+                if (network_mode == "random") {
+                    state = fesim_emp_advance(
+                        state, population, params, tables, rng_state)
+                }
+                else {
+                    state = fesim_emp_advance_block(
+                        state, population, design, params, tables, rng_state)
+                }
                 interval_transitions = interval_transitions :+ ///
                     state.ntransitions
             }
@@ -180,9 +211,12 @@ real scalar fesim_emp_simulate_to_stata(
         fesim_output_store_emp_period(
             state, population, wage_components, output_period, periods, ///
             start_value, delta_years, truth)
+        fesim_output_store_net_truth(
+            design, state, output_period, periods, truth)
     }
     fesim_output_finalize_panel(workers, periods, block_workers, truth)
     fesim_output_finalize_emp_panel(truth)
+    fesim_output_finalize_net_truth(design, truth)
 
     alpha_variance = fesim_sample_variance(population.worker_value)
     active_rows = selectindex(active_firms :== 1)

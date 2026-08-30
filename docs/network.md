@@ -1,4 +1,32 @@
-# Observed network diagnostics
+# Network stress designs and observed diagnostics
+
+## Simulated destination designs
+
+`network(random)` is the frozen compatibility default. It uses the existing
+attraction-weighted initialization/UE kernels and current-firm-excluding EE
+kernels without drawing community assignments.
+
+`network(blocks)` assigns workers and firms independently to balanced
+communities: community sizes differ by at most one, but membership is randomly
+permuted on isolated stream 109. A worker's permanent home community governs
+origin-free initialization and UE assignments. Direct EE moves use the current
+firm's community. In either public AKM preset, the relevant ordinary
+destination weight is multiplied by `exp(block_log_bonus)` when the destination
+is in the reference community. Defaults are four communities and `log(9)`;
+`block_log_bonus=0` delegates to the exact frozen random destination rule.
+
+The common option is `network(random|blocks)`. Network scalars remain inside
+`parameters()` as `block_count` and `block_log_bonus`; supplying a network
+parameter under an irrelevant design is an error. Under `truth(full)`, a
+nonrandom design adds `worker_block_true` and `firm_block_true`. Worker truth is
+permanent; firm truth is the current employer's community and is missing while
+unemployed. `r(network_design)` and `_dta[fesim_network_design]` record the
+resolved design.
+
+These block labels are imposed simulation-design objects. They do not establish
+articulation, bridge, leave-one-worker, leave-one-match, or KSS leave-out
+connectedness. The reserved strict `network(bridges)` route is implemented in
+a later checkpoint and is not executable at the blocks checkpoint.
 
 The installed internal `_fesim_network` ado constructs two observed graphs after the panel and common flow variables are finalized. The bipartite worker-firm graph supplies connected-component diagnostics. The undirected firm mobility graph supplies direct-move link diagnostics. Both are computed from the retained output panel; neither reconstructs unobserved events between output snapshots.
 

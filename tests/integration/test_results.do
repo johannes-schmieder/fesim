@@ -47,7 +47,8 @@ local finalize_options ///
     command("fesim internal deterministic workers=7 firms=3 periods=5") ///
     seed(none) rng(none) rngmethod(deterministic_no_rng) ///
     frequency(quarter) internalclock(output_period) jobrule(end) ///
-    truth(basic) burnin(0) connectivity(keep) reference(none) ///
+    truth(basic) burnin(0) connectivity(keep) networkdesign(random) ///
+    reference(none) ///
     workers(7) firms(3) periods(5) firmsactive(`=toy_firms_active') ///
     employmentrate(`=toy_employment_rate') ///
     peu(`=toy_p_eu') pue(`=toy_p_ue') pee(`=toy_p_ee') ///
@@ -92,7 +93,7 @@ assert mreldif(report_moments, toy_moments) == 0
 
 foreach characteristic in version dgp dgp_alias preset calibration_class ///
     command seed rng frequency internal_clock jobrule burnin connectivity ///
-    reference rng_method stata_version truth {
+    network_design reference rng_method stata_version truth {
     local characteristic_value : char _dta[fesim_`characteristic']
     assert strtrim(`"`characteristic_value'"') != ""
 }

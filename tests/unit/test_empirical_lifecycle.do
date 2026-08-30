@@ -33,7 +33,7 @@ struct fesim_state scalar fesim_test_emp_state(
 end
 
 mata:
-assert(fesim_emp_schema_version() == 1)
+assert(fesim_emp_schema_version() == 2)
 assert(fesim_emp_month_years() == 1 / 12)
 
 population_rng = fesim_rng_init(20260829, 1)

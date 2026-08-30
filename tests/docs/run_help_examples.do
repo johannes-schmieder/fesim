@@ -8,7 +8,7 @@ generate long original_id = _n
 generate double original_value = _n / 10
 quietly datasignature set, reset
 
-foreach example in discovery simulate estimate {
+foreach example in discovery simulate estimate blocks {
     capture noisily fesim_run `example' using fesim.sthlp
     assert _rc == 0
     quietly datasignature confirm

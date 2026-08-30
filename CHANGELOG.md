@@ -25,6 +25,10 @@
 - Shared `network(random)` destination primitives for attraction-weighted
   common assignments and current-firm-excluding direct moves. Both public AKM
   routes preserve their frozen draws and output.
+- Common `network(blocks)` stress designs with balanced independent worker and
+  firm communities on isolated RNG stream 109, same-block destination weights,
+  exact zero-bonus nesting of the random rule, block truth variables, and
+  explicit metadata. These labels do not claim leave-out connectedness.
 
 ## 0.1.0 — 2026-08-29
 

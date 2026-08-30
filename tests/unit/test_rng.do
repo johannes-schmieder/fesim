@@ -3,13 +3,13 @@ clear all
 set more off
 set varabbrev off
 
-mata: assert(fesim_rng_schema_version() == 1)
+mata: assert(fesim_rng_schema_version() == 2)
 mata: assert(fesim_rng_component_names() == ///
     ("worker_primitives", "firm_primitives", "initial_states", ///
     "mobility_events", "destination_draws", "wage_shocks", ///
-    "observation_error", "solver"))
+    "observation_error", "solver", "network_design"))
 mata: assert(fesim_rng_stream_ids() == ///
-    (101, 102, 103, 104, 105, 106, 107, 108))
+    (101, 102, 103, 104, 105, 106, 107, 108, 109))
 
 set rng mt64s
 set rngstream 17
@@ -48,6 +48,15 @@ wage_junk = fesim_rng_rnormal(seeded_extra, "wage_shocks", 1, 1000, 0, 1)
 mobility_extra = fesim_rng_runiform(seeded_extra, "mobility_events", 1, 10)
 assert(worker_a == worker_extra)
 assert(mobility_a == mobility_extra)
+
+seeded_network = fesim_rng_init(24680, 1)
+network_junk = fesim_rng_runiform(seeded_network, "network_design", 1000, 1)
+worker_network = fesim_rng_rnormal(
+    seeded_network, "worker_primitives", 1, 10, 0, 1)
+mobility_network = fesim_rng_runiform(
+    seeded_network, "mobility_events", 1, 10)
+assert(worker_a == worker_network)
+assert(mobility_a == mobility_network)
 
 integer_draws = fesim_rng_runiformint(seeded_extra, "destination_draws", ///
     100, 1, 1, 4)

@@ -34,7 +34,7 @@ assert `"`r(dgp)'"' == "akm"
 assert `"`r(dgp_alias)'"' == "akmsimple"
 assert `"`r(preset)'"' == "simple"
 assert `"`r(calibration_class)'"' == "stylized"
-assert `"`r(config_schema)'"' == "akm_simple_v1"
+assert `"`r(config_schema)'"' == "akm_simple_v2"
 assert strpos(`"`r(config)'"', "dgp=akm preset=simple") == 1
 
 capture noisily fesim describe akm, preset(SIMPLE)
@@ -48,10 +48,10 @@ assert _rc == 0
 quietly adopath ++ `"`repository_root'/build"'
 mata: mata clear
 mata: mata mlib index
-mata: assert(fesim_mata_api_version() == 19)
+mata: assert(fesim_mata_api_version() == 20)
 mata: assert(fesim_config_schema_version() == 2)
 mata: assert(fesim_moment_schema_version() == 1)
-mata: assert(fesim_akm_simple_schema_version() == 3)
+mata: assert(fesim_akm_simple_schema_version() == 4)
 mata: assert(fesim_dispatch_status() == "akm_simple_and_stylized_public")
 
 di as result "FESIM SOURCE SMOKE PASS"

@@ -43,7 +43,7 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     unit/test_loader ///
     unit/test_config unit/test_calibration_registry unit/test_time ///
     unit/test_rates unit/test_hazards ///
-    unit/test_destinations unit/test_rng ///
+    unit/test_destinations unit/test_rng unit/test_network_design ///
     unit/test_runtime ///
     unit/test_lifecycle unit/test_flows unit/test_moments unit/test_durations ///
     unit/test_components ///
@@ -55,7 +55,7 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     unit/test_akm_diagnostics ///
     integration/test_discovery ///
     integration/test_akm_public ///
-    integration/test_akm_stylized_public ///
+    integration/test_akm_stylized_public integration/test_network_blocks ///
     integration/test_output_blocks integration/test_panel_contract ///
     integration/test_results regression/akm_tiny ///
     statistical/akm_moments statistical/akm_exogeneity ///

@@ -4,7 +4,7 @@ program define fesim_config, rclass
     syntax [ , DGP(string) PRESet(string) WORKers(string) FIRMs(string) ///
         PERIODs(string) FREQuency(string) START(string) SEED(string) ///
         INITIAL(string) BURNIN(string) JOBRULE(string) TRUTH(string) ///
-        CONNECTivity(string) PARAMETERS(string asis) noREPORT ]
+        CONNECTivity(string) NETWork(string) PARAMETERS(string asis) noREPORT ]
 
     local noreport ""
     if `"`report'"' == "noreport" {
@@ -38,6 +38,7 @@ program define fesim_config, rclass
     quietly fesim_registry, action(parameters) dgp(`canonical') preset(`resolved_preset')
     local scalar_parameters `"`r(scalar_parameters)'"'
     local model_parameters `"`r(model_parameters)'"'
+    local network_parameters `"`r(network_parameters)'"'
 
     foreach name of local scalar_parameters {
         quietly fesim_registry, action(parameter) dgp(`canonical') ///
@@ -94,6 +95,25 @@ program define fesim_config, rclass
         local i = `i' + 2
     }
     local parameter_names = strtrim(`"`parameter_names'"')
+    local has_block_count : list posof "block_count" in parameter_names
+    local has_block_log_bonus : list posof "block_log_bonus" in parameter_names
+    local has_bridge_count : list posof "bridge_count" in parameter_names
+
+    local network = lower(strtrim(`"`network'"'))
+    local source_network "option"
+    if `"`network'"' == "" {
+        local network "random"
+        local source_network "package"
+    }
+    if !inlist(`"`network'"', "random", "blocks", "bridges") {
+        di as error "network() must be random, blocks, or bridges"
+        exit 198
+    }
+    if `"`network'"' == "bridges" & `"`source_bridge_count'"' != "parameters" {
+        local value_bridge_count = real(`"`value_block_count'"') - 1
+        local default_bridge_count `"`value_bridge_count'"'
+        local source_bridge_count "derived"
+    }
 
     foreach name of local scalar_parameters {
         local value `"`value_`name''"'
@@ -156,6 +176,36 @@ program define fesim_config, rclass
     }
     if real(`"`value_workers'"') * real(`"`value_periods'"') > 2147483647 {
         di as error "workers() times periods() exceeds the supported observation count"
+        exit 198
+    }
+    if `"`network'"' != "random" & ///
+        real(`"`value_block_count'"') > ///
+        min(real(`"`value_workers'"'), real(`"`value_firms'"')) {
+        di as error "block_count may not exceed workers() or firms()"
+        exit 198
+    }
+    if `"`network'"' == "random" & ///
+        (`has_block_count' | `has_block_log_bonus' | `has_bridge_count') {
+        di as error "network design parameters require network(blocks) or network(bridges)"
+        exit 198
+    }
+    if `"`network'"' == "blocks" & `has_bridge_count' {
+        di as error "bridge_count requires network(bridges)"
+        exit 198
+    }
+    if `"`network'"' == "bridges" & ///
+        `has_block_log_bonus' {
+        di as error "block_log_bonus is not used by strict network(bridges)"
+        exit 198
+    }
+    if `"`network'"' == "bridges" & ///
+        real(`"`value_bridge_count'"') < real(`"`value_block_count'"') - 1 {
+        di as error "bridge_count must be at least block_count minus one"
+        exit 198
+    }
+    if `"`network'"' == "bridges" & ///
+        real(`"`value_bridge_count'"') > real(`"`value_workers'"') {
+        di as error "bridge_count may not exceed workers()"
         exit 198
     }
 
@@ -285,7 +335,7 @@ program define fesim_config, rclass
             local parameter_overrides `"`parameter_overrides' `name'=`value_`name''"'
         }
     }
-    foreach name in frequency start seed initial jobrule truth connectivity {
+    foreach name in frequency start seed initial jobrule truth connectivity network {
         if `"`source_`name''"' == "option" {
             local overrides `"`overrides' `name'=``name''"'
         }
@@ -294,9 +344,13 @@ program define fesim_config, rclass
     local overrides = strtrim(`"`overrides'"')
     local parameter_overrides = strtrim(`"`parameter_overrides'"')
 
-    local config `"dgp=`canonical' preset=`resolved_preset' workers=`value_workers' firms=`value_firms' periods=`value_periods' frequency=`frequency' start=`start' seed=`seed' initial=`initial' burnin=`value_burnin' jobrule=`jobrule' truth=`truth' connectivity=`connectivity' report=`reporting'"'
-    local config_sources `"dgp=registry preset=registry workers=`source_workers' firms=`source_firms' periods=`source_periods' frequency=`source_frequency' start=`source_start' seed=`source_seed' initial=`source_initial' burnin=`source_burnin' jobrule=`source_jobrule' truth=`source_truth' connectivity=`source_connectivity' report=`source_report'"'
+    local config `"dgp=`canonical' preset=`resolved_preset' workers=`value_workers' firms=`value_firms' periods=`value_periods' frequency=`frequency' start=`start' seed=`seed' initial=`initial' burnin=`value_burnin' jobrule=`jobrule' truth=`truth' connectivity=`connectivity' network=`network' report=`reporting'"'
+    local config_sources `"dgp=registry preset=registry workers=`source_workers' firms=`source_firms' periods=`source_periods' frequency=`source_frequency' start=`source_start' seed=`source_seed' initial=`source_initial' burnin=`source_burnin' jobrule=`source_jobrule' truth=`source_truth' connectivity=`source_connectivity' network=`source_network' report=`source_report'"'
     foreach name of local model_parameters {
+        local config `"`config' `name'=`value_`name''"'
+        local config_sources `"`config_sources' `name'=`source_`name''"'
+    }
+    foreach name of local network_parameters {
         local config `"`config' `name'=`value_`name''"'
         local config_sources `"`config_sources' `name'=`source_`name''"'
     }
@@ -309,7 +363,7 @@ program define fesim_config, rclass
         quietly fesim_registry, action(parameter) dgp(`canonical') ///
             preset(`resolved_preset') parameter(`name')
         matrix `parameter_matrix'[`row', 1] = real(`"`value_`name''"')
-        matrix `parameter_matrix'[`row', 2] = real(`"`r(default)'"')
+        matrix `parameter_matrix'[`row', 2] = real(`"`default_`name''"')
         matrix `parameter_matrix'[`row', 3] = real(`"`r(lower)'"')
         matrix `parameter_matrix'[`row', 4] = real(`"`r(upper)'"')
         local ++row
@@ -333,6 +387,7 @@ program define fesim_config, rclass
     return local jobrule `"`jobrule'"'
     return local truth `"`truth'"'
     return local connectivity `"`connectivity'"'
+    return local network `"`network'"'
     return local report `"`reporting'"'
     return local config `"`config'"'
     return local config_sources `"`config_sources'"'

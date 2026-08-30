@@ -22,7 +22,8 @@ help for {cmd:fesim} {right:(Johannes F. Schmieder)}
 {cmd:frequency(}{it:year|quarter|month}{cmd:)} {cmd:start(}{it:string}{cmd:)}
 {cmd:seed(}{it:#}{cmd:)} {cmd:initial(}{it:name}{cmd:)} {cmd:burnin(}{it:#}{cmd:)}
 {cmd:jobrule(}{it:name}{cmd:)} {cmd:truth(}{it:name}{cmd:)}
-{cmd:connectivity(}{it:name}{cmd:)} {cmd:parameters(}{it:string}{cmd:)}
+{cmd:connectivity(}{it:name}{cmd:)} {cmd:network(}{it:name}{cmd:)}
+{cmd:parameters(}{it:string}{cmd:)}
 {cmd:report} {cmd:noreport} {cmd:clear}]{p_end}
 
 {pstd}
@@ -37,7 +38,7 @@ The {cmd:dgp(akm) preset(simple)} and {cmd:dgp(akm) preset(stylized)} designs ar
 {cmd:fesim list} shows canonical DGP families, presets, aliases, and implementation status. {cmd:fesim presets} lists presets for all families or one requested DGP. {cmd:fesim describe} resolves case-insensitive names to canonical lowercase names. For example, {cmd:akmsimple} resolves to {cmd:dgp(akm) preset(simple)} and reports the same canonical configuration.
 
 {pstd}
-Configuration metadata is implemented for both public presets. Common defaults are {cmd:workers(10000)}, {cmd:firms(500)}, {cmd:periods(10)}, {cmd:frequency(year)}, {cmd:start(2000)}, {cmd:jobrule(end)}, {cmd:truth(basic)}, {cmd:connectivity(keep)}, and {cmd:report}. The simple preset uses {cmd:initial(stationary)} and {cmd:burnin(0)}. The stylized empirical-mobility preset uses {cmd:initial(random)} and a five-year monthly burn-in. Omitting {cmd:seed()} records {cmd:current}; configuration resolution itself never changes the RNG state.
+Configuration metadata is implemented for both public presets. Common defaults are {cmd:workers(10000)}, {cmd:firms(500)}, {cmd:periods(10)}, {cmd:frequency(year)}, {cmd:start(2000)}, {cmd:jobrule(end)}, {cmd:truth(basic)}, {cmd:connectivity(keep)}, {cmd:network(random)}, and {cmd:report}. The simple preset uses {cmd:initial(stationary)} and {cmd:burnin(0)}. The stylized empirical-mobility preset uses {cmd:initial(random)} and a five-year monthly burn-in. Omitting {cmd:seed()} records {cmd:current}; configuration resolution itself never changes the RNG state.
 
 For the simple AKM contract, {cmd:initial(stationary)} uses the exact interval transition matrix over unemployment and firms and initializes job age from the stationary geometric distribution. {cmd:initial(random)} uses employment probability 0.5, attraction-weighted firm assignment, tenure zero, and requires {cmd:burnin()} of at least one period. {cmd:initial(allunemployed)} is a diagnostic start.
 
@@ -46,6 +47,14 @@ The simple model parameters accepted in {cmd:parameters()} are {cmd:mu}, {cmd:sd
 
 {pstd}
 The stylized empirical-mobility preset reuses the wage/size parameters and adds {cmd:rho_z_alpha}, {cmd:rho_q_psi}; annual log-hazard intercepts {cmd:kappa_eu}, {cmd:kappa_ee}, {cmd:kappa_ue}; worker, firm, tenure, and unemployment-duration slopes; and destination coefficients {cmd:theta_sort}, {cmd:theta_quality}, {cmd:theta_up}, and {cmd:theta_down}. Type {cmd:fesim describe akmempirical} for all defaults and bounds. The intercepts anchor zero-covariate intensities to the simple annual probabilities; all remaining coefficients are transparent stress-design choices, not fitted estimates.
+
+{title:Network stress designs}
+
+{pstd}
+{cmd:network(random)} is the frozen compatibility default. {cmd:network(blocks)} independently assigns workers and firms to balanced communities using a dedicated RNG stream. Origin-free initialization and UE destinations use the worker's permanent home community; EE destinations use the current firm's community. The same-block destination weight is multiplied by {cmd:exp(block_log_bonus)}. The network scalars {cmd:block_count} and {cmd:block_log_bonus} remain inside {cmd:parameters()}; their defaults are 4 and {cmd:ln(9)}. Setting {cmd:block_log_bonus} to zero exactly nests the random destination rule. Network parameters supplied under an irrelevant design are rejected.
+
+{pstd}
+The reserved {cmd:network(bridges)} name and {cmd:bridge_count} parameter implement the approved later strict-block bridge contract but are not yet executable in this checkpoint. A simulation request using that design exits before replacement or random draws.
 
 {title:Time and rate units}
 
@@ -58,13 +67,13 @@ The stylized empirical-mobility preset reuses the wage/size parameters and adds 
 The returned dataset is sorted by {cmd:workerid time} and satisfies {cmd:isid workerid time}. Required variables are {cmd:workerid}, {cmd:time}, {cmd:firmid}, {cmd:employed}, {cmd:lnwage}, {cmd:spellid}, {cmd:tenure}, {cmd:newjob}, {cmd:from_unemp}, {cmd:to_unemp}, {cmd:jobtojob}, and {cmd:ntransitions}. With {cmd:truth(basic)} or {cmd:truth(full)}, the simple preset also generates {cmd:alpha_true}, {cmd:psi_true}, {cmd:time_true}, {cmd:xb_true}, {cmd:match_true}, {cmd:epsilon_true}, and {cmd:lnwage_true}. {cmd:truth(none)} suppresses those columns without changing any economic draw or common output value.
 
 {pstd}
-The stylized preset additionally reports {cmd:unemp_duration}; it and {cmd:tenure} use output-period units. {cmd:ntransitions} counts all monthly events since the prior snapshot and may exceed one. {cmd:r(durations)} reports counts, means, sample standard deviations, and p10/p50/p90 in years. Under {cmd:truth(full)}, {cmd:worker_type_true} gives the five-point mobility type and {cmd:firm_quality_true} gives current-firm quality on employed rows.
+The stylized preset additionally reports {cmd:unemp_duration}; it and {cmd:tenure} use output-period units. {cmd:ntransitions} counts all monthly events since the prior snapshot and may exceed one. {cmd:r(durations)} reports counts, means, sample standard deviations, and p10/p50/p90 in years. Under {cmd:truth(full)}, {cmd:worker_type_true} gives the five-point mobility type and {cmd:firm_quality_true} gives current-firm quality on employed rows. Under a nonrandom network design, full truth also adds permanent {cmd:worker_block_true} and current-employer {cmd:firm_block_true}; the latter is missing outside employment.
 
 {pstd}
 {cmd:alpha_true} is the persistent worker effect. {cmd:psi_true} is the persistent current-firm effect and is missing outside employment. {cmd:time_true} is {cmd:wage_trend} times elapsed retained-sample years. {cmd:xb_true} and {cmd:match_true} are zero in the simple preset. {cmd:epsilon_true} is the idiosyncratic wage shock, and {cmd:lnwage_true} equals the observed employed log wage because the simple preset has no measurement error.
 
 {pstd}
-Simulation results are returned through {cmd:r()} scalars for dimensions, realized flows, network diagnostics, and stage runtimes; macros for the resolved DGP, preset, timing, RNG, and version; and matrices {cmd:r(parameters)}, {cmd:r(moments)}, {cmd:r(targets)}, and {cmd:r(network)}. {cmd:akm/stylized} also returns {cmd:r(durations)}. Component moments and applicable targets are computed even under {cmd:truth(none)}. Dataset characteristics record the version, canonical DGP and requested alias, preset and calibration class, command, actual master seed and RNG, frequency and internal clock, employer rule, burn-in, connectivity rule, truth mode, and normalization reference.
+Simulation results are returned through {cmd:r()} scalars for dimensions, realized flows, network diagnostics, and stage runtimes; macros for the resolved DGP, preset, timing, RNG, network design, and version; and matrices {cmd:r(parameters)}, {cmd:r(moments)}, {cmd:r(targets)}, and {cmd:r(network)}. {cmd:akm/stylized} also returns {cmd:r(durations)}. Component moments and applicable targets are computed even under {cmd:truth(none)}. Dataset characteristics record the version, canonical DGP and requested alias, preset and calibration class, command, actual master seed and RNG, frequency and internal clock, employer rule, burn-in, connectivity rule, network design, truth mode, and normalization reference.
 
 {title:Connectivity}
 
@@ -145,6 +154,7 @@ Discovery and configuration resolution do not alter data or Stata's RNG state. T
 {synopt:{cmd:r(durations)}}year-valued tenure and unemployment-duration distribution; {cmd:akm/stylized}{p_end}
 {synopt:{cmd:r(dgp)}, {cmd:r(dgp_alias)}, {cmd:r(preset)}}canonical identity and requested alias{p_end}
 {synopt:{cmd:r(seed)}, {cmd:r(rng)}}actual master seed and component-stream RNG{p_end}
+{synopt:{cmd:r(network_design)}}resolved random or block destination design{p_end}
 {synopt:{cmd:r(frequency)}, {cmd:r(internal_clock)}}output and internal timing{p_end}
 {synopt:{cmd:r(command)}, {cmd:r(version)}, {cmd:r(reference)}}scientific command and package metadata{p_end}
 
@@ -204,6 +214,22 @@ block through {cmd:fesim_run}, which also restores the caller's data.
 {txt}{...}
 {space 4}{hline 78}
 {space 4}{it:({stata fesim_run estimate using fesim.sthlp:click to run})}
+
+{space 4}{hline 10} {it:Example 4 - Generate a block-network stress design} {hline 10}
+{cmd}{...}
+          preserve
+{* example_start - blocks}{...}
+          clear
+          fesim, dgp(akmsimple) network(blocks) workers(300) ///
+              firms(24) periods(6) seed(13579) truth(full) ///
+              parameters(block_count 4 block_log_bonus 2.1972245773362196) ///
+              noreport clear
+          tabulate worker_block_true firm_block_true if employed
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 4}{hline 78}
+{space 4}{it:({stata fesim_run blocks using fesim.sthlp:click to run})}
 
 {title:Limitations}
 

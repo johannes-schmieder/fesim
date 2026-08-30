@@ -76,7 +76,7 @@ assert `public_workers' == 40
 assert `public_firms' == 6
 assert `public_periods' == 4
 assert `"`c(rngstate)'"' == `"`explicit_rng_before'"'
-assert rowsof(public_parameters) == 13
+assert rowsof(public_parameters) == 16
 assert rowsof(public_moments) == 38
 assert rowsof(public_targets) == 10
 assert colsof(public_targets) == 4

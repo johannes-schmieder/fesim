@@ -61,7 +61,7 @@ by workerid (time): assert worker_type_true == worker_type_true[1]
 bysort firmid (workerid time): assert ///
     firm_quality_true == firm_quality_true[1] if employed
 
-assert rowsof(stylized_parameters) == 27
+assert rowsof(stylized_parameters) == 30
 assert rowsof(stylized_moments) == 38
 assert rowsof(stylized_targets) == 9
 assert colsof(stylized_targets) == 4

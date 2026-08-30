@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_emp_schema_version()
 {
-    return(1)
+    return(2)
 }
 
 real scalar fesim_emp_month_years()
@@ -401,6 +401,223 @@ struct fesim_state scalar fesim_emp_burn_in(
     for (month = 1; month <= months; month++) {
         state = fesim_emp_advance(
             state, population, params, tables, rng_state)
+    }
+    return(state)
+}
+
+struct fesim_state scalar fesim_emp_initialize_block(
+    struct fesim_population scalar population,
+    struct fesim_network_design scalar design,
+    string scalar initial,
+    struct fesim_rng_state scalar rng_state)
+{
+    struct fesim_state scalar state
+    real colvector destination_draws
+    real colvector employed_rows
+    real colvector employment_draws
+
+    fesim_emp_population_validate(population)
+    fesim_netdesign_validate(design)
+    initial = strlower(strtrim(initial))
+    if (design.mode != "blocks" | design.prepared != 1 | ///
+        (initial != "random" & initial != "allunemployed")) {
+        _error(3300, "empirical block initial state is invalid")
+    }
+    if (design.block_log_bonus == 0) {
+        return(fesim_emp_initialize_state(population, initial, rng_state))
+    }
+    state.schema_version = fesim_state_schema_version()
+    state.period = 1
+    state.employed = J(population.workers, 1, 0)
+    state.firm_id = J(population.workers, 1, .)
+    state.spell_id = J(population.workers, 1, 0)
+    state.tenure = J(population.workers, 1, .)
+    state.unemployment_duration = J(population.workers, 1, 0)
+    state.ntransitions = J(population.workers, 1, 0)
+    state.current_value = J(population.workers, 1, .)
+    if (initial == "random") {
+        employment_draws = fesim_rng_runiform(
+            rng_state, "initial_states", population.workers, 1)
+        destination_draws = fesim_rng_runiform(
+            rng_state, "destination_draws", population.workers, 1)
+        state.employed = employment_draws :< .5
+        employed_rows = selectindex(state.employed :== 1)
+        if (length(employed_rows)) {
+            state.firm_id[employed_rows] = fesim_netdesign_sample_common(
+                design, population.firm_weight, ///
+                design.worker_block[employed_rows], ///
+                destination_draws[employed_rows])
+            state.spell_id[employed_rows] = J(length(employed_rows), 1, 1)
+            state.tenure[employed_rows] = J(length(employed_rows), 1, 0)
+            state.unemployment_duration[employed_rows] = ///
+                J(length(employed_rows), 1, .)
+            state.current_value[employed_rows] = ///
+                population.worker_value[employed_rows] :+ ///
+                population.firm_value[state.firm_id[employed_rows]]
+        }
+    }
+    state.validated = 0
+    fesim_state_validate(state, population)
+    state.validated = 1
+    return(state)
+}
+
+struct fesim_state scalar fesim_emp_advance_block(
+    struct fesim_state scalar state,
+    struct fesim_population scalar population,
+    struct fesim_network_design scalar design,
+    struct fesim_empirical_params scalar params,
+    struct fesim_destination_tables scalar tables,
+    struct fesim_rng_state scalar rng_state)
+{
+    real matrix employed_probabilities
+    real colvector destination_draws
+    real colvector direct_current
+    real colvector direct_rows
+    real colvector employed_rows
+    real colvector entry_rows
+    real colvector event_draws
+    real colvector exit_rows
+    real colvector retained_employed
+    real colvector stay_employed
+    real colvector stay_unemployed
+    real colvector unemployed_probability
+    real colvector unemployed_rows
+
+    fesim_emp_population_validate(population)
+    fesim_state_validate(state, population)
+    fesim_emp_params_validate(params)
+    fesim_emp_tables_validate(population, tables)
+    fesim_netdesign_validate(design)
+    if (design.mode != "blocks" | design.prepared != 1 | ///
+        tables.network_mode != "blocks" | ///
+        tables.block_count != design.block_count | ///
+        tables.block_log_bonus != design.block_log_bonus | ///
+        any(tables.firm_block :!= design.firm_block)) {
+        _error(3300, "empirical block mobility design is invalid")
+    }
+    if (design.block_log_bonus == 0) {
+        return(fesim_emp_advance(
+            state, population, params, tables, rng_state))
+    }
+    event_draws = fesim_rng_runiform(
+        rng_state, "mobility_events", population.workers, 1)
+    destination_draws = fesim_rng_runiform(
+        rng_state, "destination_draws", population.workers, 1)
+    employed_rows = selectindex(state.employed :== 1)
+    unemployed_rows = selectindex(state.employed :== 0)
+    exit_rows = J(0, 1, .)
+    direct_rows = J(0, 1, .)
+    stay_employed = J(0, 1, .)
+    entry_rows = J(0, 1, .)
+    stay_unemployed = J(0, 1, .)
+    if (length(employed_rows)) {
+        employed_probabilities = fesim_hazard_competing_from_log(
+            fesim_hazard_employed_log(params.kappa_eu, ///
+                params.eu_worker, population.worker_mobility[employed_rows], ///
+                params.eu_firm, ///
+                population.firm_quality[state.firm_id[employed_rows]], ///
+                params.eu_duration, state.tenure[employed_rows]), ///
+            fesim_hazard_employed_log(params.kappa_ee, ///
+                params.ee_worker, population.worker_mobility[employed_rows], ///
+                params.ee_firm, ///
+                population.firm_quality[state.firm_id[employed_rows]], ///
+                params.ee_duration, state.tenure[employed_rows]), ///
+            fesim_emp_month_years())
+        exit_rows = fesim_emp_select_rows(employed_rows, ///
+            event_draws[employed_rows] :< employed_probabilities[, 1])
+        direct_rows = fesim_emp_select_rows(employed_rows, ///
+            event_draws[employed_rows] :>= employed_probabilities[, 1] :& ///
+            event_draws[employed_rows] :< ///
+                employed_probabilities[, 1] :+ employed_probabilities[, 2])
+        stay_employed = fesim_emp_select_rows(employed_rows, ///
+            event_draws[employed_rows] :>= ///
+                employed_probabilities[, 1] :+ employed_probabilities[, 2])
+    }
+    if (length(unemployed_rows)) {
+        unemployed_probability = fesim_hazard_one_from_log(
+            fesim_hazard_unemployed_log(params.kappa_ue, ///
+                params.ue_worker, population.worker_mobility[unemployed_rows], ///
+                params.ue_duration, ///
+                state.unemployment_duration[unemployed_rows]), ///
+            fesim_emp_month_years())
+        entry_rows = fesim_emp_select_rows(unemployed_rows, ///
+            event_draws[unemployed_rows] :< unemployed_probability)
+        stay_unemployed = fesim_emp_select_rows(unemployed_rows, ///
+            event_draws[unemployed_rows] :>= unemployed_probability)
+    }
+    direct_current = state.firm_id[direct_rows]
+    state.period = state.period + 1
+    state.ntransitions = J(population.workers, 1, 0)
+    if (length(stay_employed)) {
+        state.tenure[stay_employed] = state.tenure[stay_employed] :+ ///
+            fesim_emp_month_years()
+    }
+    if (length(stay_unemployed)) {
+        state.unemployment_duration[stay_unemployed] = ///
+            state.unemployment_duration[stay_unemployed] :+ ///
+            fesim_emp_month_years()
+    }
+    if (length(exit_rows)) {
+        state.employed[exit_rows] = J(length(exit_rows), 1, 0)
+        state.firm_id[exit_rows] = J(length(exit_rows), 1, .)
+        state.tenure[exit_rows] = J(length(exit_rows), 1, .)
+        state.unemployment_duration[exit_rows] = J(length(exit_rows), 1, 0)
+        state.current_value[exit_rows] = J(length(exit_rows), 1, .)
+        state.ntransitions[exit_rows] = J(length(exit_rows), 1, 1)
+    }
+    if (length(direct_rows)) {
+        state.firm_id[direct_rows] = fesim_dest_sample_ee_blocks(
+            tables, population.worker_type_index[direct_rows], ///
+            direct_current, destination_draws[direct_rows])
+        state.spell_id[direct_rows] = state.spell_id[direct_rows] :+ 1
+        state.tenure[direct_rows] = J(length(direct_rows), 1, 0)
+        state.ntransitions[direct_rows] = J(length(direct_rows), 1, 1)
+    }
+    if (length(entry_rows)) {
+        state.employed[entry_rows] = J(length(entry_rows), 1, 1)
+        state.firm_id[entry_rows] = fesim_dest_sample_ue_blocks(
+            tables, population.worker_type_index[entry_rows], ///
+            design.worker_block[entry_rows], destination_draws[entry_rows])
+        state.spell_id[entry_rows] = state.spell_id[entry_rows] :+ 1
+        state.tenure[entry_rows] = J(length(entry_rows), 1, 0)
+        state.unemployment_duration[entry_rows] = J(length(entry_rows), 1, .)
+        state.ntransitions[entry_rows] = J(length(entry_rows), 1, 1)
+    }
+    retained_employed = selectindex(state.employed :== 1)
+    if (length(retained_employed)) {
+        state.current_value[retained_employed] = ///
+            population.worker_value[retained_employed] :+ ///
+            population.firm_value[state.firm_id[retained_employed]]
+    }
+    fesim_state_validate(state, population)
+    state.validated = 1
+    return(state)
+}
+
+struct fesim_state scalar fesim_emp_burn_in_block(
+    struct fesim_state scalar state,
+    struct fesim_population scalar population,
+    struct fesim_network_design scalar design,
+    real scalar burnin_years,
+    struct fesim_empirical_params scalar params,
+    struct fesim_destination_tables scalar tables,
+    struct fesim_rng_state scalar rng_state)
+{
+    real scalar month
+    real scalar months
+
+    if (missing(burnin_years) | burnin_years < 0) {
+        _error(3300, "empirical block burn-in years are invalid")
+    }
+    months = burnin_years / fesim_emp_month_years()
+    if (abs(months - floor(months + .5)) > 1e-10) {
+        _error(3300, "empirical block burn-in must use whole months")
+    }
+    months = floor(months + .5)
+    for (month = 1; month <= months; month++) {
+        state = fesim_emp_advance_block(
+            state, population, design, params, tables, rng_state)
     }
     return(state)
 }

@@ -47,16 +47,18 @@ program define fesim_registry, rclass
     }
 
     if `"`action'"' == "parameters" {
-        return local common_options "workers firms periods frequency start seed initial burnin jobrule truth connectivity report"
+        return local common_options "workers firms periods frequency start seed initial burnin jobrule truth connectivity network report"
         if `"`resolved_preset'"' == "simple" {
-            return local scalar_parameters "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend"
+            return local scalar_parameters "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend block_count block_log_bonus bridge_count"
             return local model_parameters "mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend"
-            return local config_schema "akm_simple_v1"
+            return local network_parameters "block_count block_log_bonus bridge_count"
+            return local config_schema "akm_simple_v2"
         }
         else {
-            return local scalar_parameters "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down"
+            return local scalar_parameters "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down block_count block_log_bonus bridge_count"
             return local model_parameters "mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down"
-            return local config_schema "akm_stylized_v1"
+            return local network_parameters "block_count block_log_bonus bridge_count"
+            return local config_schema "akm_stylized_v2"
         }
         return local dgp "akm"
         return local preset `"`resolved_preset'"'
@@ -69,14 +71,15 @@ program define fesim_registry, rclass
         exit 198
     }
 
-    local common "workers firms periods frequency start seed initial burnin jobrule truth connectivity report"
+    local common "workers firms periods frequency start seed initial burnin jobrule truth connectivity network report"
     if `"`resolved_preset'"' == "simple" {
         local model "mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend"
     }
     else {
         local model "mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down"
     }
-    local all `"`common' `model'"'
+    local network_model "block_count block_log_bonus bridge_count"
+    local all `"`common' `model' `network_model'"'
     if !`: list name in all' {
         di as error "unknown fesim parameter: `name'"
         exit 198
@@ -131,7 +134,7 @@ program define fesim_registry, rclass
             local description "Pre-sample duration discarded after initialization"
         }
     }
-    else if inlist(`"`name'"', "frequency", "start", "initial", "jobrule", "truth", "connectivity", "report") {
+    else if inlist(`"`name'"', "frequency", "start", "initial", "jobrule", "truth", "connectivity", "network", "report") {
         local type "string"
         local unit "category"
         local scope "common"
@@ -166,6 +169,10 @@ program define fesim_registry, rclass
             local default "keep"
             local description "Connected-set handling rule"
         }
+        else if `"`name'"' == "network" {
+            local default "random"
+            local description "Mobility-network stress design"
+        }
         else {
             local default "report"
             local description "Configuration-reporting mode"
@@ -184,6 +191,38 @@ program define fesim_registry, rclass
         local named_option "yes"
         local parameters_allowed "no"
         local description "Requested simulation seed; current leaves RNG selection to execution"
+    }
+    else if `"`name'"' == "block_count" {
+        local type "integer"
+        local unit "communities"
+        local default "4"
+        local lower "2"
+        local upper "2147483647"
+        local lower_closed "yes"
+        local upper_closed "yes"
+        local scope "network"
+        local description "Balanced worker and firm community count"
+    }
+    else if `"`name'"' == "block_log_bonus" {
+        local unit "log destination weight"
+        local default "2.1972245773362196"
+        local lower "0"
+        local upper "30"
+        local lower_closed "yes"
+        local upper_closed "yes"
+        local scope "network"
+        local description "Same-block destination log-weight bonus"
+    }
+    else if `"`name'"' == "bridge_count" {
+        local type "integer"
+        local unit "imposed EE destinations"
+        local default "3"
+        local lower "1"
+        local upper "2147483647"
+        local lower_closed "yes"
+        local upper_closed "yes"
+        local scope "network"
+        local description "Exact bridge count; defaults dynamically to block_count minus one"
     }
     else {
         local named_option "no"
@@ -404,13 +443,13 @@ program define fesim_registry__resolve, rclass
         if `"`resolved_preset'"' == "simple" {
             local title "Simple additive AKM with exogenous random mobility"
             local calibration_class "stylized"
-            local config_schema "akm_simple_v1"
+            local config_schema "akm_simple_v2"
             local configurable "yes"
         }
         else {
             local title "Reduced-form AKM with stylized empirical mobility"
             local calibration_class "stylized"
-            local config_schema "akm_stylized_v1"
+            local config_schema "akm_stylized_v2"
             local configurable "yes"
         }
     }

@@ -20,6 +20,8 @@ fesim describe akmempirical
 
 `fesim describe akmsimple` reports the resolved `akm/simple` configuration and scalar-parameter matrix. The same resolver validates named common options and model-specific name-value pairs such as `parameters(mu 3.2 p_ee .10)`, records their sources, and serializes the result deterministically. In the frozen v0.1 contract, all model-specific scalars remain inside `parameters()`; only common controls have named options.
 
+The development branch also exposes the common `network(random|blocks)` stress design. `network(random)` is the frozen compatibility default. `network(blocks)` assigns balanced independent worker and firm communities and multiplies same-block destination weights by `exp(block_log_bonus)`; `parameters(block_log_bonus 0)` nests the exact random destination rule. Network scalars remain inside `parameters()`.
+
 The public simulation routes are:
 
 ```stata
@@ -54,6 +56,23 @@ fesim, dgp(akmsimple) workers(2000) periods(12) frequency(month) ///
     start(2000m1) seed(9876) ///
     parameters(sd_worker .45 sd_firm .18 p_ee .10) clear
 ```
+
+Generate a four-community mobility stress design with the default ninefold
+same-block destination weight:
+
+```stata
+fesim, dgp(akmsimple) network(blocks) workers(2000) firms(100) ///
+    periods(8) seed(24680) truth(full) ///
+    parameters(block_count 4 block_log_bonus 2.1972245773362196) clear
+
+tabulate worker_block_true firm_block_true if employed
+```
+
+Worker home communities govern origin-free initialization and job finding;
+the current firm's community governs direct employer moves. Full truth adds
+`worker_block_true` and the current `firm_block_true`. These are simulation
+design labels, not claims of leave-out or KSS connectedness. See
+[docs/network.md](docs/network.md).
 
 [`examples/akmsimple.do`](examples/akmsimple.do) is a tested end-to-end example. It simulates a connected panel and runs an AKM-style regression using only Stata's built-in `areg`; the example adds no runtime dependency.
 

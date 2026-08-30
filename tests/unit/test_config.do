@@ -11,8 +11,9 @@ matrix `default_parameters' = r(parameters)
 assert `"`r(dgp)'"' == "akm"
 assert `"`r(preset)'"' == "simple"
 assert `"`r(calibration_class)'"' == "stylized"
-assert `"`r(config_schema)'"' == "akm_simple_v1"
+assert `"`r(config_schema)'"' == "akm_simple_v2"
 assert `"`r(seed)'"' == "current"
+assert `"`r(network)'"' == "random"
 assert `"`r(frequency)'"' == "year"
 assert `"`r(start)'"' == "2000"
 assert r(workers) == 10000
@@ -53,7 +54,7 @@ assert `"`r(truth)'"' == "full"
 assert `"`r(connectivity)'"' == "largest"
 assert `"`r(report)'"' == "noreport"
 assert `"`r(calibration_class)'"' == "stylized_modified"
-assert `"`r(parameter_names)'"' == "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend"
+assert `"`r(parameter_names)'"' == "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend block_count block_log_bonus bridge_count"
 assert `"`r(parameters_supplied)'"' == "mu sd_worker p_ee"
 assert `"`r(parameter_overrides)'"' == "mu=4 sd_worker=.5 p_ee=.2"
 assert `"`r(model_overrides)'"' == "mu=4 sd_worker=.5 p_ee=.2"
@@ -87,12 +88,12 @@ tempname stylized_alias_parameters stylized_canonical_parameters
 matrix `stylized_alias_parameters' = r(parameters)
 assert `"`r(dgp)'"' == "akm"
 assert `"`r(preset)'"' == "stylized"
-assert `"`r(config_schema)'"' == "akm_stylized_v1"
+assert `"`r(config_schema)'"' == "akm_stylized_v2"
 assert `"`r(calibration_class)'"' == "stylized"
 assert `"`r(initial)'"' == "random"
 assert `"`r(internal_clock)'"' == "month"
 assert r(burnin) == 5
-assert rowsof(`stylized_alias_parameters') == 27
+assert rowsof(`stylized_alias_parameters') == 30
 assert reldif(`stylized_alias_parameters'["rho_z_alpha", "value"], .3) < 1e-12
 assert reldif(`stylized_alias_parameters'["rho_q_psi", "value"], .5) < 1e-12
 assert reldif(`stylized_alias_parameters'["theta_sort", "value"], .25) < 1e-12
@@ -166,6 +167,38 @@ quietly fesim_config, initial(random) burnin(1)
 assert `"`r(initial)'"' == "random"
 assert r(burnin) == 1
 capture noisily fesim_config, report noreport
+assert _rc == 198
+
+quietly fesim_config, network(blocks) workers(12) firms(8) ///
+    parameters(block_count 4 block_log_bonus 0)
+assert `"`r(network)'"' == "blocks"
+assert `"`r(parameters_supplied)'"' == "block_count block_log_bonus"
+assert r(parameters)["block_count", "value"] == 4
+assert r(parameters)["block_log_bonus", "value"] == 0
+assert strpos(`"`r(config_sources)'"', "block_count=parameters") > 0
+assert `"`r(calibration_class)'"' == "stylized"
+assert `"`r(model_overrides)'"' == ""
+
+quietly fesim_config, network(bridges) workers(12) firms(8) ///
+    parameters(block_count 5)
+assert r(parameters)["bridge_count", "value"] == 4
+assert r(parameters)["bridge_count", "default"] == 4
+assert strpos(`"`r(config_sources)'"', "bridge_count=derived") > 0
+
+capture noisily fesim_config, network(random) parameters(block_count 4)
+assert _rc == 198
+capture noisily fesim_config, network(blocks) parameters(bridge_count 4)
+assert _rc == 198
+capture noisily fesim_config, network(bridges) parameters(block_log_bonus 1)
+assert _rc == 198
+capture noisily fesim_config, network(blocks) workers(3) firms(8) ///
+    parameters(block_count 4)
+assert _rc == 198
+capture noisily fesim_config, network(bridges) workers(8) firms(8) ///
+    parameters(block_count 5 bridge_count 3)
+assert _rc == 198
+capture noisily fesim_config, network(bridges) workers(4) firms(4) ///
+    parameters(block_count 4 bridge_count 5)
 assert _rc == 198
 
 di as result "FESIM CONFIGURATION TESTS PASS"

@@ -198,7 +198,7 @@ program define fesim__simulate, rclass
     syntax [ , DGP(string) PRESet(string) WORKers(string) FIRMs(string) ///
         PERIODs(string) FREQuency(string) START(string) SEED(string) ///
         INITIAL(string) BURNIN(string) JOBRULE(string) TRUTH(string) ///
-        CONNECTivity(string) PARAMETERS(string asis) noREPORT CLEAR ]
+        CONNECTivity(string) NETWork(string) PARAMETERS(string asis) noREPORT CLEAR ]
 
     local noreport ""
     if `"`report'"' == "noreport" {
@@ -207,7 +207,7 @@ program define fesim__simulate, rclass
     }
     local config_options ""
     foreach name in dgp preset workers firms periods frequency start seed ///
-        initial burnin jobrule truth connectivity {
+        initial burnin jobrule truth connectivity network {
         if `"``name''"' != "" {
             local config_options `"`config_options' `name'(``name'')"'
         }
@@ -229,6 +229,7 @@ program define fesim__simulate, rclass
     local resolved_jobrule `"`r(jobrule)'"'
     local resolved_truth `"`r(truth)'"'
     local resolved_connectivity `"`r(connectivity)'"'
+    local resolved_network_mode `"`r(network)'"'
     local resolved_reporting `"`r(report)'"'
     local resolved_internal_clock `"`r(internal_clock)'"'
     local resolved_config `"`r(config)'"'
@@ -244,7 +245,8 @@ program define fesim__simulate, rclass
         p_rho_q_psi p_kappa_eu p_eu_worker p_eu_firm p_eu_duration ///
         p_kappa_ee p_ee_worker p_ee_firm p_ee_duration p_kappa_ue ///
         p_ue_worker p_ue_duration p_theta_sort p_theta_quality ///
-        p_theta_up p_theta_down
+        p_theta_up p_theta_down p_block_count p_block_log_bonus ///
+        p_bridge_count
     matrix `resolved_parameters' = r(parameters)
     scalar `p_mu' = `resolved_parameters'["mu", "value"]
     scalar `p_sd_worker' = `resolved_parameters'["sd_worker", "value"]
@@ -252,6 +254,10 @@ program define fesim__simulate, rclass
     scalar `p_sd_error' = `resolved_parameters'["sd_error", "value"]
     scalar `p_firm_size_sd' = `resolved_parameters'["firm_size_sd", "value"]
     scalar `p_wage_trend' = `resolved_parameters'["wage_trend", "value"]
+    scalar `p_block_count' = `resolved_parameters'["block_count", "value"]
+    scalar `p_block_log_bonus' = ///
+        `resolved_parameters'["block_log_bonus", "value"]
+    scalar `p_bridge_count' = `resolved_parameters'["bridge_count", "value"]
     if `"`resolved_preset'"' == "simple" {
         scalar `p_eu' = `resolved_parameters'["p_eu", "value"]
         scalar `p_ee' = `resolved_parameters'["p_ee", "value"]
@@ -278,6 +284,10 @@ program define fesim__simulate, rclass
     }
     if `"`resolved_connectivity'"' == "force" {
         di as error "connectivity(`resolved_connectivity') is not yet implemented for akm/`resolved_preset'"
+        exit 498
+    }
+    if `"`resolved_network_mode'"' == "bridges" {
+        di as error "network(bridges) is not yet implemented"
         exit 498
     }
 
@@ -313,6 +323,9 @@ program define fesim__simulate, rclass
             `resolved_start', "`resolved_time_format'", `resolved_delta', ///
             `seed_value', `seed_was_requested', "`resolved_initial'", ///
             `resolved_burnin', "`handler_truth'", ///
+            "`resolved_network_mode'", ///
+            st_numscalar("`p_block_count'"), ///
+            st_numscalar("`p_block_log_bonus'"), ///
             st_numscalar("`p_mu'"), st_numscalar("`p_sd_worker'"), ///
             st_numscalar("`p_sd_firm'"), st_numscalar("`p_sd_error'"), ///
             st_numscalar("`p_firm_size_sd'"), st_numscalar("`p_eu'"), ///
@@ -327,6 +340,9 @@ program define fesim__simulate, rclass
             `resolved_start', "`resolved_time_format'", `resolved_delta', ///
             `seed_value', `seed_was_requested', "`resolved_initial'", ///
             `resolved_burnin', "`handler_truth'", ///
+            "`resolved_network_mode'", ///
+            st_numscalar("`p_block_count'"), ///
+            st_numscalar("`p_block_log_bonus'"), ///
             st_numscalar("`p_mu'"), st_numscalar("`p_sd_worker'"), ///
             st_numscalar("`p_sd_firm'"), st_numscalar("`p_sd_error'"), ///
             st_numscalar("`p_firm_size_sd'"), ///
@@ -484,7 +500,8 @@ program define fesim__simulate, rclass
         frequency(`resolved_frequency') ///
         internalclock(`resolved_internal_clock') jobrule(`resolved_jobrule') ///
         truth(`resolved_truth') burnin(`resolved_burnin') ///
-        connectivity(`resolved_connectivity') reference(none) ///
+        connectivity(`resolved_connectivity') ///
+        networkdesign(`resolved_network_mode') reference(none) ///
         workers(`network_workers') firms(`resolved_firms') ///
         periods(`resolved_periods') parameters(`resolved_parameters') ///
         moments(`resolved_moments') targets(`resolved_targets') ///
