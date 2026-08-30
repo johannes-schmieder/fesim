@@ -46,6 +46,18 @@ foreach preset in simple stylized {
         timer off 1
         quietly timer list 1
         local command_`key' = r(t1)
+        foreach metric in command total simulate output {
+            local json_`metric'_`key' = ///
+                strtrim(string(``metric'_`key'', "%21.15g"))
+            if substr(`"`json_`metric'_`key''"', 1, 1) == "." {
+                local json_`metric'_`key' ///
+                    `"0`json_`metric'_`key''"'
+            }
+            else if substr(`"`json_`metric'_`key''"', 1, 2) == "-." {
+                local json_`metric'_`key' ///
+                    `"-0`=substr(`"`json_`metric'_`key''"', 2, .)'"'
+            }
+        }
     }
 }
 
@@ -67,10 +79,10 @@ foreach preset in simple stylized {
         file write `result_file' `"      "observations": `N_`key'',"' _n
         file write `result_file' `"      "components": `components_`key'',"' _n
         file write `result_file' `"      "edges": `edges_`key'',"' _n
-        file write `result_file' `"      "command_seconds": `command_`key'',"' _n
-        file write `result_file' `"      "runtime_total": `total_`key'',"' _n
-        file write `result_file' `"      "runtime_simulate": `simulate_`key'',"' _n
-        file write `result_file' `"      "runtime_output": `output_`key''"' _n
+        file write `result_file' `"      "command_seconds": `json_command_`key'',"' _n
+        file write `result_file' `"      "runtime_total": `json_total_`key'',"' _n
+        file write `result_file' `"      "runtime_simulate": `json_simulate_`key'',"' _n
+        file write `result_file' `"      "runtime_output": `json_output_`key''"' _n
         file write `result_file' `"    }`comma'"' _n
     }
     local preset_comma = cond(`"`preset'"' == "simple", ",", "")
