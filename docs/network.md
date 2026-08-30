@@ -15,18 +15,44 @@ destination weight is multiplied by `exp(block_log_bonus)` when the destination
 is in the reference community. Defaults are four communities and `log(9)`;
 `block_log_bonus=0` delegates to the exact frozen random destination rule.
 
-The common option is `network(random|blocks)`. Network scalars remain inside
-`parameters()` as `block_count` and `block_log_bonus`; supplying a network
-parameter under an irrelevant design is an error. Under `truth(full)`, a
+The common option is `network(random|blocks|bridges)`. Network scalars remain
+inside `parameters()`; supplying a network parameter under an irrelevant
+design is an error. Under `truth(full)`, a
 nonrandom design adds `worker_block_true` and `firm_block_true`. Worker truth is
 permanent; firm truth is the current employer's community and is missing while
 unemployed. `r(network_design)` and `_dta[fesim_network_design]` record the
 resolved design.
 
-These block labels are imposed simulation-design objects. They do not establish
-articulation, bridge, leave-one-worker, leave-one-match, or KSS leave-out
-connectedness. The reserved strict `network(bridges)` route is implemented in
-a later checkpoint and is not executable at the blocks checkpoint.
+`network(bridges)` begins from strict blocks rather than a finite log bonus.
+Initialization and UE assignments stay in the worker's permanent home block;
+ordinary EE destinations stay in the current firm's block. Each block must
+therefore contain at least two firms. The design first replays the retained
+mobility path on copied state and component-RNG records to identify each
+worker's first eligible EE event. Within each required source block it selects
+eligible workers by the independently drawn network priority. The economic run
+then consumes the ordinary event and destination streams once and redirects
+only each selected event's destination. No hazard, event time, spell increment,
+transition count, or extra random draw is created.
+
+The default plan has `bridge_count=block_count-1` and links adjacent labels
+1-2, 2-3, ..., B-1-B. Extra bridges cycle deterministically through those
+pairs. Workers are distinct over the complete plan. A target firm is sampled
+from the prescribed target block with the selected DGP's ordinary conditional
+weights and the same destination uniform already consumed by the EE event. If
+the retained simulation lacks enough eligible distinct workers, the command
+fails and restores caller data and RNG state.
+
+Every bridge run adds `nbridges_imposed`, the worker/output-interval count, and
+returns `r(bridges_imposed)` plus an exact `r(bridges)` ledger. Its columns are
+`bridge_id`, `workerid`, `output_period`, `internal_period`, `source_firm`,
+`target_firm`, `source_block`, and `target_block`. The dataset characteristic
+`fesim_bridges_imposed` records the total. Full truth supplies the block IDs;
+the ledger and interval counts are available under every truth mode.
+
+These block labels and bridge transitions are imposed simulation-design
+objects. Completing the adjacent block-level chain does not establish an
+articulation result, leave-one-worker, leave-one-match, or KSS leave-out
+connectedness in the realized worker-firm graph.
 
 The installed internal `_fesim_network` ado constructs two observed graphs after the panel and common flow variables are finalized. The bipartite worker-firm graph supplies connected-component diagnostics. The undirected firm mobility graph supplies direct-move link diagnostics. Both are computed from the retained output panel; neither reconstructs unobserved events between output snapshots.
 

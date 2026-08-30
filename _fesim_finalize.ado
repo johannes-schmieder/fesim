@@ -10,6 +10,7 @@ program define _fesim_finalize, rclass
         WORKERS(integer) FIRMS(integer) PERIODS(integer) ///
         PARAMETERS(name) MOMENTS(name) ///
         [ TARGETS(name) NETWORK(name) SOLVER(name) DURATIONS(name) ///
+        BRIDGES(name) ///
         FIRMSACTIVE(real -1) EMPLOYMENTRATE(real -1) ///
         PEU(real -1) PUE(real -1) PEE(real -1) COMPONENTS(real -1) ///
         LARGESTCOMPONENTOBSSHARE(real -1) ///
@@ -61,7 +62,7 @@ program define _fesim_finalize, rclass
             exit 198
         }
     }
-    foreach matrix_name in targets network solver durations {
+    foreach matrix_name in targets network solver durations bridges {
         if `"``matrix_name''"' != "" {
             capture confirm matrix ``matrix_name''
             if _rc {
@@ -74,6 +75,17 @@ program define _fesim_finalize, rclass
                 di as error "`matrix_name'() must have stable row or column names"
                 exit 198
             }
+        }
+    }
+    if (`"`networkdesign'"' == "bridges") != (`"`bridges'"' != "") {
+        di as error "network(bridges) requires exactly one bridge ledger"
+        exit 198
+    }
+    if `"`bridges'"' != "" {
+        if rowsof(`bridges') < 1 | colsof(`bridges') != 8 | ///
+            rowsof(`bridges') != `bridges'[rowsof(`bridges'), 1] {
+            di as error "bridges() is not a complete ordered bridge ledger"
+            exit 198
         }
     }
 
@@ -133,6 +145,9 @@ program define _fesim_finalize, rclass
     char _dta[fesim_burnin] `"`burnin'"'
     char _dta[fesim_connectivity] `"`connectivity'"'
     char _dta[fesim_network_design] `"`networkdesign'"'
+    if `"`bridges'"' != "" {
+        char _dta[fesim_bridges_imposed] `"`=rowsof(`bridges')'"'
+    }
     char _dta[fesim_reference] `"`reference'"'
     char _dta[fesim_rng_method] `"`rngmethod'"'
     char _dta[fesim_stata_version] `"`c(stata_version)'"'
@@ -157,6 +172,10 @@ program define _fesim_finalize, rclass
         tempname durations_copy
         matrix `durations_copy' = `durations'
     }
+    if `"`bridges'"' != "" {
+        tempname bridges_copy
+        matrix `bridges_copy' = `bridges'
+    }
 
     return scalar N = _N
     return scalar N_workers = `workers'
@@ -167,6 +186,8 @@ program define _fesim_finalize, rclass
     return scalar p_eu_realized = `peu'
     return scalar p_ue_realized = `pue'
     return scalar p_ee_realized = `pee'
+    if `"`bridges'"' == "" return scalar bridges_imposed = 0
+    else return scalar bridges_imposed = rowsof(`bridges')
     return scalar components = `components'
     return scalar largest_component_obs_share = `largestcomponentobsshare'
     return scalar largest_component_worker_share = `largestcomponentworkershare'
@@ -194,6 +215,7 @@ program define _fesim_finalize, rclass
     if `"`network'"' != "" return matrix network = `network_copy'
     if `"`solver'"' != "" return matrix solver = `solver_copy'
     if `"`durations'"' != "" return matrix durations = `durations_copy'
+    if `"`bridges'"' != "" return matrix bridges = `bridges_copy'
 
     if `"`reporting'"' == "report" {
         di as txt _newline "fesim simulation summary"

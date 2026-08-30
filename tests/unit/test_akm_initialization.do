@@ -35,7 +35,7 @@ assert(mreldif(stationary_probabilities, ///
 stationary_state = fesim_akm_initialize_state(
     initial_population, "stationary", 1, .08, .12, .60, initial_rng)
 assert(stationary_state.validated == 1)
-assert(stationary_state.schema_version == 4)
+assert(stationary_state.schema_version == 5)
 assert(stationary_state.employed == J(8, 1, 1))
 assert(stationary_state.firm_id == (3 \
     3 \

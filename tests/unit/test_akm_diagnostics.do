@@ -4,7 +4,7 @@ set more off
 set varabbrev off
 
 mata:
-assert(fesim_akm_handler_schema_version() == 3)
+assert(fesim_akm_handler_schema_version() == 4)
 diagnostic_targets = fesim_akm_truth_targets(.4, .15, .2)
 assert(mreldif(diagnostic_targets, ///
     (0 \ .4 \ .16 \ 0 \ .15 \ .0225 \ 0 \ .2 \ .04 \ 0)) < 1e-15)

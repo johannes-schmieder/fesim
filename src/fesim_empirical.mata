@@ -209,6 +209,7 @@ struct fesim_state scalar fesim_emp_initialize_state(
     state.unemployment_duration = J(population.workers, 1, 0)
     state.ntransitions = J(population.workers, 1, 0)
     state.current_value = J(population.workers, 1, .)
+    state.last_destination_uniform = J(population.workers, 1, .)
 
     if (initial == "random") {
         employment_draws = fesim_rng_runiform(
@@ -281,6 +282,7 @@ struct fesim_state scalar fesim_emp_advance(
         rng_state, "mobility_events", population.workers, 1)
     destination_draws = fesim_rng_runiform(
         rng_state, "destination_draws", population.workers, 1)
+    state.last_destination_uniform = destination_draws
     employed_rows = selectindex(state.employed :== 1)
     unemployed_rows = selectindex(state.employed :== 0)
     exit_rows = J(0, 1, .)
@@ -419,11 +421,12 @@ struct fesim_state scalar fesim_emp_initialize_block(
     fesim_emp_population_validate(population)
     fesim_netdesign_validate(design)
     initial = strlower(strtrim(initial))
-    if (design.mode != "blocks" | design.prepared != 1 | ///
+    if ((design.mode != "blocks" & design.mode != "bridges") | ///
+        design.prepared != 1 | ///
         (initial != "random" & initial != "allunemployed")) {
         _error(3300, "empirical block initial state is invalid")
     }
-    if (design.block_log_bonus == 0) {
+    if (design.mode == "blocks" & design.block_log_bonus == 0) {
         return(fesim_emp_initialize_state(population, initial, rng_state))
     }
     state.schema_version = fesim_state_schema_version()
@@ -435,6 +438,7 @@ struct fesim_state scalar fesim_emp_initialize_block(
     state.unemployment_duration = J(population.workers, 1, 0)
     state.ntransitions = J(population.workers, 1, 0)
     state.current_value = J(population.workers, 1, .)
+    state.last_destination_uniform = J(population.workers, 1, .)
     if (initial == "random") {
         employment_draws = fesim_rng_runiform(
             rng_state, "initial_states", population.workers, 1)
@@ -472,6 +476,7 @@ struct fesim_state scalar fesim_emp_advance_block(
 {
     real matrix employed_probabilities
     real colvector destination_draws
+    real colvector destination_firm
     real colvector direct_current
     real colvector direct_rows
     real colvector employed_rows
@@ -489,14 +494,15 @@ struct fesim_state scalar fesim_emp_advance_block(
     fesim_emp_params_validate(params)
     fesim_emp_tables_validate(population, tables)
     fesim_netdesign_validate(design)
-    if (design.mode != "blocks" | design.prepared != 1 | ///
-        tables.network_mode != "blocks" | ///
+    if ((design.mode != "blocks" & design.mode != "bridges") | ///
+        design.prepared != 1 | ///
+        tables.network_mode != design.mode | ///
         tables.block_count != design.block_count | ///
         tables.block_log_bonus != design.block_log_bonus | ///
         any(tables.firm_block :!= design.firm_block)) {
         _error(3300, "empirical block mobility design is invalid")
     }
-    if (design.block_log_bonus == 0) {
+    if (design.mode == "blocks" & design.block_log_bonus == 0) {
         return(fesim_emp_advance(
             state, population, params, tables, rng_state))
     }
@@ -504,6 +510,7 @@ struct fesim_state scalar fesim_emp_advance_block(
         rng_state, "mobility_events", population.workers, 1)
     destination_draws = fesim_rng_runiform(
         rng_state, "destination_draws", population.workers, 1)
+    state.last_destination_uniform = destination_draws
     employed_rows = selectindex(state.employed :== 1)
     unemployed_rows = selectindex(state.employed :== 0)
     exit_rows = J(0, 1, .)
@@ -567,9 +574,10 @@ struct fesim_state scalar fesim_emp_advance_block(
         state.ntransitions[exit_rows] = J(length(exit_rows), 1, 1)
     }
     if (length(direct_rows)) {
-        state.firm_id[direct_rows] = fesim_dest_sample_ee_blocks(
+        destination_firm = fesim_dest_sample_ee_blocks(
             tables, population.worker_type_index[direct_rows], ///
             direct_current, destination_draws[direct_rows])
+        state.firm_id[direct_rows] = destination_firm
         state.spell_id[direct_rows] = state.spell_id[direct_rows] :+ 1
         state.tenure[direct_rows] = J(length(direct_rows), 1, 0)
         state.ntransitions[direct_rows] = J(length(direct_rows), 1, 1)

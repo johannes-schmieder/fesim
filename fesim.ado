@@ -286,11 +286,6 @@ program define fesim__simulate, rclass
         di as error "connectivity(`resolved_connectivity') is not yet implemented for akm/`resolved_preset'"
         exit 498
     }
-    if `"`resolved_network_mode'"' == "bridges" {
-        di as error "network(bridges) is not yet implemented"
-        exit 498
-    }
-
     quietly _fesim_load
 
     local seed_was_requested 0
@@ -315,7 +310,7 @@ program define fesim__simulate, rclass
     if `"`resolved_connectivity'"' == "largest" & ///
         `"`resolved_truth'"' == "none" local handler_truth "basic"
 
-    tempname master_seed truth_moments truth_targets
+    tempname master_seed truth_moments truth_targets bridge_ledger
     if `"`resolved_preset'"' == "simple" {
         capture noisily mata: st_numscalar("`master_seed'", ///
             fesim_akm_simulate_to_stata( ///
@@ -326,12 +321,13 @@ program define fesim__simulate, rclass
             "`resolved_network_mode'", ///
             st_numscalar("`p_block_count'"), ///
             st_numscalar("`p_block_log_bonus'"), ///
+            st_numscalar("`p_bridge_count'"), ///
             st_numscalar("`p_mu'"), st_numscalar("`p_sd_worker'"), ///
             st_numscalar("`p_sd_firm'"), st_numscalar("`p_sd_error'"), ///
             st_numscalar("`p_firm_size_sd'"), st_numscalar("`p_eu'"), ///
             st_numscalar("`p_ee'"), st_numscalar("`p_ue'"), ///
             st_numscalar("`p_wage_trend'"), ///
-            "`truth_moments'", "`truth_targets'"))
+            "`truth_moments'", "`truth_targets'", "`bridge_ledger'"))
     }
     else {
         capture noisily mata: st_numscalar("`master_seed'", ///
@@ -343,6 +339,7 @@ program define fesim__simulate, rclass
             "`resolved_network_mode'", ///
             st_numscalar("`p_block_count'"), ///
             st_numscalar("`p_block_log_bonus'"), ///
+            st_numscalar("`p_bridge_count'"), ///
             st_numscalar("`p_mu'"), st_numscalar("`p_sd_worker'"), ///
             st_numscalar("`p_sd_firm'"), st_numscalar("`p_sd_error'"), ///
             st_numscalar("`p_firm_size_sd'"), ///
@@ -364,7 +361,7 @@ program define fesim__simulate, rclass
             st_numscalar("`p_theta_quality'"), ///
             st_numscalar("`p_theta_up'"), ///
             st_numscalar("`p_theta_down'"), ///
-            "`truth_moments'", "`truth_targets'"))
+            "`truth_moments'", "`truth_targets'", "`bridge_ledger'"))
     }
     local simulation_rc = _rc
     if `simulation_rc' {
@@ -381,6 +378,29 @@ program define fesim__simulate, rclass
     }
     quietly mata: st_numscalar("`runtime_simulate_scalar'", ///
         fesim_runtime_stop(st_matrix("`runtime_timers'")[1, 2]))
+
+    local bridge_option ""
+    if `"`resolved_network_mode'"' == "bridges" {
+        capture confirm matrix `bridge_ledger'
+        if _rc {
+            if `had_data' quietly restore
+            else clear
+            quietly mata: fesim_rng_restore_state( ///
+                "`caller_rng'", "`caller_rngstate'")
+            di as error "bridge simulation did not return its exact ledger"
+            exit 459
+        }
+        matrix colnames `bridge_ledger' = bridge_id workerid ///
+            output_period internal_period source_firm target_firm ///
+            source_block target_block
+        local bridge_rows = rowsof(`bridge_ledger')
+        local bridge_names ""
+        forvalues bridge = 1/`bridge_rows' {
+            local bridge_names `"`bridge_names' bridge_`bridge'"'
+        }
+        matrix rownames `bridge_ledger' = `bridge_names'
+        local bridge_option "bridges(`bridge_ledger')"
+    }
 
     matrix rownames `truth_moments' = alpha_true_mean alpha_true_sd ///
         alpha_true_var psi_true_mean psi_true_sd psi_true_var ///
@@ -505,7 +525,7 @@ program define fesim__simulate, rclass
         workers(`network_workers') firms(`resolved_firms') ///
         periods(`resolved_periods') parameters(`resolved_parameters') ///
         moments(`resolved_moments') targets(`resolved_targets') ///
-        `duration_option' ///
+        `duration_option' `bridge_option' ///
         network(`resolved_network') components(`network_components') ///
         largestcomponentobsshare(`largest_observation_share') ///
         largestcomponentworkershare(`largest_worker_share') ///

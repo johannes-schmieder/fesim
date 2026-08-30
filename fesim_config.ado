@@ -114,6 +114,11 @@ program define fesim_config, rclass
         local default_bridge_count `"`value_bridge_count'"'
         local source_bridge_count "derived"
     }
+    if `"`network'"' == "bridges" {
+        local value_block_log_bonus "0"
+        local default_block_log_bonus "0"
+        local source_block_log_bonus "design"
+    }
 
     foreach name of local scalar_parameters {
         local value `"`value_`name''"'
@@ -182,6 +187,11 @@ program define fesim_config, rclass
         real(`"`value_block_count'"') > ///
         min(real(`"`value_workers'"'), real(`"`value_firms'"')) {
         di as error "block_count may not exceed workers() or firms()"
+        exit 198
+    }
+    if `"`network'"' == "bridges" & ///
+        real(`"`value_firms'"') < 2 * real(`"`value_block_count'"') {
+        di as error "network(bridges) requires at least two firms per block"
         exit 198
     }
     if `"`network'"' == "random" & ///

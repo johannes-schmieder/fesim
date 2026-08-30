@@ -229,6 +229,7 @@ struct fesim_state scalar fesim_akm_initialize_state(
     state.unemployment_duration = J(population.workers, 1, 0)
     state.ntransitions = J(population.workers, 1, 0)
     state.current_value = J(population.workers, 1, .)
+    state.last_destination_uniform = J(population.workers, 1, .)
 
     if (initial != "allunemployed") {
         employment_draws = fesim_rng_runiform(
@@ -308,6 +309,7 @@ struct fesim_state scalar fesim_akm_advance(
         rng_state, "mobility_events", population.workers, 1)
     destination_draws = fesim_rng_runiform(
         rng_state, "destination_draws", population.workers, 1)
+    state.last_destination_uniform = destination_draws
     employed_before = state.employed
     entry_rows = selectindex(employed_before :== 0 :& ///
         event_draws :< rates[3])
@@ -575,7 +577,10 @@ real matrix fesim_akm_block_stationary(
     real scalar employment_probability
     real scalar firm
     real scalar firms
+    real scalar block_firm_count
     real rowvector rates
+    real colvector block_firms
+    real colvector block_stationary
     real colvector rhs
     real colvector stationary_firm
     real matrix common_probability
@@ -586,7 +591,8 @@ real matrix fesim_akm_block_stationary(
 
     fesim_population_validate(population)
     fesim_netdesign_validate(design)
-    if (design.mode != "blocks" | design.prepared != 1 | ///
+    if ((design.mode != "blocks" & design.mode != "bridges") | ///
+        design.prepared != 1 | ///
         rows(design.firm_block) != population.firms) {
         _error(3300, "simple AKM block stationary design is invalid")
     }
@@ -623,7 +629,7 @@ real matrix fesim_akm_block_stationary(
             firm_probability = qrsolve(equations, ///
                 (rates[1] / denominator) :* common_probability)
         }
-        else {
+        else if (design.mode == "blocks") {
             equations = direct_transition' - I(firms)
             equations[firms, .] = J(1, firms, 1)
             rhs = J(firms, 1, 0)
@@ -631,6 +637,21 @@ real matrix fesim_akm_block_stationary(
             stationary_firm = qrsolve(equations, rhs)
             firm_probability = stationary_firm * ///
                 J(1, design.block_count, 1)
+        }
+        else {
+            firm_probability = J(firms, design.block_count, 0)
+            for (block = 1; block <= design.block_count; block++) {
+                block_firms = selectindex(design.firm_block :== block)
+                block_firm_count = length(block_firms)
+                equations = direct_transition[
+                    block_firms, block_firms]' - I(block_firm_count)
+                equations[block_firm_count, .] = ///
+                    J(1, block_firm_count, 1)
+                rhs = J(block_firm_count, 1, 0)
+                rhs[block_firm_count] = 1
+                block_stationary = qrsolve(equations, rhs)
+                firm_probability[block_firms, block] = block_stationary
+            }
         }
     }
     if (any(missing(firm_probability)) | min(firm_probability) < -1e-10) {
@@ -649,6 +670,30 @@ real matrix fesim_akm_block_stationary(
         _error(3300, "simple AKM block stationary probabilities are invalid")
     }
     return(stationary)
+}
+
+real colvector fesim_akm_sample_sparse(
+    real colvector probability,
+    real colvector uniform_draw)
+{
+    real scalar draw
+    real colvector destination
+    real rowvector cumulative
+
+    if (cols(probability) != 1 | rows(probability) < 1 | ///
+        any(missing(probability)) | any(probability :< 0) | ///
+        abs(sum(probability) - 1) > 1e-10 | ///
+        cols(uniform_draw) != 1 | any(missing(uniform_draw)) | ///
+        any(uniform_draw :< 0) | any(uniform_draw :>= 1)) {
+        _error(3300, "sparse destination probabilities are invalid")
+    }
+    cumulative = runningsum(probability')
+    destination = J(rows(uniform_draw), 1, .)
+    for (draw = 1; draw <= rows(uniform_draw); draw++) {
+        destination[draw] = fesim_destination_prefix_index(
+            cumulative, cols(cumulative), uniform_draw[draw])
+    }
+    return(destination)
 }
 
 struct fesim_state scalar fesim_akm_initialize_block(
@@ -680,12 +725,13 @@ struct fesim_state scalar fesim_akm_initialize_block(
     fesim_population_validate(population)
     fesim_netdesign_validate(design)
     initial = strlower(strtrim(initial))
-    if (design.mode != "blocks" | design.prepared != 1 | ///
+    if ((design.mode != "blocks" & design.mode != "bridges") | ///
+        design.prepared != 1 | ///
         (initial != "stationary" & initial != "random" & ///
         initial != "allunemployed")) {
         _error(3300, "simple AKM block initialization is invalid")
     }
-    if (design.block_log_bonus == 0) {
+    if (design.mode == "blocks" & design.block_log_bonus == 0) {
         return(fesim_akm_initialize_state(population, initial, ///
             delta_years, annual_eu, annual_ee, annual_ue, rng_state))
     }
@@ -707,6 +753,7 @@ struct fesim_state scalar fesim_akm_initialize_block(
     state.unemployment_duration = J(population.workers, 1, 0)
     state.ntransitions = J(population.workers, 1, 0)
     state.current_value = J(population.workers, 1, .)
+    state.last_destination_uniform = J(population.workers, 1, .)
     if (initial != "allunemployed") {
         employment_draws = fesim_rng_runiform(
             rng_state, "initial_states", population.workers, 1)
@@ -732,7 +779,7 @@ struct fesim_state scalar fesim_akm_initialize_block(
                     firm_probability = stationary[
                         2..rows(stationary), block] / employment_probability
                     state.firm_id[block_rows] = ///
-                        fesim_destination_sample_common(
+                        fesim_akm_sample_sparse(
                             firm_probability, firm_draws[block_rows])
                 }
                 else {
@@ -781,6 +828,7 @@ struct fesim_state scalar fesim_akm_advance_block(
     real rowvector rates
     real colvector current_firm
     real colvector destination_draws
+    real colvector destination_firm
     real colvector direct_rows
     real colvector employed_before
     real colvector entry_rows
@@ -793,10 +841,11 @@ struct fesim_state scalar fesim_akm_advance_block(
     fesim_population_validate(population)
     fesim_state_validate(state, population)
     fesim_netdesign_validate(design)
-    if (design.mode != "blocks" | design.prepared != 1) {
+    if ((design.mode != "blocks" & design.mode != "bridges") | ///
+        design.prepared != 1) {
         _error(3300, "simple AKM block mobility design is invalid")
     }
-    if (design.block_log_bonus == 0) {
+    if (design.mode == "blocks" & design.block_log_bonus == 0) {
         return(fesim_akm_advance(state, population, delta_years, ///
             annual_eu, annual_ee, annual_ue, rng_state))
     }
@@ -806,6 +855,7 @@ struct fesim_state scalar fesim_akm_advance_block(
         rng_state, "mobility_events", population.workers, 1)
     destination_draws = fesim_rng_runiform(
         rng_state, "destination_draws", population.workers, 1)
+    state.last_destination_uniform = destination_draws
     employed_before = state.employed
     entry_rows = selectindex(employed_before :== 0 :& ///
         event_draws :< rates[3])
@@ -836,10 +886,11 @@ struct fesim_state scalar fesim_akm_advance_block(
         state.ntransitions[exit_rows] = J(length(exit_rows), 1, 1)
     }
     if (length(direct_rows)) {
-        state.firm_id[direct_rows] = fesim_netdesign_sample_excl(
+        destination_firm = fesim_netdesign_sample_excl(
             design, population.firm_weight, ///
             design.firm_block[current_firm], current_firm, ///
             destination_draws[direct_rows])
+        state.firm_id[direct_rows] = destination_firm
         state.spell_id[direct_rows] = state.spell_id[direct_rows] :+ 1
         state.tenure[direct_rows] = J(length(direct_rows), 1, 0)
         state.ntransitions[direct_rows] = J(length(direct_rows), 1, 1)

@@ -20,6 +20,14 @@ Five equiprobable worker mobility types use support `(-2,-1,0,1,2)/sqrt(2)`. `rh
 
 Random initialization delegates its attraction-weighted firm assignment to the shared `network(random)` primitive. UE destinations then depend on attraction, worker-type sorting, and firm quality without an origin-firm term. EE destinations additionally exclude the current firm and apply asymmetric upward and downward quality-distance terms. Grouped stabilized tables avoid any worker-by-firm probability matrix; when all added destination coefficients are zero, their probability vectors reduce to the shared attraction-weighted rule.
 
+For `network(bridges)`, grouped tables set exactly zero mass outside the
+reference block. Ordinary monthly UE/EE steps remain strict. At a planned EE
+event the same grouped quality, sorting, and asymmetric-distance kernel is
+conditioned on the prescribed adjacent target block and evaluated with the
+uniform already consumed by that event. The override occurs immediately, so
+later monthly hazards see the imposed target firm without changing the event
+that created the bridge.
+
 With `truth(full)`, `worker_type_true` repeats the worker mobility type and `firm_quality_true` records current-firm quality on employed rows. Basic wage truth retains the common additive-AKM variables.
 
 ## D-026 defaults

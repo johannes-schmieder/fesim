@@ -157,6 +157,7 @@ struct fesim_state scalar fesim_toy_initialize_state(
     state.ntransitions = J(population.workers, 1, 0)
     state.current_value = population.worker_value + ///
         population.firm_value[state.firm_id, 1]
+    state.last_destination_uniform = J(population.workers, 1, .)
     state.validated = 0
     fesim_state_validate(state, population)
     state.validated = 1
@@ -182,6 +183,10 @@ void fesim_state_validate(
         rows(state.unemployment_duration) != population.workers | ///
         rows(state.ntransitions) != population.workers | ///
         rows(state.current_value) != population.workers | ///
+        rows(state.last_destination_uniform) != population.workers | ///
+        any(!missing(state.last_destination_uniform) :& ///
+            (state.last_destination_uniform :< 0 :| ///
+            state.last_destination_uniform :>= 1)) | ///
         any(state.employed :!= 0 :& state.employed :!= 1) | ///
         any(missing(state.spell_id)) | any(state.spell_id :< 0) | ///
         any(state.spell_id :!= floor(state.spell_id)) | ///

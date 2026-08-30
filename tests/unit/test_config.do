@@ -179,11 +179,12 @@ assert strpos(`"`r(config_sources)'"', "block_count=parameters") > 0
 assert `"`r(calibration_class)'"' == "stylized"
 assert `"`r(model_overrides)'"' == ""
 
-quietly fesim_config, network(bridges) workers(12) firms(8) ///
+quietly fesim_config, network(bridges) workers(12) firms(10) ///
     parameters(block_count 5)
 assert r(parameters)["bridge_count", "value"] == 4
 assert r(parameters)["bridge_count", "default"] == 4
 assert strpos(`"`r(config_sources)'"', "bridge_count=derived") > 0
+assert r(parameters)["block_log_bonus", "value"] == 0
 
 capture noisily fesim_config, network(random) parameters(block_count 4)
 assert _rc == 198
@@ -199,6 +200,9 @@ capture noisily fesim_config, network(bridges) workers(8) firms(8) ///
 assert _rc == 198
 capture noisily fesim_config, network(bridges) workers(4) firms(4) ///
     parameters(block_count 4 bridge_count 5)
+assert _rc == 198
+capture noisily fesim_config, network(bridges) workers(12) firms(7) ///
+    parameters(block_count 4)
 assert _rc == 198
 
 di as result "FESIM CONFIGURATION TESTS PASS"

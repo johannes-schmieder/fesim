@@ -55,6 +55,7 @@ struct fesim_state {
     real colvector unemployment_duration
     real colvector ntransitions
     real colvector current_value
+    real colvector last_destination_uniform
     real scalar validated
 }
 
@@ -102,6 +103,18 @@ struct fesim_network_design {
     real colvector firm_block
     real colvector worker_priority
     real matrix firm_cumulative
+    real scalar bridge_phase
+    real scalar bridge_output_period
+    real scalar bridge_filled
+    real colvector bridge_source_block
+    real colvector bridge_target_block
+    real colvector bridge_plan_worker
+    real colvector bridge_plan_output_period
+    real colvector bridge_plan_internal_period
+    real colvector bridge_candidate_output_period
+    real colvector bridge_candidate_internal_period
+    real colvector bridge_interval_count
+    real matrix bridge_ledger
     real scalar prepared
     real scalar validated
 }
@@ -155,7 +168,7 @@ struct fesim_empirical_params {
 
 real scalar fesim_mata_api_version()
 {
-    return(20)
+    return(21)
 }
 
 real scalar fesim_config_schema_version()
@@ -170,7 +183,7 @@ real scalar fesim_population_schema_version()
 
 real scalar fesim_state_schema_version()
 {
-    return(4)
+    return(5)
 }
 
 real scalar fesim_results_schema_version()

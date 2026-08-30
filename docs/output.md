@@ -26,4 +26,12 @@ The empirical handler advances a fixed monthly state twelve, three, or one times
 
 The integration test writes the same deterministic panel with one-worker, nine-worker, and all-worker blocks and compares every value, row order, missing-value rule, and storage type. It also verifies `isid workerid time`, unchanged RNG state, and observation-count failures.
 
+`network(bridges)` extends the streaming panel with byte
+`nbridges_imposed`, written for every truth mode. It is zero in the first
+retained period and records the number of design-imposed EE destinations for
+that worker during each later output interval. Distinct bridge workers make the
+current contract binary per worker over the full simulation, while the count
+name leaves the interval semantics explicit. Finalization verifies that its
+generated-panel sum equals the exact bridge plan before graph filtering.
+
 The early spike exposes conservative final-panel and peak-working-byte estimates for the shared writer. Public simple-AKM benchmarks additionally record exact-source command/stage time, dataset width, maximum resident set size, and peak process footprint; see [`docs/performance.md`](performance.md). Later DGP modules must extend the accounting for their own live state rather than silently relying on either the toy estimate or simple-AKM measurements.

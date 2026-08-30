@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_akm_handler_schema_version()
 {
-    return(3)
+    return(4)
 }
 
 real scalar fesim_akm_variance_from_sums(
@@ -52,6 +52,7 @@ real scalar fesim_akm_simulate_to_stata(
     string scalar network_mode,
     real scalar block_count,
     real scalar block_log_bonus,
+    real scalar bridge_count,
     real scalar mean_log_wage,
     real scalar worker_sd,
     real scalar firm_sd,
@@ -62,13 +63,18 @@ real scalar fesim_akm_simulate_to_stata(
     real scalar annual_ue,
     real scalar wage_trend,
     string scalar truth_moment_matrix,
-    string scalar truth_target_matrix)
+    string scalar truth_target_matrix,
+    string scalar bridge_matrix)
 {
     struct fesim_network_design scalar design
     struct fesim_population scalar population
     struct fesim_rng_state scalar rng_state
+    struct fesim_rng_state scalar rng_plan
     struct fesim_state scalar state
+    struct fesim_state scalar state_plan
     real scalar block_workers
+    real scalar design_block_log_bonus
+    real scalar design_bridge_count
     real scalar covariance
     real scalar employed_count
     real scalar epsilon_square_sum
@@ -80,13 +86,20 @@ real scalar fesim_akm_simulate_to_stata(
     real scalar psi_mean
     real scalar alpha_employed_sum
     real scalar alpha_psi_sum
+    real scalar bridge
+    real scalar direct_index
+    real scalar target_firm
     real scalar psi_employed_sum
     real scalar epsilon_variance
     real scalar psi_variance
     real scalar alpha_variance
     real colvector active_firms
     real colvector active_rows
+    real colvector direct_rows
+    real colvector due_plan
+    real colvector employed_before
     real colvector employed_rows
+    real colvector firm_before
     real colvector truth_moments
     real matrix wage_components
 
@@ -100,25 +113,35 @@ real scalar fesim_akm_simulate_to_stata(
         missing(wage_trend) | worker_sd < 0 | firm_sd < 0 | ///
         error_sd < 0 | firm_size_sd < 0 | ///
         missing(block_count) | missing(block_log_bonus) | ///
+        missing(bridge_count) | bridge_count < 0 | ///
+        bridge_count != floor(bridge_count) | ///
         annual_eu < 0 | annual_eu > 1 | annual_ee < 0 | ///
         annual_ee > 1 | annual_ue < 0 | annual_ue > 1 | ///
         annual_eu + annual_ee >= 1 | ///
         (firms == 1 & annual_ee > 0) | ///
         (seed_was_requested != 0 & seed_was_requested != 1) | ///
         strtrim(truth_moment_matrix) == "" | ///
-        strtrim(truth_target_matrix) == "") {
+        strtrim(truth_target_matrix) == "" | ///
+        strtrim(bridge_matrix) == "") {
         _error(3300, "simple AKM handler inputs are invalid")
     }
     network_mode = strlower(strtrim(network_mode))
-    if (network_mode != "random" & network_mode != "blocks") {
+    if (network_mode != "random" & network_mode != "blocks" & ///
+        network_mode != "bridges") {
         _error(3300, "simple AKM network design is invalid")
     }
 
     rng_state = fesim_rng_init(requested_seed, seed_was_requested)
     population = fesim_akm_generate_population(
         workers, firms, worker_sd, firm_sd, firm_size_sd, rng_state)
+    design_block_log_bonus = block_log_bonus
+    design_bridge_count = 0
+    if (network_mode == "bridges") {
+        design_block_log_bonus = 0
+        design_bridge_count = bridge_count
+    }
     design = fesim_netdesign_build(network_mode, workers, firms, ///
-        block_count, block_log_bonus, 0, rng_state)
+        block_count, design_block_log_bonus, design_bridge_count, rng_state)
     fesim_netdesign_prepare(design, population.firm_weight)
     if (network_mode == "random") {
         state = fesim_akm_initialize_state(
@@ -136,6 +159,28 @@ real scalar fesim_akm_simulate_to_stata(
             state, population, design, burnin, delta_years, annual_eu, ///
             annual_ee, annual_ue, rng_state)
     }
+    if (network_mode == "bridges") {
+        state_plan = state
+        rng_plan = rng_state
+        design = fesim_netdesign_set_bridge_phase(design, 1)
+        for (output_period = 2; output_period <= periods; output_period++) {
+            design = fesim_netdesign_begin_output(design, output_period)
+            employed_before = state_plan.employed
+            firm_before = state_plan.firm_id
+            state_plan = fesim_akm_advance_block(
+                state_plan, population, design, delta_years, annual_eu, ///
+                annual_ee, annual_ue, rng_plan)
+            direct_rows = selectindex(employed_before :== 1 :& ///
+                state_plan.employed :== 1 :& ///
+                firm_before :!= state_plan.firm_id)
+            if (length(direct_rows)) {
+                design = fesim_netdesign_note_candidates(
+                    design, direct_rows, firm_before[direct_rows], ///
+                    state_plan.period)
+            }
+        }
+        design = fesim_netdesign_finish_plan(design)
+    }
 
     block_workers = fesim_output_default_block(workers, periods)
     active_firms = J(firms, 1, 0)
@@ -149,7 +194,14 @@ real scalar fesim_akm_simulate_to_stata(
         workers, periods, start_value, time_format, truth)
     fesim_output_init_net_truth(design, truth)
     for (output_period = 1; output_period <= periods; output_period++) {
+        if (network_mode == "bridges") {
+            design = fesim_netdesign_begin_output(design, output_period)
+        }
         if (output_period > 1) {
+            if (network_mode == "bridges") {
+                employed_before = state.employed
+                firm_before = state.firm_id
+            }
             if (network_mode == "random") {
                 state = fesim_akm_advance(
                     state, population, delta_years, annual_eu, annual_ee, ///
@@ -159,6 +211,36 @@ real scalar fesim_akm_simulate_to_stata(
                 state = fesim_akm_advance_block(
                     state, population, design, delta_years, annual_eu, ///
                     annual_ee, annual_ue, rng_state)
+            }
+            if (network_mode == "bridges") {
+                direct_rows = selectindex(employed_before :== 1 :& ///
+                    state.employed :== 1 :& firm_before :!= state.firm_id)
+                if (length(direct_rows)) {
+                    due_plan = fesim_netdesign_due_plan(
+                        design, direct_rows, state.period)
+                    for (direct_index = 1; ///
+                        direct_index <= length(direct_rows); direct_index++) {
+                        bridge = due_plan[direct_index]
+                        if (!missing(bridge)) {
+                            target_firm = fesim_netdesign_sample_common(
+                                design, population.firm_weight, ///
+                                design.bridge_target_block[bridge], ///
+                                state.last_destination_uniform[
+                                    direct_rows[direct_index]])[1]
+                            state.firm_id[direct_rows[direct_index]] = ///
+                                target_firm
+                            state.current_value[direct_rows[direct_index]] = ///
+                                population.worker_value[
+                                    direct_rows[direct_index]] + ///
+                                population.firm_value[target_firm]
+                            design = fesim_netdesign_record_bridge(
+                                design, bridge, direct_rows[direct_index], ///
+                                firm_before[direct_rows[direct_index]], ///
+                                target_firm)
+                        }
+                    }
+                    fesim_state_validate(state, population)
+                }
             }
         }
         wage_components = fesim_akm_wage_components(
@@ -189,6 +271,10 @@ real scalar fesim_akm_simulate_to_stata(
     }
     fesim_output_finalize_panel(workers, periods, block_workers, truth)
     fesim_output_finalize_net_truth(design, truth)
+    if (network_mode == "bridges") {
+        design = fesim_netdesign_assert_complete(design)
+        st_matrix(bridge_matrix, design.bridge_ledger)
+    }
 
     alpha_variance = fesim_sample_variance(population.worker_value)
     active_rows = selectindex(active_firms :== 1)

@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_destination_schema_version()
 {
-    return(2)
+    return(3)
 }
 
 real rowvector fesim_destination_type_support()
@@ -260,6 +260,85 @@ struct fesim_destination_tables scalar fesim_destination_build_blocks(
     return(tables)
 }
 
+struct fesim_destination_tables scalar fesim_destination_build_bridges(
+    real colvector firm_id,
+    real colvector firm_weight,
+    real colvector firm_quality,
+    real colvector firm_block,
+    real scalar block_count,
+    real scalar theta_sort,
+    real scalar theta_quality,
+    real scalar theta_up,
+    real scalar theta_down)
+{
+    struct fesim_destination_tables scalar tables
+    real scalar beta
+    real scalar block
+    real scalar firms
+    real scalar log_scale
+    real scalar row
+    real scalar type_index
+    real scalar types
+    real colvector block_rows
+    real colvector log_weight
+    real colvector scaled_weight
+    real colvector sorted_block
+    real colvector sorted_quality
+    real colvector sorted_weight
+
+    tables = fesim_destination_build_blocks(
+        firm_id, firm_weight, firm_quality, firm_block, block_count, 0, ///
+        theta_sort, theta_quality, theta_up, theta_down)
+    tables.validated = 0
+    tables.network_mode = "bridges"
+    firms = rows(firm_id)
+    types = cols(tables.worker_type_support)
+    sorted_weight = firm_weight[tables.firm_order]
+    sorted_quality = firm_quality[tables.firm_order]
+    sorted_block = firm_block[tables.firm_order]
+    for (type_index = 1; type_index <= types; type_index++) {
+        beta = theta_sort * tables.worker_type_support[type_index] + ///
+            theta_quality
+        for (block = 1; block <= block_count; block++) {
+            row = (type_index - 1) * block_count + block
+
+            block_rows = selectindex(firm_block :== block)
+            log_weight = ln(firm_weight) :+ beta :* firm_quality
+            log_scale = max(log_weight[block_rows])
+            scaled_weight = J(firms, 1, 0)
+            scaled_weight[block_rows] = ///
+                exp(log_weight[block_rows] :- log_scale)
+            tables.ue_block_cumulative[row, .] = ///
+                runningsum(scaled_weight')
+            tables.ue_block_log_scale[row] = log_scale
+
+            block_rows = selectindex(sorted_block :== block)
+            log_weight = ln(sorted_weight) :+ ///
+                (beta - theta_down) :* sorted_quality
+            log_scale = max(log_weight[block_rows])
+            scaled_weight = J(firms, 1, 0)
+            scaled_weight[block_rows] = ///
+                exp(log_weight[block_rows] :- log_scale)
+            tables.ee_lower_block_cumulative[row, .] = ///
+                runningsum(scaled_weight')
+            tables.ee_lower_block_log_scale[row] = log_scale
+
+            log_weight = ln(sorted_weight) :+ ///
+                (beta + theta_up) :* sorted_quality
+            log_scale = max(log_weight[block_rows])
+            scaled_weight = J(firms, 1, 0)
+            scaled_weight[block_rows] = ///
+                exp(log_weight[block_rows] :- log_scale)
+            tables.ee_upper_block_reverse[row, .] = ///
+                runningsum(scaled_weight[firms::1]')
+            tables.ee_upper_block_log_scale[row] = log_scale
+        }
+    }
+    tables.validated = 1
+    fesim_destination_assert_valid(tables)
+    return(tables)
+}
+
 real scalar fesim_destination_prefix_index(
     real rowvector cumulative,
     real scalar limit,
@@ -396,7 +475,8 @@ real colvector fesim_dest_sample_ue_blocks(
     real colvector destination
 
     fesim_destination_assert_valid(tables)
-    if (tables.network_mode != "blocks" | ///
+    if ((tables.network_mode != "blocks" & ///
+        tables.network_mode != "bridges") | ///
         cols(worker_type_index) != 1 | cols(reference_block) != 1 | ///
         cols(uniform_draw) != 1 | ///
         rows(worker_type_index) != rows(reference_block) | ///
@@ -412,7 +492,8 @@ real colvector fesim_dest_sample_ue_blocks(
         any(uniform_draw :>= 1)) {
         _error(3300, "block UE destination inputs are invalid")
     }
-    if (tables.block_log_bonus == 0) {
+    if (tables.network_mode == "blocks" & ///
+        tables.block_log_bonus == 0) {
         return(fesim_destination_sample_ue(
             tables, worker_type_index, uniform_draw))
     }
@@ -515,10 +596,11 @@ real colvector fesim_destination_sample_ee(
     return(destination)
 }
 
-real colvector fesim_dest_sample_ee_blocks(
+real colvector fesim_dest_sample_ee_reference(
     struct fesim_destination_tables scalar tables,
     real colvector worker_type_index,
     real colvector current_firm,
+    real colvector reference_block,
     real colvector uniform_draw)
 {
     real scalar conditional
@@ -539,10 +621,13 @@ real colvector fesim_dest_sample_ee_blocks(
 
     fesim_destination_assert_valid(tables)
     firms = rows(tables.firm_id)
-    if (tables.network_mode != "blocks" | firms < 2 | ///
+    if ((tables.network_mode != "blocks" & ///
+        tables.network_mode != "bridges") | firms < 2 | ///
         cols(worker_type_index) != 1 | cols(current_firm) != 1 | ///
+        cols(reference_block) != 1 | ///
         cols(uniform_draw) != 1 | ///
         rows(worker_type_index) != rows(current_firm) | ///
+        rows(worker_type_index) != rows(reference_block) | ///
         rows(worker_type_index) != rows(uniform_draw) | ///
         any(missing(worker_type_index)) | ///
         any(worker_type_index :!= floor(worker_type_index)) | ///
@@ -550,11 +635,16 @@ real colvector fesim_dest_sample_ee_blocks(
         any(missing(current_firm)) | ///
         any(current_firm :!= floor(current_firm)) | ///
         any(current_firm :< 1) | any(current_firm :> firms) | ///
+        any(missing(reference_block)) | ///
+        any(reference_block :!= floor(reference_block)) | ///
+        any(reference_block :< 1) | ///
+        any(reference_block :> tables.block_count) | ///
         any(missing(uniform_draw)) | any(uniform_draw :< 0) | ///
         any(uniform_draw :>= 1)) {
-        _error(3300, "block EE destination inputs are invalid")
+        _error(3300, "referenced block EE destination inputs are invalid")
     }
-    if (tables.block_log_bonus == 0) {
+    if (tables.network_mode == "blocks" & ///
+        tables.block_log_bonus == 0) {
         return(fesim_destination_sample_ee(
             tables, worker_type_index, current_firm, uniform_draw))
     }
@@ -563,7 +653,7 @@ real colvector fesim_dest_sample_ee_blocks(
         firm = current_firm[i]
         position = tables.firm_position[firm]
         row = (worker_type_index[i] - 1) * tables.block_count + ///
-            tables.firm_block[firm]
+            reference_block[i]
         lower_total = 0
         upper_total = 0
         if (position > 1) {
@@ -603,6 +693,31 @@ real colvector fesim_dest_sample_ee_blocks(
         destination[i] = tables.firm_order[sorted_position]
     }
     return(destination)
+}
+
+real colvector fesim_dest_sample_ee_blocks(
+    struct fesim_destination_tables scalar tables,
+    real colvector worker_type_index,
+    real colvector current_firm,
+    real colvector uniform_draw)
+{
+    return(fesim_dest_sample_ee_reference(
+        tables, worker_type_index, current_firm, ///
+        tables.firm_block[current_firm], uniform_draw))
+}
+
+real colvector fesim_dest_sample_ee_target(
+    struct fesim_destination_tables scalar tables,
+    real colvector worker_type_index,
+    real colvector current_firm,
+    real colvector target_block,
+    real colvector uniform_draw)
+{
+    if (tables.network_mode != "bridges") {
+        _error(3300, "target-block EE sampling requires network(bridges)")
+    }
+    return(fesim_dest_sample_ee_reference(
+        tables, worker_type_index, current_firm, target_block, uniform_draw))
 }
 
 real colvector fesim_destination_ue_probs(

@@ -29,6 +29,12 @@
   firm communities on isolated RNG stream 109, same-block destination weights,
   exact zero-bonus nesting of the random rule, block truth variables, and
   explicit metadata. These labels do not claim leave-out connectedness.
+- Exact `network(bridges)` stress designs with strict ordinary communities,
+  globally priority-selected distinct workers, deterministic adjacent-block
+  plans, destination-only overrides of existing retained EE events, per-output
+  intervention counts, exact `r(bridges)` ledgers, and failure rather than
+  fabricated or incomplete links. The completed block chain is not a KSS or
+  leave-out connectedness claim.
 
 ## 0.1.0 — 2026-08-29
 

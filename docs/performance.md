@@ -139,6 +139,22 @@ not attributable to an individual row. The stylized comparison indicates
 negligible block overhead at this scale. The faster simple block observation is
 reported as a measurement only; no structural speedup is inferred from one run.
 
+The Checkpoint 33 bridge harness uses the same 10,000-worker scale and compares
+the default finite-bonus `network(blocks)` design with the strict-block
+`network(bridges)` design for both public routes. The bridge cases use the
+default four-block, three-bridge plan; their simulation time includes the
+copied-state eligibility replay and the final economic run. Because the two
+public designs also differ in their ordinary destination support, the timing
+comparison measures the complete designs rather than identifying replay cost
+alone. It can be reproduced from a clean checkout with:
+
+```bash
+scripts/run_bridge_benchmarks.sh /path/to/stata-mp
+```
+
+Exact-source timing and process-resource evidence is recorded after the
+Checkpoint 33 implementation commit is frozen.
+
 ## Grouped empirical destination engine
 
 Checkpoint 27 separately benchmarks construction and sampling for the D-025

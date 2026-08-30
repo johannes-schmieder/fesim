@@ -19,13 +19,13 @@ mata: mata mlib index
 
 capture noisily _fesim_load
 assert _rc == 0
-mata: assert(fesim_mata_api_version() == 20)
+mata: assert(fesim_mata_api_version() == 21)
 mata: assert(fesim_network_schema_version() == 2)
 
 capture quietly adopath - `"`stale_path'"'
 quietly adopath ++ `"`build_path'"'
 mata: mata clear
 mata: mata mlib index
-mata: assert(fesim_mata_api_version() == 20)
+mata: assert(fesim_mata_api_version() == 21)
 
 di as result "FESIM CHECKOUT SOURCE LOADER TESTS PASS"

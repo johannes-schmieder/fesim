@@ -4,7 +4,7 @@ set more off
 set varabbrev off
 
 mata:
-assert(fesim_netdesign_schema_version() == 1)
+assert(fesim_netdesign_schema_version() == 2)
 
 random_rng = fesim_rng_init(24680, 1)
 random_design = fesim_netdesign_build(
@@ -66,6 +66,57 @@ assert(fesim_netdesign_sample_excl(
 assert(all(fesim_netdesign_sample_excl(
     zero_design, zero_weights, reference_blocks, current_firms, uniforms) :!=
     current_firms))
+
+bridge_rng = fesim_rng_init(112233, 1)
+bridge_design = fesim_netdesign_build(
+    "bridges", 24, 12, 4, 0, 3, bridge_rng)
+bridge_weights = J(12, 1, 1 / 12)
+fesim_netdesign_prepare(bridge_design, bridge_weights)
+assert(bridge_design.bridge_source_block == (1::3))
+assert(bridge_design.bridge_target_block == (2::4))
+for (block = 1; block <= 4; block++) {
+    block_probability = fesim_netdesign_common_probs(bridge_design, block)
+    assert(abs(sum(block_probability) - 1) < 1e-12)
+    assert(sum(select(block_probability, ///
+        bridge_design.firm_block :!= block)) == 0)
+}
+bridge_current = J(24, 1, .)
+for (worker = 1; worker <= 24; worker++) {
+    block_firms = selectindex(
+        bridge_design.firm_block :== bridge_design.worker_block[worker])
+    bridge_current[worker] = block_firms[1]
+}
+bridge_design = fesim_netdesign_set_bridge_phase(bridge_design, 1)
+bridge_design = fesim_netdesign_begin_output(bridge_design, 2)
+bridge_design = fesim_netdesign_note_candidates(
+    bridge_design, (1::24), bridge_current, 10)
+bridge_design = fesim_netdesign_finish_plan(bridge_design)
+assert(length(uniqrows(bridge_design.bridge_plan_worker)) == 3)
+for (bridge = 1; bridge <= 3; bridge++) {
+    candidates = selectindex(bridge_design.worker_block :== bridge)
+    selected_order = order((bridge_design.worker_priority[candidates], ///
+        candidates), (1, 2))
+    assert(bridge_design.bridge_plan_worker[bridge] == ///
+        candidates[selected_order[1]])
+}
+bridge_design = fesim_netdesign_begin_output(bridge_design, 2)
+due = fesim_netdesign_due_plan(
+    bridge_design, bridge_design.bridge_plan_worker, 10)
+assert(due == (1::3))
+for (bridge = 1; bridge <= 3; bridge++) {
+    worker = bridge_design.bridge_plan_worker[bridge]
+    source_firms = selectindex(bridge_design.firm_block :== ///
+        bridge_design.bridge_source_block[bridge])
+    target_firms = selectindex(bridge_design.firm_block :== ///
+        bridge_design.bridge_target_block[bridge])
+    bridge_design = fesim_netdesign_record_bridge(
+        bridge_design, bridge, worker, source_firms[1], target_firms[1])
+}
+bridge_design = fesim_netdesign_assert_complete(bridge_design)
+assert(bridge_design.bridge_phase == 3)
+assert(bridge_design.bridge_filled == 3)
+assert(sum(bridge_design.bridge_interval_count) == 3)
+assert(!any(missing(bridge_design.bridge_ledger)))
 end
 
 capture mata: fesim_netdesign_build( ///

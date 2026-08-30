@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_output_schema_version()
 {
-    return(6)
+    return(7)
 }
 
 real scalar fesim_output_initialize_panel(
@@ -58,6 +58,9 @@ void fesim_output_init_net_truth(
     if (truth != "none" & truth != "basic" & truth != "full") {
         _error(3300, "network truth mode is invalid")
     }
+    if (design.mode == "bridges") {
+        indices = st_addvar("byte", "nbridges_imposed")
+    }
     if (truth == "full" & design.mode != "random") {
         indices = st_addvar(("long", "long"), ///
             ("worker_block_true", "firm_block_true"))
@@ -84,13 +87,20 @@ void fesim_output_store_net_truth(
         rows(state.employed) != rows(design.worker_block)) {
         _error(3300, "network period truth inputs are invalid")
     }
+    rows_to_write = (0::(rows(state.employed) - 1)) :* periods :+ ///
+        output_period
+    if (design.mode == "bridges") {
+        if (st_varindex("nbridges_imposed") == .) {
+            _error(3300, "bridge provenance variable is missing")
+        }
+        st_store(rows_to_write, "nbridges_imposed", ///
+            design.bridge_interval_count)
+    }
     if (truth != "full" | design.mode == "random") return
     if (st_varindex("worker_block_true") == . | ///
         st_varindex("firm_block_true") == .) {
         _error(3300, "network truth variables are missing")
     }
-    rows_to_write = (0::(rows(state.employed) - 1)) :* periods :+ ///
-        output_period
     firm_block = J(rows(state.employed), 1, .)
     employed_rows = selectindex(state.employed :== 1)
     if (length(employed_rows)) {
@@ -109,6 +119,15 @@ void fesim_output_finalize_net_truth(
     truth = strlower(strtrim(truth))
     if (truth != "none" & truth != "basic" & truth != "full") {
         _error(3300, "network truth mode is invalid")
+    }
+    if (design.mode == "bridges") {
+        if (st_varindex("nbridges_imposed") == . | ///
+            quadsum(st_data(., "nbridges_imposed")) != ///
+                design.bridge_count) {
+            _error(3300, "bridge provenance output is incomplete")
+        }
+        st_varlabel("nbridges_imposed", ///
+            "Design-imposed EE bridges in output interval")
     }
     if (truth == "full" & design.mode != "random") {
         if (st_varindex("worker_block_true") == . | ///

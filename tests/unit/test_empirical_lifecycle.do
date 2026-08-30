@@ -26,6 +26,7 @@ struct fesim_state scalar fesim_test_emp_state(
     state.current_value = ///
         (population.worker_value[1..5] :+ ///
         population.firm_value[state.firm_id[1..5]] \ J(5, 1, .))
+    state.last_destination_uniform = J(10, 1, .)
     state.validated = 1
     fesim_state_validate(state, population)
     return(state)

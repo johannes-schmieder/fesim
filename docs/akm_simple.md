@@ -46,6 +46,12 @@ Elapsed years are measured from the first retained observation, not from initial
 
 `src/fesim_akm_handler.mata` composes the qualified population, initialization, burn-in, transition, and wage routines. It retains worker-length population and state objects, writes each retained period directly into worker-major Stata rows, and finalizes observed flows in bounded complete-worker blocks. It never constructs a second full worker-period panel in Mata.
 
+Under `network(bridges)`, the handler first replays retained strict-block
+mobility on copied worker/RNG state to select eligible workers, then executes
+the economic run once from the original records. Its returned internal state
+carries the destination uniform consumed by the current advance so the planned
+cross-block target replaces only the destination and requires no extra draw.
+
 The public command accepts both `dgp(akm) preset(simple)` and `dgp(akmsimple)`. It attaches the common metadata and realized-moment schema, records the requested alias separately from the canonical DGP, and preserves economic output across alias spelling, reporting mode, truth suppression, and block size. During streaming it accumulates employed epsilon and worker-firm cross-products and marks active firms. This supplies the ten weighted component/truth rows in `r(moments)` and their mean/SD/variance/covariance targets in `r(targets)` even under `truth(none)`, without retaining employed-observation vectors.
 
 The finalized panel is contracted to unique observed worker-firm matches for bipartite component diagnostics. `connectivity(keep)` returns those diagnostics without filtering. `connectivity(largest)` retains complete histories for selected workers and recomputes common and truth moments on that returned sample. Exact graph, tie-breaking, denominator, and `r(network)` semantics are in [`docs/network.md`](network.md).
