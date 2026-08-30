@@ -158,35 +158,6 @@ real colvector fesim_akm_stationary_probs(
     return(stationary)
 }
 
-real colvector fesim_akm_draw_categories(
-    real colvector probabilities,
-    real colvector draws)
-{
-    real scalar category
-    real scalar cumulative
-    real scalar draw
-    real colvector selected
-
-    if (rows(probabilities) < 1 | any(missing(probabilities)) | ///
-        any(probabilities :< 0) | ///
-        abs(sum(probabilities) - 1) > 1e-12 | ///
-        any(missing(draws)) | any(draws :< 0) | any(draws :>= 1)) {
-        _error(3300, "categorical-draw inputs are invalid")
-    }
-    selected = J(rows(draws), 1, .)
-    for (draw = 1; draw <= rows(draws); draw++) {
-        category = 1
-        cumulative = probabilities[1]
-        while (draws[draw] >= cumulative & ///
-            category < rows(probabilities)) {
-            category++
-            cumulative = cumulative + probabilities[category]
-        }
-        selected[draw] = category
-    }
-    return(selected)
-}
-
 real colvector fesim_akm_geometric_ages(
     real colvector draws,
     real scalar exit_probability)
@@ -280,7 +251,7 @@ struct fesim_state scalar fesim_akm_initialize_state(
         state.employed = employment_draws :< employment_probability
         employed_rows = selectindex(state.employed :== 1)
         if (length(employed_rows)) {
-            state.firm_id[employed_rows] = fesim_akm_draw_categories(
+            state.firm_id[employed_rows] = fesim_destination_sample_common(
                 firm_probabilities, firm_draws[employed_rows])
             state.spell_id[employed_rows] = J(length(employed_rows), 1, 1)
             state.tenure[employed_rows] = tenure_ages[employed_rows]
@@ -302,52 +273,6 @@ struct fesim_state scalar fesim_akm_initialize_state(
     fesim_state_validate(state, population)
     state.validated = 1
     return(state)
-}
-
-real colvector fesim_akm_draw_excluding(
-    real colvector probabilities,
-    real colvector current_categories,
-    real colvector draws)
-{
-    real scalar category
-    real scalar cumulative
-    real scalar draw
-    real scalar mass
-    real colvector selected
-
-    if (rows(probabilities) < 2 | any(missing(probabilities)) | ///
-        any(probabilities :< 0) | ///
-        abs(sum(probabilities) - 1) > 1e-12 | ///
-        rows(current_categories) != rows(draws) | ///
-        any(missing(current_categories)) | ///
-        any(current_categories :< 1) | ///
-        any(current_categories :> rows(probabilities)) | ///
-        any(current_categories :!= floor(current_categories)) | ///
-        any(missing(draws)) | any(draws :< 0) | any(draws :>= 1)) {
-        _error(3300, "excluded categorical-draw inputs are invalid")
-    }
-    selected = J(rows(draws), 1, .)
-    for (draw = 1; draw <= rows(draws); draw++) {
-        mass = 1 - probabilities[current_categories[draw]]
-        if (mass <= 0) {
-            _error(3300, "excluded category leaves no destination mass")
-        }
-        category = 1
-        cumulative = 0
-        while (category <= rows(probabilities)) {
-            if (category != current_categories[draw]) {
-                cumulative = cumulative + probabilities[category] / mass
-                if (draws[draw] < cumulative) break
-            }
-            category++
-        }
-        if (category > rows(probabilities)) {
-            category = rows(probabilities)
-            if (category == current_categories[draw]) category--
-        }
-        selected[draw] = category
-    }
-    return(selected)
 }
 
 struct fesim_state scalar fesim_akm_advance(
@@ -415,7 +340,7 @@ struct fesim_state scalar fesim_akm_advance(
         state.ntransitions[exit_rows] = J(length(exit_rows), 1, 1)
     }
     if (length(direct_rows)) {
-        state.firm_id[direct_rows] = fesim_akm_draw_excluding(
+        state.firm_id[direct_rows] = fesim_destination_sample_excl(
             population.firm_weight, state.firm_id[direct_rows], ///
             destination_draws[direct_rows])
         state.spell_id[direct_rows] = state.spell_id[direct_rows] :+ 1
@@ -424,7 +349,7 @@ struct fesim_state scalar fesim_akm_advance(
     }
     if (length(entry_rows)) {
         state.employed[entry_rows] = J(length(entry_rows), 1, 1)
-        state.firm_id[entry_rows] = fesim_akm_draw_categories(
+        state.firm_id[entry_rows] = fesim_destination_sample_common(
             population.firm_weight, destination_draws[entry_rows])
         state.spell_id[entry_rows] = state.spell_id[entry_rows] :+ 1
         state.tenure[entry_rows] = J(length(entry_rows), 1, 0)

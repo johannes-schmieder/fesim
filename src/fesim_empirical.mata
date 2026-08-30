@@ -218,7 +218,7 @@ struct fesim_state scalar fesim_emp_initialize_state(
         state.employed = employment_draws :< .5
         employed_rows = selectindex(state.employed :== 1)
         if (length(employed_rows)) {
-            state.firm_id[employed_rows] = fesim_dest_sample_common(
+            state.firm_id[employed_rows] = fesim_destination_sample_common(
                 population.firm_weight, destination_draws[employed_rows])
             state.spell_id[employed_rows] = J(length(employed_rows), 1, 1)
             state.tenure[employed_rows] = J(length(employed_rows), 1, 0)

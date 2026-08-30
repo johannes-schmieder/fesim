@@ -148,7 +148,7 @@ no_entry_state = fesim_akm_initialize_state(
     no_entry_population, "stationary", 1, .08, .12, 0, no_entry_rng)
 assert(no_entry_state.employed == J(8, 1, 0))
 
-assert(fesim_akm_draw_categories((.2 \
+assert(fesim_destination_sample_common((.2 \
     .3 \
     .5), (0 \
     .199999 \
@@ -187,7 +187,7 @@ mata: assert(invalid_rng.component_states == invalid_states_before)
 capture mata: fesim_akm_initialize_state( ///
     invalid_population, "unknown", 1, .08, .12, .60, invalid_rng)
 assert _rc == 3300
-capture mata: fesim_akm_draw_categories((.2 \ .2), (.5))
+capture mata: fesim_destination_sample_common((.2 \ 0), (.5))
 assert _rc == 3300
 capture mata: fesim_akm_geometric_ages((.5), 1)
 assert _rc == 3300

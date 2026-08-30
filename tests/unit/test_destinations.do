@@ -22,9 +22,12 @@ for (type_index = 1; type_index <= 5; type_index++) {
 ue_draws = fesim_destination_sample_ue(zero, J(8, 1, 3), ///
     (0 \ .099999 \ .1 \ .299999 \ .3 \ .599999 \ .6 \ .999999))
 assert(ue_draws == (1 \ 1 \ 2 \ 2 \ 3 \ 3 \ 4 \ 4))
-common_draws = fesim_dest_sample_common(firm_weight, ///
+common_draws = fesim_destination_sample_common(firm_weight, ///
     (0 \ .099999 \ .1 \ .299999 \ .3 \ .599999 \ .6 \ .999999))
 assert(common_draws == ue_draws)
+excluded_draws = fesim_destination_sample_excl((.1 \ .2 \ .7), ///
+    (1 \ 1 \ 2 \ 2 \ 3 \ 3), (0 \ .3 \ .1 \ .2 \ .3 \ .4))
+assert(excluded_draws == (2 \ 3 \ 1 \ 3 \ 1 \ 2))
 
 for (current = 1; current <= 4; current++) {
     ee_probability = fesim_destination_ee_probs(zero, 3, current)
@@ -136,7 +139,9 @@ capture mata: fesim_destination_sample_ue(zero, (1 \ 6), (0 \ .5))
 assert _rc == 3300
 capture mata: fesim_destination_sample_ue(zero, (1 \ 1), (0 \ 1))
 assert _rc == 3300
-capture mata: fesim_dest_sample_common((1 \ 0), (.5))
+capture mata: fesim_destination_sample_common((1 \ 0), (.5))
+assert _rc == 3300
+capture mata: fesim_destination_sample_excl((1 \ 0), 1, .5)
 assert _rc == 3300
 capture mata: fesim_destination_sample_ee(one_firm, 1, 1, .5)
 assert _rc == 3300

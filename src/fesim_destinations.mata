@@ -147,7 +147,7 @@ real scalar fesim_destination_prefix_index(
     return(lower)
 }
 
-real colvector fesim_dest_sample_common(
+real colvector fesim_destination_sample_common(
     real colvector firm_weight,
     real colvector uniform_draw)
 {
@@ -168,6 +168,53 @@ real colvector fesim_dest_sample_common(
     for (draw = 1; draw <= rows(uniform_draw); draw++) {
         destination[draw] = fesim_destination_prefix_index(
             cumulative, cols(cumulative), uniform_draw[draw] * total)
+    }
+    return(destination)
+}
+
+real colvector fesim_destination_sample_excl(
+    real colvector firm_weight,
+    real colvector current_firm,
+    real colvector uniform_draw)
+{
+    real scalar category
+    real scalar cumulative
+    real scalar draw
+    real scalar mass
+    real colvector destination
+
+    if (cols(firm_weight) != 1 | rows(firm_weight) < 2 | ///
+        any(missing(firm_weight)) | any(firm_weight :< 0) | ///
+        abs(sum(firm_weight) - 1) > 1e-12 | ///
+        cols(current_firm) != 1 | cols(uniform_draw) != 1 | ///
+        rows(current_firm) != rows(uniform_draw) | ///
+        any(missing(current_firm)) | ///
+        any(current_firm :< 1) | any(current_firm :> rows(firm_weight)) | ///
+        any(current_firm :!= floor(current_firm)) | ///
+        any(missing(uniform_draw)) | any(uniform_draw :< 0) | ///
+        any(uniform_draw :>= 1)) {
+        _error(3300, "excluded common-destination inputs are invalid")
+    }
+    destination = J(rows(uniform_draw), 1, .)
+    for (draw = 1; draw <= rows(uniform_draw); draw++) {
+        mass = 1 - firm_weight[current_firm[draw]]
+        if (mass <= 0) {
+            _error(3300, "excluded firm leaves no destination mass")
+        }
+        category = 1
+        cumulative = 0
+        while (category <= rows(firm_weight)) {
+            if (category != current_firm[draw]) {
+                cumulative = cumulative + firm_weight[category] / mass
+                if (uniform_draw[draw] < cumulative) break
+            }
+            category++
+        }
+        if (category > rows(firm_weight)) {
+            category = rows(firm_weight)
+            if (category == current_firm[draw]) category--
+        }
+        destination[draw] = category
     }
     return(destination)
 }

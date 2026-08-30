@@ -26,7 +26,7 @@ The internal initial-state layer supports the three frozen common modes:
 - `random` independently employs workers with probability 0.5, assigns firms using primitive attraction weights, initializes tenure at zero, and is valid only with positive burn-in.
 - `allunemployed` sets every worker nonemployed with a zero internal spell counter and consumes no initialization draws.
 
-When job exit is zero, stationary tenure is set to zero and stationarity applies only to employment and firm state. When both `EU` and `UE` are zero, the employment stationary distribution is not unique and stationary initialization is rejected. Employment/tenure draws and firm-assignment draws use separate component streams; neither changes the caller's Stata RNG state for an explicit seed.
+When job exit is zero, stationary tenure is set to zero and stationarity applies only to employment and firm state. When both `EU` and `UE` are zero, the employment stationary distribution is not unique and stationary initialization is rejected. Employment/tenure draws and firm-assignment draws use separate component streams; neither changes the caller's Stata RNG state for an explicit seed. Common weighted assignments and current-firm-excluding assignments delegate to the shared `network(random)` destination primitives in `src/fesim_destinations.mata`.
 
 ## Interval mobility and burn-in
 

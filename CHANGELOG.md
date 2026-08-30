@@ -22,6 +22,9 @@
   distinct firm links, direction-pooled observed move-count weights, active
   firms with no movers, and p10/p50/p90/p99 link-weight summaries. Returned
   diagnostics are recomputed after largest-component filtering.
+- Shared `network(random)` destination primitives for attraction-weighted
+  common assignments and current-firm-excluding direct moves. Both public AKM
+  routes preserve their frozen draws and output.
 
 ## 0.1.0 — 2026-08-29
 

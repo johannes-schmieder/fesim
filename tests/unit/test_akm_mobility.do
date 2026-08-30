@@ -221,7 +221,7 @@ near_state = fesim_akm_advance(
     near_state, all_population, 1 / 12, .499999, .5, .60, all_rng)
 fesim_state_validate(near_state, all_population)
 
-assert(fesim_akm_draw_excluding((.1 \
+assert(fesim_destination_sample_excl((.1 \
     .2 \
     .7), (1 \
     1 \
@@ -269,9 +269,9 @@ mata: assert(invalid_rng.component_states == invalid_before)
 capture mata: fesim_akm_burn_in( ///
     invalid_state, invalid_population, -1, 1, .08, .12, .60, invalid_rng)
 assert _rc == 3300
-capture mata: fesim_akm_draw_excluding((.2 \ .8), (1), (1))
+capture mata: fesim_destination_sample_excl((.2 \ .8), (1), (1))
 assert _rc == 3300
-capture mata: fesim_akm_draw_excluding((1 \ 0), (1), (.5))
+capture mata: fesim_destination_sample_excl((1 \ 0), (1), (.5))
 assert _rc == 3300
 assert `"`c(rng)'"' == `"`caller_rng_before'"'
 assert `"`c(rngstate)'"' == `"`caller_state_before'"'

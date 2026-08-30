@@ -18,7 +18,7 @@ Annual, quarterly, and monthly outputs are end-of-period snapshots. `ntransition
 
 Five equiprobable worker mobility types use support `(-2,-1,0,1,2)/sqrt(2)`. `rho_z_alpha` correlates the latent mobility index with the standardized worker wage primitive. Continuous firm quality has mean zero and sample variance one; `rho_q_psi` correlates its latent index with the standardized firm wage primitive. Attraction weights remain a separate firm-size primitive.
 
-UE destinations depend on attraction, worker-type sorting, and firm quality without an origin-firm term. EE destinations additionally exclude the current firm and apply asymmetric upward and downward quality-distance terms. Grouped stabilized tables avoid any worker-by-firm probability matrix.
+Random initialization delegates its attraction-weighted firm assignment to the shared `network(random)` primitive. UE destinations then depend on attraction, worker-type sorting, and firm quality without an origin-firm term. EE destinations additionally exclude the current firm and apply asymmetric upward and downward quality-distance terms. Grouped stabilized tables avoid any worker-by-firm probability matrix; when all added destination coefficients are zero, their probability vectors reduce to the shared attraction-weighted rule.
 
 With `truth(full)`, `worker_type_true` repeats the worker mobility type and `firm_quality_true` records current-firm quality on employed rows. Basic wage truth retains the common additive-AKM variables.
 
