@@ -121,6 +121,24 @@ It writes ignored JSON, log, and process-resource receipts under the same exact
 SHA directory. The result records public command and internal stage times plus
 the realized component and edge counts for each design.
 
+Exact Checkpoint 32 results at
+`b21917638cf83a2cef0d46e42f452585eaccc978` are:
+
+| Route/design | Rows | Command | Internal total | Simulate | Output | Components | Edges |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| simple/random | 100,000 | 1.605 s | 1.436 s | 0.899 s | 0.537 s | 1 | 24,535 |
+| simple/blocks | 100,000 | 1.252 s | 1.175 s | 0.650 s | 0.525 s | 1 | 24,472 |
+| stylized/random | 100,000 | 4.438 s | 4.356 s | 3.798 s | 0.558 s | 2 | 21,928 |
+| stylized/blocks | 100,000 | 4.474 s | 4.393 s | 3.858 s | 0.535 s | 2 | 21,825 |
+
+The four-case JSON SHA256 is
+`5690a0a62155591dd5a9cce5110c3c004033367fc4853bab8e9b6a1d87b87967`.
+The single process reached 255,066,112 bytes maximum RSS and 155,010,296 bytes
+peak memory footprint. Those process-level values cover all four cases and are
+not attributable to an individual row. The stylized comparison indicates
+negligible block overhead at this scale. The faster simple block observation is
+reported as a measurement only; no structural speedup is inferred from one run.
+
 ## Grouped empirical destination engine
 
 Checkpoint 27 separately benchmarks construction and sampling for the D-025
