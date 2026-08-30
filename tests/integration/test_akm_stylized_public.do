@@ -67,6 +67,20 @@ assert rowsof(stylized_targets) == 9
 assert colsof(stylized_targets) == 4
 assert rowsof(stylized_durations) == 12
 assert colsof(stylized_durations) == 1
+assert rowsof(stylized_network) == 19
+assert colsof(stylized_network) == 2
+assert inrange(stylized_network["firms_no_movers", "generated"], 0, ///
+    stylized_network["firms", "generated"])
+assert stylized_network["firm_links", "generated"] >= 0
+if stylized_network["firm_links", "generated"] > 0 {
+    assert stylized_network["edge_weight_p10", "generated"] >= 1
+    assert stylized_network["edge_weight_p10", "generated"] <= ///
+        stylized_network["edge_weight_p50", "generated"]
+    assert stylized_network["edge_weight_p50", "generated"] <= ///
+        stylized_network["edge_weight_p90", "generated"]
+    assert stylized_network["edge_weight_p90", "generated"] <= ///
+        stylized_network["edge_weight_p99", "generated"]
+}
 assert stylized_parameters["burnin", "value"] == 5
 assert reldif(stylized_parameters["rho_z_alpha", "value"], .3) < 1e-12
 assert reldif(stylized_parameters["theta_sort", "value"], .25) < 1e-12

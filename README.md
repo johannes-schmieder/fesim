@@ -45,7 +45,7 @@ matrix list r(targets)
 matrix list r(network)
 ```
 
-Use `connectivity(largest)` to retain every period for workers in the selected largest observed component. Under that mode, `r(N_workers)` is the retained worker count; the originally requested count remains in the `workers` row of `r(parameters)`.
+Use `connectivity(largest)` to retain every period for workers in the selected largest observed component. Under that mode, `r(N_workers)` is the retained worker count; the originally requested count remains in the `workers` row of `r(parameters)`. The 19-row `r(network)` combines bipartite component summaries with undirected observed firm-mobility link counts, direction-pooled move-count weights, and active firms with no movers; all returned-column summaries are recomputed after filtering.
 
 Model-specific overrides stay inside `parameters()`:
 

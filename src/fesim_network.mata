@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_network_schema_version()
 {
-    return(1)
+    return(2)
 }
 
 string rowvector fesim_network_diagnostic_names()
@@ -14,7 +14,9 @@ string rowvector fesim_network_diagnostic_names()
         "largest_edges", "largest_observations", ///
         "largest_workers", "largest_firms", ///
         "largest_observation_share", "largest_worker_share", ///
-        "largest_firm_share"))
+        "largest_firm_share", "firms_no_movers", "firm_links", ///
+        "edge_weight_p10", "edge_weight_p50", ///
+        "edge_weight_p90", "edge_weight_p99"))
 }
 
 real colvector fesim_network_union_labels(
@@ -120,6 +122,126 @@ real matrix fesim_network_group_sums(
     return(result)
 }
 
+real colvector fesim_network_weight_pct(real colvector values)
+{
+    real scalar index
+    real scalar position
+    real colvector probabilities
+    real colvector result
+    real colvector sorted
+
+    if (cols(values) != 1 | rows(values) < 1 | any(missing(values))) {
+        _error(3300, "network percentile inputs are invalid")
+    }
+    sorted = sort(values, 1)
+    probabilities = (.10 \.50 \.90 \.99)
+    result = J(rows(probabilities), 1, .)
+    for (index = 1; index <= rows(probabilities); index++) {
+        position = rows(sorted) * probabilities[index]
+        if (position >= 1 & position < rows(sorted) & ///
+            abs(position - round(position)) < 1e-12) {
+            position = round(position)
+            result[index] = (sorted[position] + sorted[position + 1]) / 2
+        }
+        else result[index] = sorted[ceil(position)]
+    }
+    return(result)
+}
+
+real colvector fesim_network_mobility_stats(
+    real colvector worker_id,
+    real colvector firm_id,
+    real colvector employed,
+    real colvector job_to_job,
+    real scalar firms)
+{
+    real scalar observations
+    real colvector active_firms
+    real colvector boundaries
+    real colvector continuation_rows
+    real colvector destination_firm
+    real colvector expected_move
+    real colvector incident_firms
+    real colvector link_weights
+    real colvector move_rows
+    real colvector new_worker
+    real colvector origin_firm
+    real colvector starts
+    real colvector percentiles
+    real matrix pairs
+
+    observations = rows(worker_id)
+    if (observations < 1 | cols(worker_id) != 1 | ///
+        rows(firm_id) != observations | rows(employed) != observations | ///
+        rows(job_to_job) != observations | missing(firms) | firms < 1 | ///
+        firms != floor(firms) | any(missing(worker_id)) | ///
+        any(worker_id :< 1) | any(worker_id :!= floor(worker_id)) | ///
+        any(missing(employed)) | any((employed :!= 0) :& (employed :!= 1)) | ///
+        any((firm_id :>= .) :!= (employed :== 0)) | ///
+        any(select(firm_id, employed) :< 1) | ///
+        any(select(firm_id, employed) :> firms) | ///
+        any(select(firm_id, employed) :!= floor(select(firm_id, employed)))) {
+        _error(3300, "network mobility panel inputs are invalid")
+    }
+    if (observations == 1) new_worker = 1
+    else {
+        new_worker = (1 \
+            (worker_id[2..observations] :!= ///
+            worker_id[1..observations - 1]))
+        if (any(worker_id[2..observations] :< ///
+            worker_id[1..observations - 1])) {
+            _error(3300, "network mobility panel must be sorted by worker")
+        }
+    }
+    if (any(select(job_to_job, new_worker) :< .)) {
+        _error(3300, "first worker observations require missing job-to-job indicators")
+    }
+    continuation_rows = selectindex(new_worker :== 0)
+    if (rows(continuation_rows)) {
+        if (any(missing(job_to_job[continuation_rows])) | ///
+            any((job_to_job[continuation_rows] :!= 0) :& ///
+            (job_to_job[continuation_rows] :!= 1))) {
+            _error(3300, "network job-to-job indicators are invalid")
+        }
+        expected_move = employed[continuation_rows] :& ///
+            employed[continuation_rows :- 1] :& ///
+            (firm_id[continuation_rows] :!= ///
+            firm_id[continuation_rows :- 1])
+        if (any(job_to_job[continuation_rows] :!= expected_move)) {
+            _error(3300, "network job-to-job indicators do not match the panel")
+        }
+    }
+
+    active_firms = uniqrows(sort(select(firm_id, employed), 1))
+    move_rows = selectindex(job_to_job :== 1)
+    if (!rows(move_rows)) {
+        return((rows(active_firms) \ 0 \ J(4, 1, .)))
+    }
+    origin_firm = firm_id[move_rows :- 1]
+    destination_firm = firm_id[move_rows]
+    pairs = sort((rowmin((origin_firm, destination_firm)), ///
+        rowmax((origin_firm, destination_firm))), (1, 2))
+    if (rows(pairs) == 1) {
+        starts = 1
+        link_weights = 1
+    }
+    else {
+        boundaries = selectindex((1 \
+            ((pairs[2..rows(pairs), 1] :!= ///
+            pairs[1..rows(pairs) - 1, 1]) :| ///
+            (pairs[2..rows(pairs), 2] :!= ///
+            pairs[1..rows(pairs) - 1, 2])) \
+            1))
+        starts = boundaries[1..rows(boundaries) - 1]
+        link_weights = boundaries[2..rows(boundaries)] :- starts
+    }
+    incident_firms = uniqrows(sort((pairs[starts, 1] \
+        pairs[starts, 2]), 1))
+    percentiles = fesim_network_weight_pct(link_weights)
+    return((rows(active_firms) - rows(incident_firms) \
+        rows(starts) \ percentiles))
+}
+
 struct fesim_network_results scalar fesim_network_analyze(
     real matrix edges,
     real scalar workers,
@@ -172,13 +294,14 @@ struct fesim_network_results scalar fesim_network_analyze(
     }
 
     result.schema_version = fesim_network_schema_version()
-    result.diagnostics = J(13, 1, .)
+    result.diagnostics = J(19, 1, .)
     result.worker_component = J(workers, 1, .)
     result.firm_component = J(firms, 1, .)
     result.validated = 0
     if (rows(edges) == 0) {
         result.diagnostics[1..5] = (0 \ 0 \ 0 \ 0 \ 0)
         result.diagnostics[7..10] = (0 \ 0 \ 0 \ 0)
+        result.diagnostics[14..15] = (0 \ 0)
         result.validated = 1
         return(result)
     }
@@ -228,7 +351,7 @@ struct fesim_network_results scalar fesim_network_analyze(
             component < largest)) largest = component
     }
 
-    result.diagnostics = (components \ rows(edges) \ sum(edges[, 3]) \ ///
+    result.diagnostics[1..13] = (components \ rows(edges) \ sum(edges[, 3]) \ ///
         sum(active_worker) \ sum(active_firm) \ largest \ ///
         component_edges[largest] \ component_observations[largest] \ ///
         component_workers[largest] \ component_firms[largest] \ ///
@@ -273,13 +396,21 @@ void fesim_network_store_panel(
     real colvector starts
     real colvector unique_keys
     real colvector worker_id
+    real colvector all_worker_id
+    real colvector all_firm_id
+    real colvector all_employed
+    real colvector all_job_to_job
 
     if (mark_largest != 0 & mark_largest != 1) {
         _error(3300, "network largest-component marker must be zero or one")
     }
-    employed = st_data(., "employed")
-    worker_id = select(st_data(., "workerid"), employed)
-    firm_id = select(st_data(., "firmid"), employed)
+    all_worker_id = st_data(., "workerid")
+    all_firm_id = st_data(., "firmid")
+    all_employed = st_data(., "employed")
+    all_job_to_job = st_data(., "jobtojob")
+    employed = all_employed
+    worker_id = select(all_worker_id, employed)
+    firm_id = select(all_firm_id, employed)
     if (rows(worker_id) < 1) {
         _error(3300, "network panel does not contain employed observations")
     }
@@ -310,6 +441,8 @@ void fesim_network_store_panel(
             boundaries[2..rows(boundaries)] :- starts)
     }
     result = fesim_network_analyze(edges, workers, firms)
+    result.diagnostics[14..19] = fesim_network_mobility_stats(
+        all_worker_id, all_firm_id, all_employed, all_job_to_job, firms)
     st_matrix(diagnostics_name, result.diagnostics)
     if (mark_largest) {
         worker_id = st_data(., "workerid")

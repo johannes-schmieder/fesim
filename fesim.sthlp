@@ -69,10 +69,12 @@ Simulation results are returned through {cmd:r()} scalars for dimensions, realiz
 {title:Connectivity}
 
 {pstd}
-The observed graph contains ever-employed workers, active firms, and one edge per unique observed worker-firm match. Never-employed workers and inactive firms are excluded. Largest-component observation, worker, and firm shares respectively use employed observations, ever-employed workers, and active firms as denominators. Ties are resolved by employed observations, then workers, then firms, then the lowest component identifier.
+The observed bipartite graph contains ever-employed workers, active firms, and one edge per unique observed worker-firm match. Never-employed workers and inactive firms are excluded. Largest-component observation, worker, and firm shares respectively use employed observations, ever-employed workers, and active firms as denominators. Ties are resolved by employed observations, then workers, then firms, then the lowest component identifier.
+
+The observed firm mobility graph is undirected. A link is an unordered firm pair in an adjacent-output transition with {cmd:jobtojob==1}; its weight is the number of those observed direct moves pooling directions. Active firms incident to no link are counted as firms with no movers. Link-weight p10, p50, p90, and p99 use Stata's default percentile convention. These summaries do not claim leave-out connectedness.
 
 {pstd}
-{cmd:connectivity(keep)} leaves the generated panel unchanged. {cmd:connectivity(largest)} retains all periods, including nonemployment, for workers in the selected component, so the returned panel remains balanced. {cmd:r(network)} has {cmd:generated} and {cmd:returned} columns and stable rows for component, edge, observation, worker, firm, largest-component count, and share diagnostics. Under {cmd:largest}, {cmd:r(N_workers)} is the retained count; the requested worker count remains in {cmd:r(parameters)}. A generated panel without employment rejects {cmd:largest}.
+{cmd:connectivity(keep)} leaves the generated panel unchanged. {cmd:connectivity(largest)} retains all periods, including nonemployment, for workers in the selected component, so the returned panel remains balanced. {cmd:r(network)} has {cmd:generated} and {cmd:returned} columns and 19 stable rows: 13 component diagnostics followed by {cmd:firms_no_movers}, {cmd:firm_links}, {cmd:edge_weight_p10}, {cmd:edge_weight_p50}, {cmd:edge_weight_p90}, and {cmd:edge_weight_p99}. Mobility rows are recomputed after {cmd:largest}. Under that mode, {cmd:r(N_workers)} is the retained count; the requested worker count remains in {cmd:r(parameters)}. A generated panel without employment rejects {cmd:largest}.
 
 {title:Safety and RNG behavior}
 

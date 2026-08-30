@@ -18,6 +18,10 @@
 - Auditable stylized parameter records and a registry-consistency test. The
   defaults are explicitly uncalibrated; DG-08 remains open for any targeted or
   Germany-labeled preset.
+- Expanded `r(network)` with an undirected observed firm mobility graph:
+  distinct firm links, direction-pooled observed move-count weights, active
+  firms with no movers, and p10/p50/p90/p99 link-weight summaries. Returned
+  diagnostics are recomputed after largest-component filtering.
 
 ## 0.1.0 — 2026-08-29
 

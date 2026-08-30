@@ -80,7 +80,7 @@ assert rowsof(public_parameters) == 13
 assert rowsof(public_moments) == 38
 assert rowsof(public_targets) == 10
 assert colsof(public_targets) == 4
-assert rowsof(public_network) == 13
+assert rowsof(public_network) == 19
 assert colsof(public_network) == 2
 assert public_network["components", "generated"] == `public_components'
 assert public_network["largest_observation_share", "generated"] == ///
@@ -89,6 +89,18 @@ assert public_network["largest_worker_share", "generated"] == ///
     `public_largest_worker_share'
 assert public_network["largest_firm_share", "generated"] == ///
     `public_largest_firm_share'
+assert inrange(public_network["firms_no_movers", "generated"], 0, ///
+    public_network["firms", "generated"])
+assert public_network["firm_links", "generated"] >= 0
+if public_network["firm_links", "generated"] > 0 {
+    assert public_network["edge_weight_p10", "generated"] >= 1
+    assert public_network["edge_weight_p10", "generated"] <= ///
+        public_network["edge_weight_p50", "generated"]
+    assert public_network["edge_weight_p50", "generated"] <= ///
+        public_network["edge_weight_p90", "generated"]
+    assert public_network["edge_weight_p90", "generated"] <= ///
+        public_network["edge_weight_p99", "generated"]
+}
 mata: assert(st_matrix("public_network")[, 1] == ///
     st_matrix("public_network")[, 2])
 assert public_targets["alpha_true_mean", "target"] == 0

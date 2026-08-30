@@ -14,8 +14,8 @@ program define _fesim_network, rclass
         di as error "network dimensions do not match the current panel"
         exit 459
     }
-    foreach variable in workerid time firmid employed {
-        capture confirm variable `variable'
+    foreach variable in workerid time firmid employed jobtojob {
+        capture confirm numeric variable `variable'
         if _rc {
             di as error "required fesim network variable is missing: `variable'"
             exit 111
@@ -26,6 +26,7 @@ program define _fesim_network, rclass
         di as error "fesim network diagnostics require a unique workerid time key"
         exit 459
     }
+    quietly sort workerid time
     capture assert workerid >= 1 & workerid <= `workers' & ///
         workerid == floor(workerid)
     if _rc {
@@ -64,13 +65,15 @@ program define _fesim_network, rclass
             di as error "connectivity(largest) is undefined without observed employment"
             exit 459
         }
-        matrix `generated' = J(13, 1, .)
+        matrix `generated' = J(19, 1, .)
         forvalues row = 1/5 {
             matrix `generated'[`row', 1] = 0
         }
         forvalues row = 7/10 {
             matrix `generated'[`row', 1] = 0
         }
+        matrix `generated'[14, 1] = 0
+        matrix `generated'[15, 1] = 0
     }
     else {
         capture noisily mata: fesim_network_store_panel( ///
@@ -81,7 +84,7 @@ program define _fesim_network, rclass
     }
 
     local diagnostic_names ///
-        "components edges employed_observations workers firms largest_component_id largest_edges largest_observations largest_workers largest_firms largest_observation_share largest_worker_share largest_firm_share"
+        "components edges employed_observations workers firms largest_component_id largest_edges largest_observations largest_workers largest_firms largest_observation_share largest_worker_share largest_firm_share firms_no_movers firm_links edge_weight_p10 edge_weight_p50 edge_weight_p90 edge_weight_p99"
     matrix rownames `generated' = `diagnostic_names'
     matrix colnames `generated' = generated
     matrix `returned' = `generated'
@@ -89,19 +92,14 @@ program define _fesim_network, rclass
 
     local sample_workers = `workers'
     if `"`connectivity'"' == "largest" {
-        local sample_workers = el(`generated', 9, 1)
         quietly keep if `in_largest'
         quietly drop `in_largest'
         quietly sort workerid time
-
-        matrix `returned'[1, 1] = 1
-        forvalues row = 2/5 {
-            local source_row = `row' + 5
-            matrix `returned'[`row', 1] = `generated'[`source_row', 1]
-        }
-        forvalues row = 11/13 {
-            matrix `returned'[`row', 1] = 1
-        }
+        capture noisily mata: fesim_network_store_panel( ///
+            `workers', `firms', "`returned'", "", 0)
+        local graph_rc = _rc
+        if `graph_rc' exit `graph_rc'
+        local sample_workers = el(`returned', 4, 1)
     }
     matrix `network' = (`generated', `returned')
     matrix rownames `network' = `diagnostic_names'
@@ -121,5 +119,11 @@ program define _fesim_network, rclass
     return scalar largest_component_obs_share = el(`returned', 11, 1)
     return scalar largest_component_worker_share = el(`returned', 12, 1)
     return scalar largest_component_firm_share = el(`returned', 13, 1)
+    return scalar firms_no_movers = el(`returned', 14, 1)
+    return scalar firm_links = el(`returned', 15, 1)
+    return scalar edge_weight_p10 = el(`returned', 16, 1)
+    return scalar edge_weight_p50 = el(`returned', 17, 1)
+    return scalar edge_weight_p90 = el(`returned', 18, 1)
+    return scalar edge_weight_p99 = el(`returned', 19, 1)
     return matrix network = `network'
 end
