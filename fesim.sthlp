@@ -76,7 +76,7 @@ The stylized preset additionally reports {cmd:unemp_duration}; it and {cmd:tenur
 {cmd:alpha_true} is the persistent worker effect. {cmd:psi_true} is the persistent current-firm effect and is missing outside employment. {cmd:time_true} is {cmd:wage_trend} times elapsed retained-sample years. {cmd:xb_true} and {cmd:match_true} are zero in the simple preset. {cmd:epsilon_true} is the idiosyncratic wage shock, and {cmd:lnwage_true} equals the observed employed log wage because the simple preset has no measurement error.
 
 {pstd}
-Simulation results are returned through {cmd:r()} scalars for dimensions, realized flows, network diagnostics, and stage runtimes; macros for the resolved DGP, preset, timing, RNG, network design, and version; and matrices {cmd:r(parameters)}, {cmd:r(moments)}, {cmd:r(targets)}, and {cmd:r(network)}. {cmd:akm/stylized} also returns {cmd:r(durations)}. {cmd:network(bridges)} returns {cmd:r(bridges_imposed)} and the exact eight-column {cmd:r(bridges)} ledger: bridge ID, worker ID, output period, internal period, source firm, target firm, source block, and target block. Component moments and applicable targets are computed even under {cmd:truth(none)}. Dataset characteristics record the version, canonical DGP and requested alias, preset and calibration class, command, actual master seed and RNG, frequency and internal clock, employer rule, burn-in, connectivity rule, network design, truth mode, and normalization reference.
+Simulation results are returned through {cmd:r()} scalars for dimensions, realized flows, network diagnostics, and stage runtimes; macros for the resolved DGP, preset, timing, RNG, network design, and version; and matrices {cmd:r(parameters)}, {cmd:r(moments)}, {cmd:r(targets)}, {cmd:r(network)}, and {cmd:r(leaveout)}. {cmd:akm/stylized} also returns {cmd:r(durations)}. {cmd:network(bridges)} returns {cmd:r(bridges_imposed)} and the exact eight-column {cmd:r(bridges)} ledger: bridge ID, worker ID, output period, internal period, source firm, target firm, source block, and target block. Component moments and applicable targets are computed even under {cmd:truth(none)}. Dataset characteristics record the version, canonical DGP and requested alias, preset and calibration class, command, actual master seed and RNG, frequency and internal clock, employer rule, burn-in, connectivity rule, network design, truth mode, and normalization reference.
 
 {title:Connectivity}
 
@@ -87,6 +87,9 @@ The observed firm mobility graph is undirected. A link is an unordered firm pair
 
 {pstd}
 {cmd:connectivity(keep)} leaves the generated panel unchanged. {cmd:connectivity(largest)} retains all periods, including nonemployment, for workers in the selected component, so the returned panel remains balanced. {cmd:r(network)} has {cmd:generated} and {cmd:returned} columns and 21 stable rows: 13 component diagnostics followed by {cmd:firms_no_movers}, {cmd:firm_links}, four edge-weight percentiles, {cmd:articulation_firms}, and {cmd:graph_bridge_links}. An articulation firm or graph-bridge link is one whose deletion increases the component count in the distinct undirected observed firm graph; link weights do not affect these classifications. Mobility rows are recomputed after {cmd:largest}. They are descriptive and are not leave-one-worker, leave-one-match, or KSS diagnostics. Under {cmd:largest}, {cmd:r(N_workers)} is the retained count; the requested worker count remains in {cmd:r(parameters)}. A generated panel without employment rejects {cmd:largest}.
+
+{pstd}
+The separate 19-row, one-column {cmd:r(leaveout)} matrix audits the current returned panel's largest unique-match bipartite component without filtering the panel. Worker deletion removes a worker's complete observed history; {cmd:worker_cut_vertices} counts articulation workers in the base component, and the {cmd:worker_set_*} rows describe the deterministic largest component after articulation-worker pruning repeats to a robust fixed point or emptiness. Match deletion removes one complete worker-firm edge while retaining the audited firms; {cmd:vulnerable_matches_largest} and {cmd:vulnerable_matches_worker_set} count deletions that separate firms. An edge that only isolates a stayer-worker is not vulnerable. The final {cmd:worker_out_connected} and {cmd:match_out_connected} flags audit the retained worker set; no separate match-connected sample is constructed.
 
 {title:Safety and RNG behavior}
 
@@ -155,11 +158,12 @@ Discovery and configuration resolution do not alter data or Stata's RNG state. T
 {synopt:{cmd:r(moments)}}common realized and truth moment rows{p_end}
 {synopt:{cmd:r(targets)}}target, realized, difference, and relative-difference columns{p_end}
 {synopt:{cmd:r(network)}}generated and returned graph-diagnostic columns{p_end}
+{synopt:{cmd:r(leaveout)}}KSS-aligned worker-set and complete-match vulnerability audit{p_end}
 {synopt:{cmd:r(durations)}}year-valued tenure and unemployment-duration distribution; {cmd:akm/stylized}{p_end}
 {synopt:{cmd:r(bridges)}}exact bridge-event ledger; {cmd:network(bridges)} only{p_end}
 {synopt:{cmd:r(dgp)}, {cmd:r(dgp_alias)}, {cmd:r(preset)}}canonical identity and requested alias{p_end}
 {synopt:{cmd:r(seed)}, {cmd:r(rng)}}actual master seed and component-stream RNG{p_end}
-{synopt:{cmd:r(network_design)}}resolved random, block, or bridge destination design{p_end}
+{synopt:{cmd:r(network_design)}}resolved random, blocks, bridges, or ladder destination design{p_end}
 {synopt:{cmd:r(frequency)}, {cmd:r(internal_clock)}}output and internal timing{p_end}
 {synopt:{cmd:r(command)}, {cmd:r(version)}, {cmd:r(reference)}}scientific command and package metadata{p_end}
 

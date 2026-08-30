@@ -173,7 +173,7 @@ struct fesim_empirical_params {
 
 real scalar fesim_mata_api_version()
 {
-    return(23)
+    return(24)
 }
 
 real scalar fesim_config_schema_version()

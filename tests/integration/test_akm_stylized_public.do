@@ -26,6 +26,7 @@ matrix stylized_moments = r(moments)
 matrix stylized_targets = r(targets)
 matrix stylized_durations = r(durations)
 matrix stylized_network = r(network)
+matrix stylized_leaveout = r(leaveout)
 
 assert _N == 1600
 isid workerid time
@@ -69,6 +70,23 @@ assert rowsof(stylized_durations) == 12
 assert colsof(stylized_durations) == 1
 assert rowsof(stylized_network) == 21
 assert colsof(stylized_network) == 2
+assert rowsof(stylized_leaveout) == 19
+assert colsof(stylized_leaveout) == 1
+assert stylized_leaveout["largest_observations", "value"] == ///
+    stylized_network["largest_observations", "returned"]
+assert stylized_leaveout["largest_workers", "value"] == ///
+    stylized_network["largest_workers", "returned"]
+assert stylized_leaveout["largest_firms", "value"] == ///
+    stylized_network["largest_firms", "returned"]
+assert stylized_leaveout["largest_matches", "value"] == ///
+    stylized_network["largest_edges", "returned"]
+assert inrange(stylized_leaveout["worker_cut_vertices", "value"], ///
+    0, stylized_leaveout["largest_workers", "value"])
+assert inrange(stylized_leaveout["vulnerable_matches_largest", ///
+    "value"], 0, stylized_leaveout["largest_matches", "value"])
+foreach robustness in worker_out_connected match_out_connected {
+    assert inlist(stylized_leaveout["`robustness'", "value"], 0, 1)
+}
 assert inrange(stylized_network["firms_no_movers", "generated"], 0, ///
     stylized_network["firms", "generated"])
 assert stylized_network["firm_links", "generated"] >= 0
@@ -115,6 +133,7 @@ matrix alias_parameters = r(parameters)
 matrix alias_moments = r(moments)
 matrix alias_targets = r(targets)
 matrix alias_durations = r(durations)
+matrix alias_leaveout = r(leaveout)
 quietly datasignature
 assert `"`r(datasignature)'"' == `"`canonical_signature'"'
 mata: assert(mreldif(st_matrix("stylized_parameters"), ///
@@ -125,6 +144,8 @@ mata: assert(mreldif(st_matrix("stylized_targets"), ///
     st_matrix("alias_targets")) == 0)
 mata: assert(mreldif(st_matrix("stylized_durations"), ///
     st_matrix("alias_durations")) == 0)
+mata: assert(mreldif(st_matrix("stylized_leaveout"), ///
+    st_matrix("alias_leaveout")) == 0)
 
 quietly fesim, dgp(akmempirical) workers(120) firms(12) periods(5) ///
     frequency(quarter) seed(13579) truth(none) noreport clear

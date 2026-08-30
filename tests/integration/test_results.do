@@ -124,6 +124,37 @@ mata: assert(mreldif(st_matrix("noreport_durations"), ///
 quietly datasignature confirm
 assert `"`c(rngstate)'"' == `"`rng_before'"'
 
+matrix toy_network = J(21, 2, 0)
+local toy_network_rows ""
+forvalues row = 1/21 {
+    local toy_network_rows `toy_network_rows' network_`row'
+}
+matrix rownames toy_network = `toy_network_rows'
+matrix colnames toy_network = generated returned
+matrix toy_leaveout = J(19, 1, 0)
+local toy_leaveout_rows ""
+forvalues row = 1/19 {
+    local toy_leaveout_rows `toy_leaveout_rows' leaveout_`row'
+}
+matrix rownames toy_leaveout = `toy_leaveout_rows'
+matrix colnames toy_leaveout = value
+quietly _fesim_finalize, `finalize_options' reporting(noreport) ///
+    network(toy_network) leaveout(toy_leaveout)
+matrix returned_network = r(network)
+matrix returned_leaveout = r(leaveout)
+mata: assert(mreldif(st_matrix("returned_network"), ///
+    st_matrix("toy_network")) == 0)
+mata: assert(mreldif(st_matrix("returned_leaveout"), ///
+    st_matrix("toy_leaveout")) == 0)
+capture _fesim_finalize, `finalize_options' reporting(noreport) ///
+    network(toy_network)
+assert _rc == 198
+capture _fesim_finalize, `finalize_options' reporting(noreport) ///
+    leaveout(toy_leaveout)
+assert _rc == 198
+quietly datasignature confirm
+assert `"`c(rngstate)'"' == `"`rng_before'"'
+
 capture _fesim_finalize, `finalize_options' reporting(invalid)
 assert _rc == 198
 quietly datasignature confirm

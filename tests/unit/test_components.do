@@ -4,7 +4,7 @@ set more off
 set varabbrev off
 
 mata:
-assert(fesim_network_schema_version() == 3)
+assert(fesim_network_schema_version() == 4)
 assert(fesim_network_diagnostic_names() == ///
     ("components", "edges", "employed_observations", "workers", ///
     "firms", "largest_component_id", "largest_edges", ///
@@ -57,7 +57,7 @@ network_edges = (1, 1, 3 \ 2, 1, 2 \ 2, 2, 1 \ ///
     3, 3, 6 \ 4, 4, 2 \ 5, 4, 4)
 network_result = fesim_network_analyze(network_edges, 5, 4)
 assert(network_result.validated == 1)
-assert(network_result.schema_version == 3)
+assert(network_result.schema_version == 4)
 assert(network_result.diagnostics[1..10] == ///
     (3 \ 6 \ 18 \ 5 \ 4 \ 1 \ 3 \ 6 \ 2 \ 2))
 assert(network_result.diagnostics[11] == 1 / 3)

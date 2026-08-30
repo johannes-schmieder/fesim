@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_network_schema_version()
 {
-    return(3)
+    return(4)
 }
 
 string rowvector fesim_network_diagnostic_names()
@@ -18,6 +18,21 @@ string rowvector fesim_network_diagnostic_names()
         "edge_weight_p10", "edge_weight_p50", ///
         "edge_weight_p90", "edge_weight_p99", ///
         "articulation_firms", "graph_bridge_links"))
+}
+
+string rowvector fesim_network_leaveout_names()
+{
+    return(("largest_observations", "largest_workers", ///
+        "largest_firms", "largest_matches", "worker_cut_vertices", ///
+        "worker_set_observations", "worker_set_workers", ///
+        "worker_set_firms", "worker_set_matches", ///
+        "worker_set_observation_share", "worker_set_worker_share", ///
+        "worker_set_firm_share", "worker_set_match_share", ///
+        "vulnerable_matches_largest", ///
+        "vulnerable_match_share_largest", ///
+        "vulnerable_matches_worker_set", ///
+        "vulnerable_match_share_worker", ///
+        "worker_out_connected", "match_out_connected"))
 }
 
 real colvector fesim_network_union_labels(
@@ -100,6 +115,162 @@ real colvector fesim_network_union_labels(
         }
     }
     return(labels)
+}
+
+real colvector fesim_network_bipartite_cut(
+    real matrix edges,
+    real scalar workers,
+    real scalar firms)
+{
+    real scalar child
+    real scalar active_firms
+    real scalar edge
+    real scalar node
+    real scalar nodes
+    real scalar neighbor
+    real scalar root
+    real scalar root_count
+    real scalar time
+    real scalar top
+    real scalar vulnerable_matches
+    real colvector active_nodes
+    real colvector adjacency
+    real colvector adjacency_edge
+    real colvector articulation
+    real colvector child_count
+    real colvector cursor
+    real colvector degree
+    real colvector discovery
+    real colvector endpoints
+    real colvector low
+    real colvector next_neighbor
+    real colvector offset
+    real colvector parent
+    real colvector parent_edge
+    real colvector stack
+    real colvector subtree_firms
+    real matrix info
+
+    if (missing(workers) | workers < 1 | workers != floor(workers) | ///
+        missing(firms) | firms < 1 | firms != floor(firms) | ///
+        cols(edges) != 3) {
+        _error(3300, "leave-out bipartite graph inputs are invalid")
+    }
+    if (!rows(edges)) return(J(workers + 1, 1, 0))
+    if (any(missing(edges)) | any(edges :!= floor(edges)) | ///
+        any(edges[, 1] :< 1) | any(edges[, 1] :> workers) | ///
+        any(edges[, 2] :< 1) | any(edges[, 2] :> firms) | ///
+        any(edges[, 3] :< 1)) {
+        _error(3300, "leave-out bipartite graph edges are invalid")
+    }
+    if (rows(edges) > 1) {
+        if (any(edges[2..rows(edges), 1] :< ///
+                edges[1..rows(edges) - 1, 1]) | ///
+            any((edges[2..rows(edges), 1] :== ///
+                edges[1..rows(edges) - 1, 1]) :& ///
+                (edges[2..rows(edges), 2] :<= ///
+                edges[1..rows(edges) - 1, 2]))) {
+            _error(3300, "leave-out bipartite graph edges must be sorted and unique")
+        }
+    }
+
+    nodes = workers + firms
+    active_firms = rows(uniqrows(sort(edges[, 2], 1)))
+    endpoints = (edges[, 1] \ workers :+ edges[, 2])
+    endpoints = sort(endpoints, 1)
+    info = panelsetup(endpoints, 1)
+    active_nodes = endpoints[info[, 1]]
+    degree = J(nodes, 1, 0)
+    degree[active_nodes] = info[, 2] :- info[, 1] :+ 1
+    offset = J(nodes + 1, 1, 1)
+    offset[2..nodes + 1] = 1 :+ runningsum(degree)
+    cursor = offset[1..nodes]
+    adjacency = J(2 * rows(edges), 1, .)
+    adjacency_edge = J(2 * rows(edges), 1, .)
+    for (edge = 1; edge <= rows(edges); edge++) {
+        node = edges[edge, 1]
+        neighbor = workers + edges[edge, 2]
+        adjacency[cursor[node]] = neighbor
+        adjacency_edge[cursor[node]] = edge
+        adjacency[cursor[neighbor]] = node
+        adjacency_edge[cursor[neighbor]] = edge
+        cursor[node] = cursor[node] + 1
+        cursor[neighbor] = cursor[neighbor] + 1
+    }
+
+    discovery = J(nodes, 1, 0)
+    low = J(nodes, 1, 0)
+    parent = J(nodes, 1, 0)
+    parent_edge = J(nodes, 1, 0)
+    child_count = J(nodes, 1, 0)
+    articulation = J(nodes, 1, 0)
+    next_neighbor = J(nodes, 1, 0)
+    subtree_firms = (J(workers, 1, 0) \ J(firms, 1, 1))
+    stack = J(rows(active_nodes), 1, 0)
+    time = 0
+    root_count = 0
+    vulnerable_matches = 0
+    for (root = 1; root <= rows(active_nodes); root++) {
+        node = active_nodes[root]
+        if (discovery[node] != 0) continue
+        root_count = root_count + 1
+        time = time + 1
+        discovery[node] = time
+        low[node] = time
+        next_neighbor[node] = offset[node]
+        top = 1
+        stack[top] = node
+        while (top > 0) {
+            node = stack[top]
+            if (next_neighbor[node] < offset[node + 1]) {
+                edge = adjacency_edge[next_neighbor[node]]
+                neighbor = adjacency[next_neighbor[node]]
+                next_neighbor[node] = next_neighbor[node] + 1
+                if (discovery[neighbor] == 0) {
+                    parent[neighbor] = node
+                    parent_edge[neighbor] = edge
+                    child_count[node] = child_count[node] + 1
+                    time = time + 1
+                    discovery[neighbor] = time
+                    low[neighbor] = time
+                    next_neighbor[neighbor] = offset[neighbor]
+                    top = top + 1
+                    stack[top] = neighbor
+                }
+                else if (edge != parent_edge[node]) {
+                    low[node] = min((low[node], discovery[neighbor]))
+                }
+            }
+            else {
+                top = top - 1
+                if (parent[node] == 0) {
+                    if (node <= workers & child_count[node] > 1) {
+                        articulation[node] = 1
+                    }
+                }
+                else {
+                    child = node
+                    node = parent[child]
+                    if (node <= workers & parent[node] != 0 & ///
+                        low[child] >= discovery[node]) {
+                        articulation[node] = 1
+                    }
+                    if (low[child] > discovery[node] & ///
+                        subtree_firms[child] > 0 & ///
+                        subtree_firms[child] < active_firms) {
+                        vulnerable_matches = vulnerable_matches + 1
+                    }
+                    subtree_firms[node] = subtree_firms[node] + ///
+                        subtree_firms[child]
+                    low[node] = min((low[node], low[child]))
+                }
+            }
+        }
+    }
+    if (root_count != 1) {
+        _error(3300, "leave-out bipartite graph must be connected")
+    }
+    return((articulation[1..workers] \ vulnerable_matches))
 }
 
 real matrix fesim_network_group_sums(
@@ -438,14 +609,15 @@ struct fesim_network_results scalar fesim_network_analyze(
             any(edges[, 3] :< 1)) {
             _error(3300, "network edges contain invalid identifiers or counts")
         }
-        if (rows(edges) > 1 & ///
-            (any(edges[2..rows(edges), 1] :< ///
-                edges[1..rows(edges) - 1, 1]) | ///
-            any((edges[2..rows(edges), 1] :== ///
-                edges[1..rows(edges) - 1, 1]) :& ///
-                (edges[2..rows(edges), 2] :<= ///
-                edges[1..rows(edges) - 1, 2])))) {
-            _error(3300, "network edges must be sorted and unique")
+        if (rows(edges) > 1) {
+            if (any(edges[2..rows(edges), 1] :< ///
+                    edges[1..rows(edges) - 1, 1]) | ///
+                any((edges[2..rows(edges), 1] :== ///
+                    edges[1..rows(edges) - 1, 1]) :& ///
+                    (edges[2..rows(edges), 2] :<= ///
+                    edges[1..rows(edges) - 1, 2]))) {
+                _error(3300, "network edges must be sorted and unique")
+            }
         }
     }
 
@@ -462,6 +634,14 @@ struct fesim_network_results scalar fesim_network_analyze(
         result.validated = 1
         return(result)
     }
+    if (rows(edges) == 1) {
+        result.worker_component[edges[1, 1]] = edges[1, 1]
+        result.firm_component[edges[1, 2]] = edges[1, 1]
+        result.diagnostics[1..13] = (1 \ 1 \ edges[1, 3] \ 1 \ 1 \ ///
+            edges[1, 1] \ 1 \ edges[1, 3] \ 1 \ 1 \ 1 \ 1 \ 1)
+        result.validated = 1
+        return(result)
+    }
 
     nodes = workers + firms
     active_worker = J(workers, 1, 0)
@@ -475,15 +655,15 @@ struct fesim_network_results scalar fesim_network_analyze(
     result.worker_component = labels[1::workers]
     result.firm_component = labels[(workers + 1)::nodes]
 
-    edge_components = result.worker_component[edges[, 1]]
+    edge_components = vec(result.worker_component[edges[, 1]])
     component_totals = fesim_network_group_sums(
         edge_components, (J(rows(edges), 1, 1), edges[, 3]), nodes)
     component_edges = component_totals[, 1]
     component_observations = component_totals[, 2]
-    worker_components = result.worker_component[active_worker_rows]
+    worker_components = vec(result.worker_component[active_worker_rows])
     component_workers = fesim_network_group_sums(
         worker_components, J(rows(worker_components), 1, 1), nodes)
-    firm_components = result.firm_component[active_firm_rows]
+    firm_components = vec(result.firm_component[active_firm_rows])
     component_firms = fesim_network_group_sums(
         firm_components, J(rows(firm_components), 1, 1), nodes)
 
@@ -519,6 +699,75 @@ struct fesim_network_results scalar fesim_network_analyze(
     return(result)
 }
 
+real colvector fesim_network_leaveout(
+    real matrix edges,
+    real scalar workers,
+    real scalar firms)
+{
+    struct fesim_network_results scalar base_result
+    struct fesim_network_results scalar worker_result
+    real colvector base_cut
+    real colvector diagnostics
+    real colvector worker_cut
+    real matrix base_edges
+    real matrix candidate_edges
+    real matrix worker_edges
+
+    diagnostics = J(19, 1, .)
+    if (missing(workers) | workers < 1 | workers != floor(workers) | ///
+        missing(firms) | firms < 1 | firms != floor(firms) | ///
+        cols(edges) != 3) {
+        _error(3300, "leave-out diagnostic inputs are invalid")
+    }
+    if (!rows(edges)) {
+        diagnostics[1..9] = J(9, 1, 0)
+        diagnostics[14] = 0
+        diagnostics[16] = 0
+        return(diagnostics)
+    }
+
+    base_result = fesim_network_analyze(edges, workers, firms)
+    base_edges = select(edges, ///
+        vec(base_result.worker_component[edges[, 1]]) :== ///
+        base_result.diagnostics[6])
+    base_cut = fesim_network_bipartite_cut(base_edges, workers, firms)
+    diagnostics[1..5] = (base_result.diagnostics[8] \ ///
+        base_result.diagnostics[9] \ base_result.diagnostics[10] \ ///
+        base_result.diagnostics[7] \ sum(base_cut[1..workers]))
+    diagnostics[14] = base_cut[workers + 1]
+    diagnostics[15] = diagnostics[14] / diagnostics[4]
+
+    worker_edges = base_edges
+    worker_cut = base_cut
+    while (sum(worker_cut[1..workers]) > 0) {
+        candidate_edges = select(worker_edges, ///
+            worker_cut[worker_edges[, 1]] :== 0)
+        if (!rows(candidate_edges)) {
+            diagnostics[6..13] = J(8, 1, 0)
+            diagnostics[16] = 0
+            diagnostics[18..19] = (0 \ 0)
+            return(diagnostics)
+        }
+        worker_result = fesim_network_analyze(
+            candidate_edges, workers, firms)
+        worker_edges = select(candidate_edges, ///
+            vec(worker_result.worker_component[candidate_edges[, 1]]) :== ///
+            worker_result.diagnostics[6])
+        worker_cut = fesim_network_bipartite_cut(
+            worker_edges, workers, firms)
+    }
+    worker_result = fesim_network_analyze(worker_edges, workers, firms)
+    diagnostics[6..9] = (worker_result.diagnostics[8] \ ///
+        worker_result.diagnostics[9] \ worker_result.diagnostics[10] \ ///
+        worker_result.diagnostics[7])
+    diagnostics[10..13] = diagnostics[6..9] :/ diagnostics[1..4]
+    diagnostics[16] = worker_cut[workers + 1]
+    diagnostics[17] = diagnostics[16] / diagnostics[9]
+    diagnostics[18] = sum(worker_cut[1..workers]) == 0
+    diagnostics[19] = diagnostics[16] == 0
+    return(diagnostics)
+}
+
 void fesim_network_store_from_stata(
     real scalar workers,
     real scalar firms,
@@ -540,6 +789,7 @@ void fesim_network_store_panel(
     real scalar workers,
     real scalar firms,
     string scalar diagnostics_name,
+    string scalar leaveout_name,
     string scalar keep_variable,
     real scalar mark_largest,
     string scalar move_origin_variable,
@@ -598,6 +848,7 @@ void fesim_network_store_panel(
     result.diagnostics[14..21] = fesim_network_pair_stats(
         move_pairs, result.diagnostics[5], firms)
     st_matrix(diagnostics_name, result.diagnostics)
+    st_matrix(leaveout_name, fesim_network_leaveout(edges, workers, firms))
     if (mark_largest) {
         worker_id = st_data(., "workerid")
         if (any(missing(worker_id)) | any(worker_id :!= floor(worker_id)) | ///
@@ -605,7 +856,7 @@ void fesim_network_store_panel(
             _error(3300, "panel worker identifiers do not match network membership")
         }
         st_store(., keep_variable, ///
-            result.worker_component[worker_id] :== result.diagnostics[6])
+            vec(result.worker_component[worker_id]) :== result.diagnostics[6])
     }
 }
 

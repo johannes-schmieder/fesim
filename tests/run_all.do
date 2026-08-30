@@ -46,7 +46,7 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     unit/test_destinations unit/test_rng unit/test_network_design ///
     unit/test_runtime ///
     unit/test_lifecycle unit/test_flows unit/test_moments unit/test_durations ///
-    unit/test_components ///
+    unit/test_components unit/test_leaveout ///
     unit/test_akm_population ///
     unit/test_akm_initialization ///
     unit/test_akm_mobility ///

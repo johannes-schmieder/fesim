@@ -42,7 +42,7 @@ mata: mata mlib add lfesim fesim_*(), dir(`"`output_dir'"') complete
 quietly adopath ++ `"`output_dir'"'
 mata: mata clear
 mata: mata mlib index
-mata: assert(fesim_mata_api_version() == 23)
+mata: assert(fesim_mata_api_version() == 24)
 mata: assert(fesim_config_schema_version() == 2)
 mata: assert(fesim_rng_schema_version() == 2)
 mata: assert(cols(fesim_rng_component_names()) == 9)
@@ -53,7 +53,7 @@ mata: assert(fesim_hazard_schema_version() == 1)
 mata: assert(fesim_destination_schema_version() == 3)
 mata: assert(fesim_flow_schema_version() == 1)
 mata: assert(fesim_moment_schema_version() == 1)
-mata: assert(fesim_network_schema_version() == 3)
+mata: assert(fesim_network_schema_version() == 4)
 mata: assert(fesim_runtime_schema_version() == 1)
 mata: assert(fesim_output_schema_version() == 7)
 mata: assert(fesim_output_checked_rows(10000, 10) == 100000)

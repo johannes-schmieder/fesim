@@ -89,7 +89,7 @@ confirm variable unemp_duration
 matrix installed_durations = r(durations)
 assert rowsof(installed_durations) == 12
 isid workerid time
-mata: assert(fesim_mata_api_version() == 23)
+mata: assert(fesim_mata_api_version() == 24)
 mata: mata clear
 quietly adopath ++ `"`repository_root'/build"'
 mata: mata mlib index

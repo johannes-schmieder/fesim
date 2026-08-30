@@ -23,6 +23,14 @@
   firms with no movers, p10/p50/p90/p99 link-weight summaries, articulation
   firms, and graph-bridge links. Returned diagnostics are recomputed after
   largest-component filtering; no leave-out-connectedness claim is made.
+- Added a separate 19-row `r(leaveout)` audit on the observed unique-match
+  bipartite graph. It reports the KSS-aligned set obtained by deleting complete
+  histories of articulation workers and repeatedly retaining the largest
+  component until it is robust or empty, plus complete-match vulnerabilities
+  on both the base and worker-robust graphs. The iteration is a conservative
+  extension of KSS Algorithm 1 for cases where pruning creates new cut workers.
+  Stayer leaf edges are not misclassified as firm-disconnecting matches, and
+  the audit does not filter the returned panel or label a separate match sample.
 - Shared `network(random)` destination primitives for attraction-weighted
   common assignments and current-firm-excluding direct moves. Both public AKM
   routes preserve their frozen draws and output.

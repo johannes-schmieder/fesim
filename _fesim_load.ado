@@ -2,7 +2,7 @@
 program define _fesim_load
     version 16.0
 
-    capture mata: assert(fesim_mata_api_version() == 23)
+    capture mata: assert(fesim_mata_api_version() == 24)
     if !_rc exit
 
     quietly findfile _fesim_load.ado
@@ -24,7 +24,7 @@ program define _fesim_load
         }
         quietly do `"`source_path'"'
     }
-    capture mata: assert(fesim_mata_api_version() == 23)
+    capture mata: assert(fesim_mata_api_version() == 24)
     if _rc {
         di as error "fesim Mata source failed to load"
         exit 3000

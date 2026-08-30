@@ -32,6 +32,7 @@ matrix public_parameters = r(parameters)
 matrix public_moments = r(moments)
 matrix public_targets = r(targets)
 matrix public_network = r(network)
+matrix public_leaveout = r(leaveout)
 assert _N == 160
 isid workerid time
 assert workerid == floor((_n - 1) / 4) + 1
@@ -82,6 +83,8 @@ assert rowsof(public_targets) == 10
 assert colsof(public_targets) == 4
 assert rowsof(public_network) == 21
 assert colsof(public_network) == 2
+assert rowsof(public_leaveout) == 19
+assert colsof(public_leaveout) == 1
 assert public_network["components", "generated"] == `public_components'
 assert public_network["largest_observation_share", "generated"] == ///
     `public_largest_obs_share'
@@ -107,6 +110,37 @@ if public_network["firm_links", "generated"] > 0 {
 }
 mata: assert(st_matrix("public_network")[, 1] == ///
     st_matrix("public_network")[, 2])
+assert public_leaveout["largest_observations", "value"] == ///
+    public_network["largest_observations", "returned"]
+assert public_leaveout["largest_workers", "value"] == ///
+    public_network["largest_workers", "returned"]
+assert public_leaveout["largest_firms", "value"] == ///
+    public_network["largest_firms", "returned"]
+assert public_leaveout["largest_matches", "value"] == ///
+    public_network["largest_edges", "returned"]
+assert inrange(public_leaveout["worker_cut_vertices", "value"], 0, ///
+    public_leaveout["largest_workers", "value"])
+foreach unit in observations workers firms matches {
+    assert inrange(public_leaveout["worker_set_`unit'", "value"], 0, ///
+        public_leaveout["largest_`unit'", "value"])
+}
+foreach unit in observation worker firm match {
+    assert inrange(public_leaveout["worker_set_`unit'_share", "value"], ///
+        0, 1)
+}
+assert inrange(public_leaveout["vulnerable_matches_largest", "value"], ///
+    0, public_leaveout["largest_matches", "value"])
+assert inrange(public_leaveout["vulnerable_match_share_largest", ///
+    "value"], 0, 1)
+assert inrange(public_leaveout["vulnerable_matches_worker_set", ///
+    "value"], 0, public_leaveout["worker_set_matches", "value"])
+if public_leaveout["worker_set_matches", "value"] > 0 {
+    assert inrange(public_leaveout["vulnerable_match_share_worker", ///
+        "value"], 0, 1)
+}
+foreach robustness in worker_out_connected match_out_connected {
+    assert inlist(public_leaveout["`robustness'", "value"], 0, 1)
+}
 assert public_targets["alpha_true_mean", "target"] == 0
 assert public_targets["alpha_true_sd", "target"] == .3
 assert public_targets["alpha_true_var", "target"] == .09
@@ -155,12 +189,15 @@ local alias_dgp `"`r(dgp)'"'
 local alias_name `"`r(dgp_alias)'"'
 matrix alias_moments = r(moments)
 matrix alias_targets = r(targets)
+matrix alias_leaveout = r(leaveout)
 assert `"`alias_dgp'"' == "akm"
 assert `"`alias_name'"' == "akmsimple"
 mata: assert(mreldif(st_matrix("alias_moments"), ///
     st_matrix("public_moments")) == 0)
 mata: assert(mreldif(st_matrix("alias_targets"), ///
     st_matrix("public_targets")) == 0)
+mata: assert(mreldif(st_matrix("alias_leaveout"), ///
+    st_matrix("public_leaveout")) == 0)
 quietly cf _all using `canonical'
 
 quietly fesim, dgp(akm) preset(simple) workers(40) firms(6) periods(4) ///
@@ -179,6 +216,7 @@ quietly fesim, dgp(akm) preset(simple) workers(40) firms(6) periods(4) ///
     truth(none) connectivity(keep) noreport clear
 matrix none_moments = r(moments)
 matrix none_targets = r(targets)
+matrix none_leaveout = r(leaveout)
 foreach truth_name in alpha_true psi_true time_true xb_true match_true ///
     epsilon_true lnwage_true {
     capture confirm variable `truth_name'
@@ -190,6 +228,8 @@ mata: assert(mreldif(st_matrix("none_moments"), ///
     st_matrix("public_moments")) == 0)
 mata: assert(mreldif(st_matrix("none_targets"), ///
     st_matrix("public_targets")) == 0)
+mata: assert(mreldif(st_matrix("none_leaveout"), ///
+    st_matrix("public_leaveout")) == 0)
 
 quietly fesim, workers(8) firms(2) periods(3) seed(13579) ///
     initial(allunemployed) parameters(p_ue 0) truth(none) noreport clear
@@ -226,6 +266,7 @@ local disconnected_options workers(60) firms(6) periods(4) ///
     parameters(p_eu 0 p_ee 0 p_ue .6 firm_size_sd 0) noreport clear
 quietly fesim, `disconnected_options' truth(none) connectivity(keep)
 matrix disconnected_keep_network = r(network)
+matrix disconnected_keep_leaveout = r(leaveout)
 assert r(components) > 1
 assert disconnected_keep_network["workers", "generated"] == 60
 assert disconnected_keep_network["employed_observations", "generated"] == 240
@@ -233,6 +274,7 @@ matrix disconnected_keep_moments = r(moments)
 
 quietly fesim, `disconnected_options' truth(none) connectivity(largest)
 matrix largest_none_network = r(network)
+matrix largest_none_leaveout = r(leaveout)
 matrix largest_none_moments = r(moments)
 local largest_none_workers = r(N_workers)
 assert r(components) == 1
@@ -247,6 +289,14 @@ assert largest_none_network["workers", "returned"] == `largest_none_workers'
 assert largest_none_network["largest_observation_share", "returned"] == 1
 assert largest_none_network["largest_worker_share", "returned"] == 1
 assert largest_none_network["largest_firm_share", "returned"] == 1
+assert largest_none_leaveout["largest_observations", "value"] == ///
+    disconnected_keep_leaveout["largest_observations", "value"]
+assert largest_none_leaveout["largest_workers", "value"] == ///
+    disconnected_keep_leaveout["largest_workers", "value"]
+assert largest_none_leaveout["largest_firms", "value"] == ///
+    disconnected_keep_leaveout["largest_firms", "value"]
+assert largest_none_leaveout["largest_matches", "value"] == ///
+    disconnected_keep_leaveout["largest_matches", "value"]
 by workerid (time): assert _N == 4
 foreach truth_name in alpha_true psi_true time_true xb_true match_true ///
     epsilon_true lnwage_true {

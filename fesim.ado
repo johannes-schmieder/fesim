@@ -449,8 +449,9 @@ program define fesim__simulate, rclass
             "`caller_rng'", "`caller_rngstate'")
         exit `network_rc'
     }
-    tempname resolved_network
+    tempname resolved_network resolved_leaveout
     matrix `resolved_network' = r(network)
+    matrix `resolved_leaveout' = r(leaveout)
     local network_workers = r(N_workers_sample)
     local network_components = r(components)
     local largest_observation_share = r(largest_component_obs_share)
@@ -543,7 +544,8 @@ program define fesim__simulate, rclass
         periods(`resolved_periods') parameters(`resolved_parameters') ///
         moments(`resolved_moments') targets(`resolved_targets') ///
         `duration_option' `bridge_option' ///
-        network(`resolved_network') components(`network_components') ///
+        network(`resolved_network') leaveout(`resolved_leaveout') ///
+        components(`network_components') ///
         largestcomponentobsshare(`largest_observation_share') ///
         largestcomponentworkershare(`largest_worker_share') ///
         largestcomponentfirmshare(`largest_firm_share') ///

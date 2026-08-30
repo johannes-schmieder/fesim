@@ -2,8 +2,9 @@
 
 `benchmark_public.do` exercises the public simple-AKM route with fixed seed,
 500 firms, 10 periods, `truth(none)`, and `connectivity(keep)`. It writes a
-machine-readable JSON receipt containing the exact Git SHA, dataset scale,
-graph scale, command time, and internal stage times.
+standards-compliant JSON receipt containing the exact Git SHA, dataset scale,
+graph scale, leave-out counts and robustness flags, command time, and internal
+stage times. The harness rejects malformed JSON.
 
 Run the clean-checkout harness with:
 
@@ -20,7 +21,8 @@ qualified baseline and before/after interpretation.
 `benchmark_destinations.do` isolates the grouped empirical destination engine.
 `benchmark_stylized_public.do` measures the public monthly empirical-mobility
 route, including five years of burn-in, monthly-to-output aggregation, duration
-returns, graph diagnostics, and the final Stata dataset.
+returns, graph and leave-out diagnostics, and the final Stata dataset. Its
+harness also rejects malformed JSON.
 It times construction of the five worker-type UE and EE tables and 100,000
 draws from each kernel, verifies exact current-firm exclusion, and records the
 numeric payload of the persistent tables. Run it from a clean checkout with:

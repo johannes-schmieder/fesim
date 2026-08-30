@@ -1,4 +1,4 @@
-*! fesim common metadata/result finalizer 0.2.0-dev 29aug2026
+*! fesim common metadata/result finalizer 0.2.0-dev 30aug2026
 program define _fesim_finalize, rclass
     version 16.0
     syntax , DGP(string) DGPALIAS(string) PRESET(string) ///
@@ -9,8 +9,8 @@ program define _fesim_finalize, rclass
         REFERENCE(string) ///
         WORKERS(integer) FIRMS(integer) PERIODS(integer) ///
         PARAMETERS(name) MOMENTS(name) ///
-        [ TARGETS(name) NETWORK(name) SOLVER(name) DURATIONS(name) ///
-        BRIDGES(name) ///
+        [ TARGETS(name) NETWORK(name) LEAVEOUT(name) SOLVER(name) ///
+        DURATIONS(name) BRIDGES(name) ///
         FIRMSACTIVE(real -1) EMPLOYMENTRATE(real -1) ///
         PEU(real -1) PUE(real -1) PEE(real -1) COMPONENTS(real -1) ///
         LARGESTCOMPONENTOBSSHARE(real -1) ///
@@ -62,7 +62,7 @@ program define _fesim_finalize, rclass
             exit 198
         }
     }
-    foreach matrix_name in targets network solver durations bridges {
+    foreach matrix_name in targets network leaveout solver durations bridges {
         if `"``matrix_name''"' != "" {
             capture confirm matrix ``matrix_name''
             if _rc {
@@ -80,6 +80,16 @@ program define _fesim_finalize, rclass
     if (`"`networkdesign'"' == "bridges") != (`"`bridges'"' != "") {
         di as error "network(bridges) requires exactly one bridge ledger"
         exit 198
+    }
+    if (`"`network'"' != "") != (`"`leaveout'"' != "") {
+        di as error "network and leaveout diagnostics must be returned together"
+        exit 198
+    }
+    if `"`leaveout'"' != "" {
+        if rowsof(`leaveout') != 19 | colsof(`leaveout') != 1 {
+            di as error "leaveout() must be the stable 19-row diagnostic matrix"
+            exit 198
+        }
     }
     if `"`bridges'"' != "" {
         if rowsof(`bridges') < 1 | colsof(`bridges') != 8 | ///
@@ -164,6 +174,10 @@ program define _fesim_finalize, rclass
         tempname network_copy
         matrix `network_copy' = `network'
     }
+    if `"`leaveout'"' != "" {
+        tempname leaveout_copy
+        matrix `leaveout_copy' = `leaveout'
+    }
     if `"`solver'"' != "" {
         tempname solver_copy
         matrix `solver_copy' = `solver'
@@ -213,6 +227,7 @@ program define _fesim_finalize, rclass
     return matrix moments = `moments_copy'
     if `"`targets'"' != "" return matrix targets = `targets_copy'
     if `"`network'"' != "" return matrix network = `network_copy'
+    if `"`leaveout'"' != "" return matrix leaveout = `leaveout_copy'
     if `"`solver'"' != "" return matrix solver = `solver_copy'
     if `"`durations'"' != "" return matrix durations = `durations_copy'
     if `"`bridges'"' != "" return matrix bridges = `bridges_copy'

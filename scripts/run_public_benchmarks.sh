@@ -41,5 +41,6 @@ for workers in "${sizes[@]}"; do
         echo "Benchmark did not create $result" >&2
         exit 1
     fi
+    python3 -m json.tool "$result" >/dev/null
     echo "FESIM BENCHMARK ACCEPTED: $result"
 done

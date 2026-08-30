@@ -30,15 +30,44 @@ local runtime_simulate = r(runtime_simulate)
 local runtime_output = r(runtime_output)
 local components = r(components)
 matrix benchmark_network = r(network)
+matrix benchmark_leaveout = r(leaveout)
 local edges = benchmark_network["edges", "generated"]
 local employed_observations = ///
     benchmark_network["employed_observations", "generated"]
+foreach metric in worker_cut_vertices worker_set_observations ///
+    worker_set_workers worker_set_firms worker_set_matches ///
+    vulnerable_matches_largest vulnerable_matches_worker_set ///
+    worker_out_connected match_out_connected {
+    local `metric' = benchmark_leaveout["`metric'", "value"]
+}
+local worker_set_observation_share = ///
+    benchmark_leaveout["worker_set_observation_share", "value"]
+local vulnerable_match_share_largest = ///
+    benchmark_leaveout["vulnerable_match_share_largest", "value"]
+local vulnerable_match_share_worker = ///
+    benchmark_leaveout["vulnerable_match_share_worker", "value"]
 timer off 1
 quietly timer list 1
 local command_seconds = r(t1)
 quietly describe, short
 local data_width = r(width)
 local dataset_bytes = `N' * `data_width'
+local json_command_seconds = ///
+    strtrim(string(`command_seconds', "%21.15f"))
+local json_runtime_total = strtrim(string(`runtime_total', "%21.15f"))
+local json_runtime_solve = strtrim(string(`runtime_solve', "%21.15f"))
+local json_runtime_simulate = ///
+    strtrim(string(`runtime_simulate', "%21.15f"))
+local json_runtime_output = strtrim(string(`runtime_output', "%21.15f"))
+local json_worker_obs_share "null"
+if `worker_set_observation_share' < . local json_worker_obs_share = ///
+    strtrim(string(`worker_set_observation_share', "%21.15f"))
+local json_vuln_share_largest "null"
+if `vulnerable_match_share_largest' < . local json_vuln_share_largest = ///
+    strtrim(string(`vulnerable_match_share_largest', "%21.15f"))
+local json_vuln_share_worker "null"
+if `vulnerable_match_share_worker' < . local json_vuln_share_worker = ///
+    strtrim(string(`vulnerable_match_share_worker', "%21.15f"))
 
 tempname result_file
 file open `result_file' using `"`result_path'"', write text replace
@@ -55,11 +84,37 @@ file write `result_file' `"  "components": `components',"' _n
 file write `result_file' `"  "edges": `edges',"' _n
 file write `result_file' ///
     `"  "employed_observations": `employed_observations',"' _n
-file write `result_file' `"  "command_seconds": `command_seconds',"' _n
-file write `result_file' `"  "runtime_total": `runtime_total',"' _n
-file write `result_file' `"  "runtime_solve": `runtime_solve',"' _n
-file write `result_file' `"  "runtime_simulate": `runtime_simulate',"' _n
-file write `result_file' `"  "runtime_output": `runtime_output'"' _n
+file write `result_file' ///
+    `"  "worker_cut_vertices": `worker_cut_vertices',"' _n
+file write `result_file' ///
+    `"  "worker_set_observations": `worker_set_observations',"' _n
+file write `result_file' ///
+    `"  "worker_set_workers": `worker_set_workers',"' _n
+file write `result_file' ///
+    `"  "worker_set_firms": `worker_set_firms',"' _n
+file write `result_file' ///
+    `"  "worker_set_matches": `worker_set_matches',"' _n
+file write `result_file' ///
+    `"  "worker_set_observation_share": `json_worker_obs_share',"' _n
+file write `result_file' ///
+    `"  "vulnerable_matches_largest": `vulnerable_matches_largest',"' _n
+file write `result_file' ///
+    `"  "vulnerable_match_share_largest": `json_vuln_share_largest',"' _n
+file write `result_file' ///
+    `"  "vulnerable_matches_worker_set": `vulnerable_matches_worker_set',"' _n
+file write `result_file' ///
+    `"  "vulnerable_match_share_worker": `json_vuln_share_worker',"' _n
+file write `result_file' ///
+    `"  "worker_out_connected": `worker_out_connected',"' _n
+file write `result_file' ///
+    `"  "match_out_connected": `match_out_connected',"' _n
+file write `result_file' ///
+    `"  "command_seconds": `json_command_seconds',"' _n
+file write `result_file' `"  "runtime_total": `json_runtime_total',"' _n
+file write `result_file' `"  "runtime_solve": `json_runtime_solve',"' _n
+file write `result_file' ///
+    `"  "runtime_simulate": `json_runtime_simulate',"' _n
+file write `result_file' `"  "runtime_output": `json_runtime_output'"' _n
 file write `result_file' "}" _n
 file close `result_file'
 

@@ -62,7 +62,8 @@ program define _fesim_network, rclass
         exit 459
     }
 
-    tempname generated returned network
+    tempname generated returned network generated_leaveout ///
+        returned_leaveout leaveout
     tempvar direct_move move_origin
     quietly generate byte `direct_move' = jobtojob == 1
     quietly by workerid (time): generate double `move_origin' = ///
@@ -92,10 +93,16 @@ program define _fesim_network, rclass
         matrix `generated'[15, 1] = 0
         matrix `generated'[20, 1] = 0
         matrix `generated'[21, 1] = 0
+        matrix `generated_leaveout' = J(19, 1, .)
+        forvalues row = 1/9 {
+            matrix `generated_leaveout'[`row', 1] = 0
+        }
+        matrix `generated_leaveout'[14, 1] = 0
+        matrix `generated_leaveout'[16, 1] = 0
     }
     else {
         capture noisily mata: fesim_network_store_panel( ///
-            `workers', `firms', "`generated'", ///
+            `workers', `firms', "`generated'", "`generated_leaveout'", ///
             "`keep_variable'", `mark_largest', ///
             "`move_origin'", "`direct_move'")
         local graph_rc = _rc
@@ -106,8 +113,13 @@ program define _fesim_network, rclass
         "components edges employed_observations workers firms largest_component_id largest_edges largest_observations largest_workers largest_firms largest_observation_share largest_worker_share largest_firm_share firms_no_movers firm_links edge_weight_p10 edge_weight_p50 edge_weight_p90 edge_weight_p99 articulation_firms graph_bridge_links"
     matrix rownames `generated' = `diagnostic_names'
     matrix colnames `generated' = generated
+    local leaveout_names ///
+        "largest_observations largest_workers largest_firms largest_matches worker_cut_vertices worker_set_observations worker_set_workers worker_set_firms worker_set_matches worker_set_observation_share worker_set_worker_share worker_set_firm_share worker_set_match_share vulnerable_matches_largest vulnerable_match_share_largest vulnerable_matches_worker_set vulnerable_match_share_worker worker_out_connected match_out_connected"
+    matrix rownames `generated_leaveout' = `leaveout_names'
+    matrix colnames `generated_leaveout' = value
     matrix `returned' = `generated'
     matrix colnames `returned' = returned
+    matrix `returned_leaveout' = `generated_leaveout'
 
     local sample_workers = `workers'
     if `"`connectivity'"' == "largest" {
@@ -115,7 +127,8 @@ program define _fesim_network, rclass
         quietly drop `in_largest'
         quietly sort workerid time
         capture noisily mata: fesim_network_store_panel( ///
-            `workers', `firms', "`returned'", "", 0, ///
+            `workers', `firms', "`returned'", "`returned_leaveout'", ///
+            "", 0, ///
             "`move_origin'", "`direct_move'")
         local graph_rc = _rc
         if `graph_rc' exit `graph_rc'
@@ -124,6 +137,9 @@ program define _fesim_network, rclass
     matrix `network' = (`generated', `returned')
     matrix rownames `network' = `diagnostic_names'
     matrix colnames `network' = generated returned
+    matrix `leaveout' = `returned_leaveout'
+    matrix rownames `leaveout' = `leaveout_names'
+    matrix colnames `leaveout' = value
 
     return scalar N_workers_sample = `sample_workers'
     return scalar components = el(`returned', 1, 1)
@@ -148,4 +164,5 @@ program define _fesim_network, rclass
     return scalar articulation_firms = el(`returned', 20, 1)
     return scalar graph_bridge_links = el(`returned', 21, 1)
     return matrix network = `network'
+    return matrix leaveout = `leaveout'
 end

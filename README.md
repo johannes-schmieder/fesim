@@ -45,9 +45,10 @@ matrix list r(parameters)
 matrix list r(moments)
 matrix list r(targets)
 matrix list r(network)
+matrix list r(leaveout)
 ```
 
-Use `connectivity(largest)` to retain every period for workers in the selected largest observed component. Under that mode, `r(N_workers)` is the retained worker count; the originally requested count remains in the `workers` row of `r(parameters)`. The 21-row `r(network)` combines bipartite component summaries with undirected observed firm-mobility link counts, direction-pooled move-count weights, active firms with no movers, articulation-firm counts, and graph-bridge-link counts; all returned-column summaries are recomputed after filtering.
+Use `connectivity(largest)` to retain every period for workers in the selected largest observed component. Under that mode, `r(N_workers)` is the retained worker count; the originally requested count remains in the `workers` row of `r(parameters)`. The 21-row `r(network)` combines bipartite component summaries with undirected observed firm-mobility link counts, direction-pooled move-count weights, active firms with no movers, articulation-firm counts, and graph-bridge-link counts; all returned-column summaries are recomputed after filtering. The separate 19-row `r(leaveout)` reports the KSS-aligned leave-one-worker set and complete-match vulnerabilities on the returned panel's largest bipartite component. It is an audit only and does not filter the public panel.
 
 Model-specific overrides stay inside `parameters()`:
 

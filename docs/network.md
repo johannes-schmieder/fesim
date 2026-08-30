@@ -50,10 +50,9 @@ returns `r(bridges_imposed)` plus an exact `r(bridges)` ledger. Its columns are
 the ledger and interval counts are available under every truth mode.
 
 These block labels and bridge transitions are imposed simulation-design
-objects. Completing the adjacent block-level chain does not establish a
-leave-one-worker, leave-one-match, or KSS leave-out result in the realized
-worker-firm graph. The observed-graph articulation and bridge-link counts below
-are separate descriptive diagnostics.
+objects. Completing the adjacent block-level chain does not itself establish a
+leave-one-worker or leave-one-match result in the realized worker-firm graph.
+The realized leave-out audit described below is separate from the design label.
 
 `network(ladder)` changes only the destination of an ordinary EE event. Firms
 are ranked in both public routes by persistent wage effect `psi_j`, using
@@ -68,7 +67,12 @@ kernel. The same existing destination uniform samples the mixture. No event,
 initialization, UE, wage, or extra RNG draw is introduced. The design is a
 reduced-form wage ladder, not a structural BM or revealed-preference model.
 
-The installed internal `_fesim_network` ado constructs two observed graphs after the panel and common flow variables are finalized. The bipartite worker-firm graph supplies connected-component diagnostics. The undirected firm mobility graph supplies direct-move link diagnostics. Both are computed from the retained output panel; neither reconstructs unobserved events between output snapshots.
+The installed internal `_fesim_network` ado constructs two observed graph
+representations after the panel and common flow variables are finalized. The
+bipartite worker-firm graph supplies component and leave-out diagnostics. The
+undirected firm mobility graph supplies direct-move link diagnostics. Both are
+computed from the retained output panel; neither reconstructs unobserved events
+between output snapshots.
 
 ## Nodes, edges, and denominators
 
@@ -93,10 +97,11 @@ articulation firms, and both counts are zero when the graph has no links. The
 iterative depth-first traversal runs in linear time after link construction and
 does not allocate a dense firm-by-firm matrix.
 
-These remain descriptive observed-graph summaries. They do not establish
-leave-one-worker, leave-one-match, or KSS leave-out connectedness.
+These rows of `r(network)` remain descriptive observed-firm-graph summaries.
+They are distinct from the worker-history and complete-match audit returned in
+`r(leaveout)`.
 
-## Returned matrix
+## Network matrix
 
 `r(network)` has columns `generated` and `returned` and the following stable rows:
 
@@ -125,6 +130,63 @@ leave-one-worker, leave-one-match, or KSS leave-out connectedness.
 With `connectivity(keep)`, both columns describe the unfiltered generated sample and are identical. If the panel has no employment, component, edge, worker, firm, no-mover, and firm-link counts are zero; the largest component ID, its shares, and the link-weight percentiles are missing.
 
 With `connectivity(largest)`, `generated` preserves the pre-filter diagnostics. `returned` describes the retained sample: its component count is one, rows 2–5 equal the selected component's rows 7–10, and all three shares are one. Rows 14–21 are recomputed from the retained workers' complete output histories, rather than copied from the generated graph. The original selected component ID and largest-component counts remain available. The common scalar component/share returns describe the `returned` column; the expanded mobility summaries are exposed through `r(network)`.
+
+## Leave-out matrix
+
+`r(leaveout)` audits the current returned panel's largest unique-match
+bipartite component. The graph and deterministic largest-component tie rule are
+exactly those defined above. The KSS-aligned worker set starts from the graph
+construction in [Kline, Saggio, and Sølvsten
+(2020)](https://doi.org/10.3982/ECTA16410): deleting a worker means deleting
+that worker's complete observed employment history, all worker articulation
+vertices are removed, and the largest remaining component is retained. Since
+simultaneous deletion can create new articulation workers, `fesim` repeats that
+prune-and-select step until the set is robust or empty. This conservative
+fixed-point extension guarantees the reported nonempty set's leave-one-worker
+property. The audit does not filter the public panel.
+
+A match is one complete unique worker-firm edge, regardless of duration.
+Deleting a match removes that edge; an edge-less worker then disappears, while
+every firm in the audited firm universe remains. A match is vulnerable when
+its deletion separates firms. Thus, a bridge edge that merely isolates a
+stayer-worker is not vulnerable. Match vulnerability is audited on both the
+base largest component and the worker-robust set. No separate
+"match-connected KSS sample" is constructed or claimed.
+
+`r(leaveout)` has one column, `value`, and 19 stable rows:
+
+1. `largest_observations`
+2. `largest_workers`
+3. `largest_firms`
+4. `largest_matches`
+5. `worker_cut_vertices`
+6. `worker_set_observations`
+7. `worker_set_workers`
+8. `worker_set_firms`
+9. `worker_set_matches`
+10. `worker_set_observation_share`
+11. `worker_set_worker_share`
+12. `worker_set_firm_share`
+13. `worker_set_match_share`
+14. `vulnerable_matches_largest`
+15. `vulnerable_match_share_largest`
+16. `vulnerable_matches_worker_set`
+17. `vulnerable_match_share_worker`
+18. `worker_out_connected`
+19. `match_out_connected`
+
+The four worker-set shares use the corresponding base-largest counts as their
+denominators. The vulnerability shares use base matches and worker-set matches,
+respectively. The connectedness flags equal one only when the retained worker
+set has no remaining articulation workers or vulnerable matches. If worker
+pruning leaves no employment, its counts and shares are zero and both flags are
+zero. If the returned panel has no employment, all counts are zero and shares
+and flags are missing.
+
+With `connectivity(keep)`, the audit starts from the generated panel's selected
+largest component. With `connectivity(largest)`, the returned panel is already
+that component, so the audit has the same scientific starting component even
+though `r(network)` preserves separate generated and returned columns.
 
 ## Filtering and moments
 
