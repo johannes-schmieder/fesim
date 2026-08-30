@@ -4,7 +4,12 @@
 EU/UE/EE rates, stationary initial employment, uniform initial firm
 assignment, and fixed-seed convergence. `akm_exogeneity.do` checks zero
 worker-firm sorting and independence of wage shocks from mobility events.
+`akm_stylized_mobility.do` checks the sign and material size of public sorting,
+latent primitive correlations, and duration dependence while holding competing
+mechanisms fixed.
 
-Every tolerance uses a declared effective sample size and an analytically
-justified conservative standard-error bound. Exact formulas, estimands, and
-the false-failure policy are documented in `docs/statistical_tests.md`.
+The simple-AKM stochastic tolerances use declared effective sample sizes and
+conservative analytical bounds. The stylized-route thresholds are documented
+fixed-seed mechanism contrasts rather than sampling-theory or calibration
+bounds. Exact estimands and the false-failure policy are in
+`docs/statistical_tests.md`.

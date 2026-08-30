@@ -12,4 +12,10 @@ assert _N > 0 & _N <= 6 * 500
 assert mod(_N, 6) == 0
 isid workerid time
 
+capture noisily do `"`repository_root'/examples/akm_stylized.do"'
+assert _rc == 0
+assert _N == 6000
+assert `"`r(calibration_class)'"' == "stylized_modified"
+isid workerid time
+
 di as result "FESIM DOCUMENTED EXAMPLES PASS"

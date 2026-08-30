@@ -12,13 +12,13 @@ quietly datasignature set, reset
 local rng_before `"`c(rngstate)'"'
 
 mata:
-assert(fesim_mata_api_version() == 16)
+assert(fesim_mata_api_version() == 17)
 assert(fesim_config_schema_version() == 2)
 assert(fesim_population_schema_version() == 3)
 assert(fesim_state_schema_version() == 4)
 assert(fesim_results_schema_version() == 2)
 assert(fesim_handler_schema_version() == 1)
-assert(fesim_dispatch_status() == "akm_simple_public")
+assert(fesim_dispatch_status() == "akm_simple_and_stylized_public")
 
 toy_config = fesim_toy_config(7, 3, 5)
 assert(toy_config.validated == 1)

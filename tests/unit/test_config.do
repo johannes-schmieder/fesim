@@ -81,8 +81,51 @@ matrix `ordered_b' = r(parameters)
 assert `"`ordered_config_a'"' == `"`ordered_config_b'"'
 assert mreldif(`ordered_a', `ordered_b') == 0
 
-capture noisily fesim_config, dgp(akmempirical)
-assert _rc == 498
+quietly fesim_config, dgp(akmempirical)
+local stylized_alias_config `"`r(config)'"'
+tempname stylized_alias_parameters stylized_canonical_parameters
+matrix `stylized_alias_parameters' = r(parameters)
+assert `"`r(dgp)'"' == "akm"
+assert `"`r(preset)'"' == "stylized"
+assert `"`r(config_schema)'"' == "akm_stylized_v1"
+assert `"`r(calibration_class)'"' == "stylized"
+assert `"`r(initial)'"' == "random"
+assert `"`r(internal_clock)'"' == "month"
+assert r(burnin) == 5
+assert rowsof(`stylized_alias_parameters') == 27
+assert reldif(`stylized_alias_parameters'["rho_z_alpha", "value"], .3) < 1e-12
+assert reldif(`stylized_alias_parameters'["rho_q_psi", "value"], .5) < 1e-12
+assert reldif(`stylized_alias_parameters'["theta_sort", "value"], .25) < 1e-12
+quietly fesim_config, dgp(akm) preset(stylized)
+matrix `stylized_canonical_parameters' = r(parameters)
+assert `"`stylized_alias_config'"' == `"`r(config)'"'
+assert mreldif(`stylized_alias_parameters', ///
+    `stylized_canonical_parameters') == 0
+
+quietly fesim_config, dgp(akmempirical) frequency(quarter) ///
+    parameters(theta_sort .4 eu_duration -.3)
+assert `"`r(calibration_class)'"' == "stylized_modified"
+assert `"`r(model_overrides)'"' == "eu_duration=-.3 theta_sort=.4"
+assert `"`r(parameter_overrides)'"' == "eu_duration=-.3 theta_sort=.4"
+assert `"`r(internal_clock)'"' == "month"
+
+capture noisily fesim_config, dgp(akm) preset(empirical)
+assert _rc == 198
+capture noisily fesim_config, dgp(akmempirical) initial(stationary)
+assert _rc == 198
+capture noisily fesim_config, dgp(akmempirical) burnin(0)
+assert _rc == 198
+capture noisily fesim_config, dgp(akmempirical) firms(1)
+assert _rc == 198
+capture noisily fesim_config, dgp(akmempirical) ///
+    parameters(rho_z_alpha 1.1)
+assert _rc == 198
+capture noisily fesim_config, dgp(akmempirical) ///
+    parameters(sd_worker 0 rho_z_alpha .1)
+assert _rc == 198
+quietly fesim_config, dgp(akmempirical) initial(allunemployed) burnin(0) ///
+    parameters(sd_worker 0 rho_z_alpha 0 sd_firm 0 rho_q_psi 0)
+assert r(burnin) == 0
 capture noisily fesim_config, parameters(unknown 1)
 assert _rc == 198
 capture noisily fesim_config, parameters(frequency 1)

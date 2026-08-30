@@ -8,6 +8,14 @@ targets, and runs an AKM-style regression with Stata's built-in `areg`:
 do examples/akmsimple.do
 ```
 
-The example has no user-written runtime dependency. Other registered DGPs and
-presets remain discovery-only until their implementation plans and scientific
-gates are complete.
+The example has no user-written runtime dependency. Apart from the two public
+AKM routes documented here, registered DGPs and presets remain discovery-only
+until their implementation plans and scientific gates are complete.
+
+`akm_stylized.do` exercises the qualified uncalibrated monthly empirical-mobility
+route, inspects year-valued duration diagnostics, and demonstrates that all
+model coefficients remain inside `parameters()`:
+
+```stata
+do examples/akm_stylized.do
+```

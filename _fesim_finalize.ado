@@ -8,7 +8,7 @@ program define _fesim_finalize, rclass
         BURNIN(integer) CONNECTIVITY(string) REFERENCE(string) ///
         WORKERS(integer) FIRMS(integer) PERIODS(integer) ///
         PARAMETERS(name) MOMENTS(name) ///
-        [ TARGETS(name) NETWORK(name) SOLVER(name) ///
+        [ TARGETS(name) NETWORK(name) SOLVER(name) DURATIONS(name) ///
         FIRMSACTIVE(real -1) EMPLOYMENTRATE(real -1) ///
         PEU(real -1) PUE(real -1) PEE(real -1) COMPONENTS(real -1) ///
         LARGESTCOMPONENTOBSSHARE(real -1) ///
@@ -59,7 +59,7 @@ program define _fesim_finalize, rclass
             exit 198
         }
     }
-    foreach matrix_name in targets network solver {
+    foreach matrix_name in targets network solver durations {
         if `"``matrix_name''"' != "" {
             capture confirm matrix ``matrix_name''
             if _rc {
@@ -150,6 +150,10 @@ program define _fesim_finalize, rclass
         tempname solver_copy
         matrix `solver_copy' = `solver'
     }
+    if `"`durations'"' != "" {
+        tempname durations_copy
+        matrix `durations_copy' = `durations'
+    }
 
     return scalar N = _N
     return scalar N_workers = `workers'
@@ -185,6 +189,7 @@ program define _fesim_finalize, rclass
     if `"`targets'"' != "" return matrix targets = `targets_copy'
     if `"`network'"' != "" return matrix network = `network_copy'
     if `"`solver'"' != "" return matrix solver = `solver_copy'
+    if `"`durations'"' != "" return matrix durations = `durations_copy'
 
     if `"`reporting'"' == "report" {
         di as txt _newline "fesim simulation summary"

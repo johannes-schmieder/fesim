@@ -6,7 +6,7 @@ set varabbrev off
 quietly fesim_registry, action(list)
 assert `"`r(dgps)'"' == "akm akmpaygap bm"
 assert `"`r(aliases)'"' == "akmsimple akmempirical bmsimple"
-assert `"`r(qualified)'"' == "akm/simple"
+assert `"`r(qualified)'"' == "akm/simple akm/stylized"
 assert `"`r(status)'"' == "partial"
 assert r(n_dgps) == 3
 
@@ -25,13 +25,14 @@ assert `"`r(preset)'"' == "simple"
 
 quietly fesim_registry, action(resolve) dgp(AKMEMPIRICAL)
 assert `"`r(dgp)'"' == "akm"
-assert `"`r(preset)'"' == "empirical"
-assert `"`r(configurable)'"' == "no"
-assert `"`r(config_schema)'"' == ""
-assert `"`r(status)'"' == "planned"
-assert `"`r(implemented)'"' == "no"
+assert `"`r(preset)'"' == "stylized"
+assert `"`r(configurable)'"' == "yes"
+assert `"`r(config_schema)'"' == "akm_stylized_v1"
+assert `"`r(status)'"' == "qualified"
+assert `"`r(implemented)'"' == "yes"
+assert `"`r(calibration_class)'"' == "stylized"
 
-capture noisily fesim_registry, action(resolve) dgp(akmsimple) preset(empirical)
+capture noisily fesim_registry, action(resolve) dgp(akmsimple) preset(stylized)
 assert _rc == 198
 capture noisily fesim_registry, action(resolve) dgp(unknown)
 assert _rc == 198
@@ -75,9 +76,29 @@ assert `"`r(default)'"' == "year"
 assert `"`r(parameters_allowed)'"' == "no"
 assert `"`r(default_source)'"' == "package"
 
-capture noisily fesim_registry, action(parameter) dgp(akm) ///
-    preset(empirical) parameter(mu)
-assert _rc == 498
+quietly fesim_registry, action(parameters) dgp(akm) preset(stylized)
+assert `"`r(config_schema)'"' == "akm_stylized_v1"
+assert `"`r(scalar_parameters)'"' == ///
+    "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down"
+assert `"`r(model_parameters)'"' == ///
+    "mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down"
+
+quietly fesim_registry, action(parameter) dgp(akm) ///
+    preset(stylized) parameter(burnin)
+assert r(default_value) == 5
+assert `"`r(unit)'"' == "years"
+quietly fesim_registry, action(parameter) dgp(akm) ///
+    preset(stylized) parameter(rho_z_alpha)
+assert r(default_value) == .3
+assert r(lower_value) == -1
+assert r(upper_value) == 1
+quietly fesim_registry, action(parameter) dgp(akm) ///
+    preset(stylized) parameter(kappa_eu)
+assert reldif(r(default_value), -2.416230718633671) < 1e-12
+assert `"`r(unit)'"' == "log annual hazard"
+quietly fesim_registry, action(parameter) dgp(akm) ///
+    preset(stylized) parameter(theta_down)
+assert r(default_value) == -.1
 capture noisily fesim_registry, action(parameter) dgp(akm) ///
     preset(simple) parameter(unknown)
 assert _rc == 198

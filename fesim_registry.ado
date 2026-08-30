@@ -12,7 +12,7 @@ program define fesim_registry, rclass
         }
         return local dgps "akm akmpaygap bm"
         return local aliases "akmsimple akmempirical bmsimple"
-        return local qualified "akm/simple"
+        return local qualified "akm/simple akm/stylized"
         return local status "partial"
         return scalar n_dgps = 3
         exit
@@ -31,7 +31,8 @@ program define fesim_registry, rclass
 
     local canonical `"`r(dgp)'"'
     local resolved_preset `"`r(preset)'"'
-    if `"`canonical'/`resolved_preset'"' != "akm/simple" {
+    if !inlist(`"`canonical'/`resolved_preset'"', ///
+        "akm/simple", "akm/stylized") {
         if `"`action'"' == "parameters" {
             return local common_options ""
             return local scalar_parameters ""
@@ -47,11 +48,18 @@ program define fesim_registry, rclass
 
     if `"`action'"' == "parameters" {
         return local common_options "workers firms periods frequency start seed initial burnin jobrule truth connectivity report"
-        return local scalar_parameters "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend"
-        return local model_parameters "mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend"
-        return local config_schema "akm_simple_v1"
+        if `"`resolved_preset'"' == "simple" {
+            return local scalar_parameters "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend"
+            return local model_parameters "mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend"
+            return local config_schema "akm_simple_v1"
+        }
+        else {
+            return local scalar_parameters "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down"
+            return local model_parameters "mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down"
+            return local config_schema "akm_stylized_v1"
+        }
         return local dgp "akm"
-        return local preset "simple"
+        return local preset `"`resolved_preset'"'
         exit
     }
 
@@ -61,7 +69,14 @@ program define fesim_registry, rclass
         exit 198
     }
 
-    local all "workers firms periods frequency start seed initial burnin jobrule truth connectivity report mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend"
+    local common "workers firms periods frequency start seed initial burnin jobrule truth connectivity report"
+    if `"`resolved_preset'"' == "simple" {
+        local model "mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend"
+    }
+    else {
+        local model "mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down"
+    }
+    local all `"`common' `model'"'
     if !`: list name in all' {
         di as error "unknown fesim parameter: `name'"
         exit 198
@@ -79,7 +94,7 @@ program define fesim_registry, rclass
     local named_option "no"
     local parameters_allowed "yes"
     local description ""
-    local applicability "akm/simple"
+    local applicability `"akm/`resolved_preset'"'
 
     if inlist(`"`name'"', "workers", "firms", "periods", "burnin") {
         local type "integer"
@@ -104,9 +119,16 @@ program define fesim_registry, rclass
             local description "Number of retained periods"
         }
         else {
-            local default "0"
-            local default_source "package"
-            local description "Pre-sample periods discarded after initialization"
+            if `"`resolved_preset'"' == "simple" {
+                local default "0"
+                local default_source "package"
+                local unit "internal periods"
+            }
+            else {
+                local default "5"
+                local unit "years"
+            }
+            local description "Pre-sample duration discarded after initialization"
         }
     }
     else if inlist(`"`name'"', "frequency", "start", "initial", "jobrule", "truth", "connectivity", "report") {
@@ -125,7 +147,11 @@ program define fesim_registry, rclass
             local description "First retained period"
         }
         else if `"`name'"' == "initial" {
-            local default "stationary"
+            if `"`resolved_preset'"' == "simple" local default "stationary"
+            else {
+                local default "random"
+                local default_source "preset"
+            }
             local description "Initial worker-state rule"
         }
         else if `"`name'"' == "jobrule" {
@@ -216,6 +242,84 @@ program define fesim_registry, rclass
             local default "0"
             local description "Linear log-wage time trend"
         }
+        else if inlist(`"`name'"', "rho_z_alpha", "rho_q_psi") {
+            if `"`name'"' == "rho_z_alpha" {
+                local default ".3"
+                local description "Latent worker mobility-index and wage-effect correlation"
+            }
+            else {
+                local default ".5"
+                local description "Latent firm quality-index and wage-effect correlation"
+            }
+            local lower "-1"
+            local upper "1"
+            local lower_closed "yes"
+            local upper_closed "yes"
+            local unit "correlation"
+        }
+        else if inlist(`"`name'"', "kappa_eu", "kappa_ee", "kappa_ue") {
+            if `"`name'"' == "kappa_eu" {
+                local default "-2.416230718633671"
+                local description "EU annual log-hazard intercept"
+            }
+            else if `"`name'"' == "kappa_ee" {
+                local default "-2.0107656105255063"
+                local description "EE annual log-hazard intercept"
+            }
+            else {
+                local default "-.08742157179075517"
+                local description "UE annual log-hazard intercept"
+            }
+            local unit "log annual hazard"
+        }
+        else if `"`name'"' == "eu_worker" {
+            local default ".1"
+            local description "Worker mobility-type coefficient in the EU log hazard"
+        }
+        else if `"`name'"' == "eu_firm" {
+            local default "-.1"
+            local description "Firm-quality coefficient in the EU log hazard"
+        }
+        else if `"`name'"' == "eu_duration" {
+            local default "-.2"
+            local description "Log-one-plus tenure coefficient in the EU log hazard"
+        }
+        else if `"`name'"' == "ee_worker" {
+            local default ".1"
+            local description "Worker mobility-type coefficient in the EE log hazard"
+        }
+        else if `"`name'"' == "ee_firm" {
+            local default "-.1"
+            local description "Firm-quality coefficient in the EE log hazard"
+        }
+        else if `"`name'"' == "ee_duration" {
+            local default "-.15"
+            local description "Log-one-plus tenure coefficient in the EE log hazard"
+        }
+        else if `"`name'"' == "ue_worker" {
+            local default ".15"
+            local description "Worker mobility-type coefficient in the UE log hazard"
+        }
+        else if `"`name'"' == "ue_duration" {
+            local default "-.25"
+            local description "Log-one-plus unemployment-duration coefficient in the UE log hazard"
+        }
+        else if `"`name'"' == "theta_sort" {
+            local default ".25"
+            local description "Worker-type by firm-quality destination sorting coefficient"
+        }
+        else if `"`name'"' == "theta_quality" {
+            local default ".1"
+            local description "Destination firm-quality preference coefficient"
+        }
+        else if `"`name'"' == "theta_up" {
+            local default ".2"
+            local description "Upward firm-quality distance coefficient for EE moves"
+        }
+        else if `"`name'"' == "theta_down" {
+            local default "-.1"
+            local description "Downward firm-quality distance coefficient for EE moves"
+        }
     }
 
     return local parameter `"`name'"'
@@ -259,7 +363,7 @@ program define fesim_registry__resolve, rclass
     }
     else if `"`requested'"' == "akmempirical" {
         local canonical "akm"
-        local alias_preset "empirical"
+        local alias_preset "stylized"
     }
     else if `"`requested'"' == "akmpaygap" local canonical "akmpaygap"
     else if `"`requested'"' == "bm" local canonical "bm"
@@ -290,11 +394,11 @@ program define fesim_registry__resolve, rclass
     local config_schema ""
     local configurable "no"
     if `"`canonical'"' == "akm" {
-        local presets "simple empirical"
+        local presets "simple stylized"
         local aliases "akmsimple akmempirical"
-        if !inlist(`"`resolved_preset'"', "simple", "empirical") {
+        if !inlist(`"`resolved_preset'"', "simple", "stylized") {
             di as error "unknown preset for dgp(akm): `resolved_preset'"
-            di as error "registered presets are simple and empirical"
+            di as error "registered presets are simple and stylized"
             exit 198
         }
         if `"`resolved_preset'"' == "simple" {
@@ -304,8 +408,10 @@ program define fesim_registry__resolve, rclass
             local configurable "yes"
         }
         else {
-            local title "Reduced-form AKM with empirical mobility"
-            local calibration_class "stylized or targeted; not yet selected"
+            local title "Reduced-form AKM with stylized empirical mobility"
+            local calibration_class "stylized"
+            local config_schema "akm_stylized_v1"
+            local configurable "yes"
         }
     }
     else if `"`canonical'"' == "akmpaygap" {
@@ -338,7 +444,8 @@ program define fesim_registry__resolve, rclass
     return local aliases `"`aliases'"'
     return local title `"`title'"'
     return local calibration_class `"`calibration_class'"'
-    if `"`canonical'/`resolved_preset'"' == "akm/simple" {
+    if inlist(`"`canonical'/`resolved_preset'"', ///
+        "akm/simple", "akm/stylized") {
         return local status "qualified"
         return local implemented "yes"
     }

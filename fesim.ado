@@ -80,7 +80,7 @@ program define fesim__list, rclass
         di as txt "  " %-12s `"`dgp'"' %-19s `"`presets'"' ///
             %-27s `"`aliases'"' `"`r(status)'"'
     }
-    di as txt _newline "The akm/simple preset is available for simulation."
+    di as txt _newline "The akm/simple and akm/stylized presets are available for simulation."
 
     return local command "list"
     return local dgps `"`dgps'"'
@@ -173,7 +173,8 @@ program define fesim__describe, rclass
         di as txt _newline "Configuration metadata for this preset is planned."
         return local calibration_class `"`calibration'"'
     }
-    if `"`dgp'"' == "akm" & `"`resolved_preset'"' == "simple" {
+    if `"`dgp'"' == "akm" & ///
+        inlist(`"`resolved_preset'"', "simple", "stylized") {
         di as txt "Simulation is available for this preset."
     }
     else {
@@ -239,28 +240,44 @@ program define fesim__simulate, rclass
     local resolved_delta = r(delta_years)
     local resolved_time_format `"`r(time_format)'"'
     tempname resolved_parameters p_mu p_sd_worker p_sd_firm p_sd_error ///
-        p_firm_size_sd p_eu p_ee p_ue p_wage_trend
+        p_firm_size_sd p_wage_trend p_eu p_ee p_ue p_rho_z_alpha ///
+        p_rho_q_psi p_kappa_eu p_eu_worker p_eu_firm p_eu_duration ///
+        p_kappa_ee p_ee_worker p_ee_firm p_ee_duration p_kappa_ue ///
+        p_ue_worker p_ue_duration p_theta_sort p_theta_quality ///
+        p_theta_up p_theta_down
     matrix `resolved_parameters' = r(parameters)
     scalar `p_mu' = `resolved_parameters'["mu", "value"]
     scalar `p_sd_worker' = `resolved_parameters'["sd_worker", "value"]
     scalar `p_sd_firm' = `resolved_parameters'["sd_firm", "value"]
     scalar `p_sd_error' = `resolved_parameters'["sd_error", "value"]
     scalar `p_firm_size_sd' = `resolved_parameters'["firm_size_sd", "value"]
-    scalar `p_eu' = `resolved_parameters'["p_eu", "value"]
-    scalar `p_ee' = `resolved_parameters'["p_ee", "value"]
-    scalar `p_ue' = `resolved_parameters'["p_ue", "value"]
     scalar `p_wage_trend' = `resolved_parameters'["wage_trend", "value"]
+    if `"`resolved_preset'"' == "simple" {
+        scalar `p_eu' = `resolved_parameters'["p_eu", "value"]
+        scalar `p_ee' = `resolved_parameters'["p_ee", "value"]
+        scalar `p_ue' = `resolved_parameters'["p_ue", "value"]
+    }
+    else if `"`resolved_preset'"' == "stylized" {
+        foreach name in rho_z_alpha rho_q_psi kappa_eu eu_worker ///
+            eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration ///
+            kappa_ue ue_worker ue_duration theta_sort theta_quality ///
+            theta_up theta_down {
+            scalar `p_`name'' = ///
+                `resolved_parameters'["`name'", "value"]
+        }
+    }
 
     if `"`clear'"' == "" & (_N > 0 | c(k) > 0) {
         di as error "data are in memory; specify clear to permit replacement"
         exit 4
     }
-    if `"`resolved_dgp'"' != "akm" | `"`resolved_preset'"' != "simple" {
+    if `"`resolved_dgp'"' != "akm" | ///
+        !inlist(`"`resolved_preset'"', "simple", "stylized") {
         di as error "simulation is not yet implemented for dgp(`resolved_dgp') preset(`resolved_preset')"
         exit 498
     }
     if `"`resolved_connectivity'"' == "force" {
-        di as error "connectivity(`resolved_connectivity') is not yet implemented for akm/simple"
+        di as error "connectivity(`resolved_connectivity') is not yet implemented for akm/`resolved_preset'"
         exit 498
     }
 
@@ -289,17 +306,50 @@ program define fesim__simulate, rclass
         `"`resolved_truth'"' == "none" local handler_truth "basic"
 
     tempname master_seed truth_moments truth_targets
-    capture noisily mata: st_numscalar("`master_seed'", ///
-        fesim_akm_simulate_to_stata( ///
-        `resolved_workers', `resolved_firms', `resolved_periods', ///
-        `resolved_start', "`resolved_time_format'", `resolved_delta', ///
-        `seed_value', `seed_was_requested', "`resolved_initial'", ///
-        `resolved_burnin', "`handler_truth'", st_numscalar("`p_mu'"), ///
-        st_numscalar("`p_sd_worker'"), st_numscalar("`p_sd_firm'"), ///
-        st_numscalar("`p_sd_error'"), st_numscalar("`p_firm_size_sd'"), ///
-        st_numscalar("`p_eu'"), st_numscalar("`p_ee'"), ///
-        st_numscalar("`p_ue'"), st_numscalar("`p_wage_trend'"), ///
-        "`truth_moments'", "`truth_targets'"))
+    if `"`resolved_preset'"' == "simple" {
+        capture noisily mata: st_numscalar("`master_seed'", ///
+            fesim_akm_simulate_to_stata( ///
+            `resolved_workers', `resolved_firms', `resolved_periods', ///
+            `resolved_start', "`resolved_time_format'", `resolved_delta', ///
+            `seed_value', `seed_was_requested', "`resolved_initial'", ///
+            `resolved_burnin', "`handler_truth'", ///
+            st_numscalar("`p_mu'"), st_numscalar("`p_sd_worker'"), ///
+            st_numscalar("`p_sd_firm'"), st_numscalar("`p_sd_error'"), ///
+            st_numscalar("`p_firm_size_sd'"), st_numscalar("`p_eu'"), ///
+            st_numscalar("`p_ee'"), st_numscalar("`p_ue'"), ///
+            st_numscalar("`p_wage_trend'"), ///
+            "`truth_moments'", "`truth_targets'"))
+    }
+    else {
+        capture noisily mata: st_numscalar("`master_seed'", ///
+            fesim_emp_simulate_to_stata( ///
+            `resolved_workers', `resolved_firms', `resolved_periods', ///
+            `resolved_start', "`resolved_time_format'", `resolved_delta', ///
+            `seed_value', `seed_was_requested', "`resolved_initial'", ///
+            `resolved_burnin', "`handler_truth'", ///
+            st_numscalar("`p_mu'"), st_numscalar("`p_sd_worker'"), ///
+            st_numscalar("`p_sd_firm'"), st_numscalar("`p_sd_error'"), ///
+            st_numscalar("`p_firm_size_sd'"), ///
+            st_numscalar("`p_wage_trend'"), ///
+            st_numscalar("`p_rho_z_alpha'"), ///
+            st_numscalar("`p_rho_q_psi'"), ///
+            st_numscalar("`p_kappa_eu'"), ///
+            st_numscalar("`p_eu_worker'"), ///
+            st_numscalar("`p_eu_firm'"), ///
+            st_numscalar("`p_eu_duration'"), ///
+            st_numscalar("`p_kappa_ee'"), ///
+            st_numscalar("`p_ee_worker'"), ///
+            st_numscalar("`p_ee_firm'"), ///
+            st_numscalar("`p_ee_duration'"), ///
+            st_numscalar("`p_kappa_ue'"), ///
+            st_numscalar("`p_ue_worker'"), ///
+            st_numscalar("`p_ue_duration'"), ///
+            st_numscalar("`p_theta_sort'"), ///
+            st_numscalar("`p_theta_quality'"), ///
+            st_numscalar("`p_theta_up'"), ///
+            st_numscalar("`p_theta_down'"), ///
+            "`truth_moments'", "`truth_targets'"))
+    }
     local simulation_rc = _rc
     if `simulation_rc' {
         quietly mata: fesim_runtime_stop( ///
@@ -323,8 +373,13 @@ program define fesim__simulate, rclass
     matrix colnames `truth_moments' = realized
     matrix rownames `truth_targets' = alpha_true_mean alpha_true_sd ///
         alpha_true_var psi_true_mean psi_true_sd psi_true_var ///
-        epsilon_true_mean epsilon_true_sd epsilon_true_var ///
-        cov_alpha_psi_true
+        epsilon_true_mean epsilon_true_sd epsilon_true_var
+    if `"`resolved_preset'"' == "simple" {
+        matrix rownames `truth_targets' = alpha_true_mean alpha_true_sd ///
+            alpha_true_var psi_true_mean psi_true_sd psi_true_var ///
+            epsilon_true_mean epsilon_true_sd epsilon_true_var ///
+            cov_alpha_psi_true
+    }
     matrix colnames `truth_targets' = target
 
     capture quietly _fesim_network, workers(`resolved_workers') ///
@@ -367,6 +422,25 @@ program define fesim__simulate, rclass
             quietly drop alpha_true psi_true time_true xb_true match_true ///
                 epsilon_true lnwage_true
         }
+    }
+
+    local duration_option ""
+    if `"`resolved_preset'"' == "stylized" {
+        capture quietly _fesim_durations, deltayears(`resolved_delta')
+        local duration_rc = _rc
+        if `duration_rc' {
+            quietly mata: fesim_runtime_stop( ///
+                st_matrix("`runtime_timers'")[1, 1])
+            quietly mata: fesim_runtime_release(st_matrix("`runtime_timers'"))
+            if `had_data' quietly restore
+            else clear
+            quietly mata: fesim_rng_restore_state( ///
+                "`caller_rng'", "`caller_rngstate'")
+            exit `duration_rc'
+        }
+        tempname resolved_durations
+        matrix `resolved_durations' = r(durations)
+        local duration_option "durations(`resolved_durations')"
     }
 
     capture quietly _fesim_moments, firms(`resolved_firms') ///
@@ -414,6 +488,7 @@ program define fesim__simulate, rclass
         workers(`network_workers') firms(`resolved_firms') ///
         periods(`resolved_periods') parameters(`resolved_parameters') ///
         moments(`resolved_moments') targets(`resolved_targets') ///
+        `duration_option' ///
         network(`resolved_network') components(`network_components') ///
         largestcomponentobsshare(`largest_observation_share') ///
         largestcomponentworkershare(`largest_worker_share') ///

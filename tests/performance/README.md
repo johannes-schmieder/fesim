@@ -18,6 +18,9 @@ controls and then attempt 1,000,000 workers. The harness also records
 qualified baseline and before/after interpretation.
 
 `benchmark_destinations.do` isolates the grouped empirical destination engine.
+`benchmark_stylized_public.do` measures the public monthly empirical-mobility
+route, including five years of burn-in, monthly-to-output aggregation, duration
+returns, graph diagnostics, and the final Stata dataset.
 It times construction of the five worker-type UE and EE tables and 100,000
 draws from each kernel, verifies exact current-firm exclusion, and records the
 numeric payload of the persistent tables. Run it from a clean checkout with:

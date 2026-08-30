@@ -19,7 +19,7 @@ The exact row order is normative in [`DESIGN.md`](../DESIGN.md#76-common-moment-
 
 These diagnostics describe the generated latent objects, so their availability does not depend on whether `truth(none)`, `truth(basic)`, or `truth(full)` exposes row-level truth variables in the returned dataset.
 
-The public simple-AKM handler implements those conventions with streaming sufficient statistics. Under `connectivity(keep)`, it gives worker effects one observation per simulated worker, marks and uses each active firm's effect once, and accumulates epsilon and worker-firm cross-products over employed worker-periods. These rows and their target table therefore require no full employed-observation buffer.
+Both public AKM handlers implement those conventions with streaming sufficient statistics. Under `connectivity(keep)`, each gives worker effects one observation per simulated worker, marks and uses each active firm's effect once, and accumulates epsilon and worker-firm cross-products over employed worker-periods. These rows and their target table therefore require no full employed-observation buffer. `akm/stylized` omits a covariance target because its sorting mechanism intentionally makes employment-weighted worker-firm covariance endogenous to the mobility process.
 
 Under `connectivity(largest)`, the graph filter changes the returned sample, so the truth block is recomputed from the retained complete histories: worker effects once per retained worker, firm effects once per retained active firm, and shock/covariance inputs over retained employed observations. This recomputation also occurs under `truth(none)` before temporary truth columns are removed.
 
@@ -27,4 +27,4 @@ Under `connectivity(largest)`, the graph filter changes the returned sample, so 
 
 An applicable one-column target matrix selects rows by the common moment names. The returned table has columns `target`, `realized`, `difference`, and `relative_difference`. Difference is realized minus target; relative difference divides by the absolute target and is missing for a zero target.
 
-The public `akm/simple` route supplies both its truth block and component targets to this engine. The private deterministic lifecycle remains an independent integration fixture.
+The public `akm/simple` route supplies its ten-row truth target block. `akm/stylized` supplies the nine marginal worker, firm, and shock targets while leaving covariance untargeted. The private deterministic lifecycle remains an independent integration fixture.

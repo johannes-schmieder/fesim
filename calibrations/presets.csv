@@ -1,0 +1,33 @@
+dgp,preset,parameter,value,unit,status,source_key,source_location,transformation,notes,introduced_version
+akm,simple,mu,3,log wage,stylized,fesim_d015,DESIGN D-015,none,approved teaching baseline,0.1.0
+akm,simple,sd_worker,.4,standard deviation,stylized,fesim_d015,DESIGN D-015,none,approved teaching baseline,0.1.0
+akm,simple,sd_firm,.15,standard deviation,stylized,fesim_d015,DESIGN D-015,none,approved teaching baseline,0.1.0
+akm,simple,sd_error,.2,standard deviation,stylized,fesim_d015,DESIGN D-015,none,approved teaching baseline,0.1.0
+akm,simple,firm_size_sd,1,log attraction scale,stylized,fesim_d015,DESIGN D-015,none,approved teaching baseline,0.1.0
+akm,simple,p_eu,.08,annual probability,stylized,fesim_d015,DESIGN D-015,none,approved teaching baseline,0.1.0
+akm,simple,p_ee,.12,annual probability,stylized,fesim_d015,DESIGN D-015,none,approved teaching baseline,0.1.0
+akm,simple,p_ue,.6,annual probability,stylized,fesim_d015,DESIGN D-015,none,approved teaching baseline,0.1.0
+akm,simple,wage_trend,0,log points per year,stylized,fesim_d015,DESIGN D-015,none,approved teaching baseline,0.1.0
+akm,stylized,mu,3,log wage,stylized,fesim_d026,DESIGN D-026,none,reuses simple AKM wage scale,0.2.0
+akm,stylized,sd_worker,.4,standard deviation,stylized,fesim_d026,DESIGN D-026,none,reuses simple AKM wage scale,0.2.0
+akm,stylized,sd_firm,.15,standard deviation,stylized,fesim_d026,DESIGN D-026,none,reuses simple AKM wage scale,0.2.0
+akm,stylized,sd_error,.2,standard deviation,stylized,fesim_d026,DESIGN D-026,none,reuses simple AKM wage scale,0.2.0
+akm,stylized,firm_size_sd,1,log attraction scale,stylized,fesim_d026,DESIGN D-026,none,reuses simple AKM firm-size scale,0.2.0
+akm,stylized,wage_trend,0,log points per year,stylized,fesim_d026,DESIGN D-026,none,reuses simple AKM wage trend,0.2.0
+akm,stylized,rho_z_alpha,.3,latent correlation,stylized,fesim_d026,DESIGN D-026,none,modest stress-design correlation,0.2.0
+akm,stylized,rho_q_psi,.5,latent correlation,stylized,fesim_d026,DESIGN D-026,none,modest stress-design correlation,0.2.0
+akm,stylized,kappa_eu,-2.416230718633671,log annual hazard,stylized,fesim_d026,DESIGN D-026,continuous competing conversion,anchors zero-covariate EU at simple baseline,0.2.0
+akm,stylized,eu_worker,.1,log hazard coefficient,stylized,fesim_d026,DESIGN D-026,none,modest stress-design slope,0.2.0
+akm,stylized,eu_firm,-.1,log hazard coefficient,stylized,fesim_d026,DESIGN D-026,none,modest stress-design slope,0.2.0
+akm,stylized,eu_duration,-.2,log hazard coefficient,stylized,fesim_d026,DESIGN D-026,none,modest negative duration dependence,0.2.0
+akm,stylized,kappa_ee,-2.0107656105255063,log annual hazard,stylized,fesim_d026,DESIGN D-026,continuous competing conversion,anchors zero-covariate EE at simple baseline,0.2.0
+akm,stylized,ee_worker,.1,log hazard coefficient,stylized,fesim_d026,DESIGN D-026,none,modest stress-design slope,0.2.0
+akm,stylized,ee_firm,-.1,log hazard coefficient,stylized,fesim_d026,DESIGN D-026,none,modest stress-design slope,0.2.0
+akm,stylized,ee_duration,-.15,log hazard coefficient,stylized,fesim_d026,DESIGN D-026,none,modest negative duration dependence,0.2.0
+akm,stylized,kappa_ue,-.08742157179075517,log annual hazard,stylized,fesim_d026,DESIGN D-026,continuous single-risk conversion,anchors zero-covariate UE at simple baseline,0.2.0
+akm,stylized,ue_worker,.15,log hazard coefficient,stylized,fesim_d026,DESIGN D-026,none,modest stress-design slope,0.2.0
+akm,stylized,ue_duration,-.25,log hazard coefficient,stylized,fesim_d026,DESIGN D-026,none,modest negative duration dependence,0.2.0
+akm,stylized,theta_sort,.25,destination utility coefficient,stylized,fesim_d026,DESIGN D-026,none,modest positive sorting,0.2.0
+akm,stylized,theta_quality,.1,destination utility coefficient,stylized,fesim_d026,DESIGN D-026,none,modest high-quality preference,0.2.0
+akm,stylized,theta_up,.2,destination utility coefficient,stylized,fesim_d026,DESIGN D-026,none,modest upward-move preference,0.2.0
+akm,stylized,theta_down,-.1,destination utility coefficient,stylized,fesim_d026,DESIGN D-026,none,modest downward-move penalty,0.2.0

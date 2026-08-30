@@ -1,6 +1,6 @@
 # Block-output implementation
 
-The common output layer implements both the early deterministic spike and the public simple-AKM streaming route.
+The common output layer implements the early deterministic spike and both public AKM streaming routes.
 
 ## Strategy
 
@@ -12,11 +12,13 @@ The common output layer implements both the early deterministic spike and the pu
 - Retain only worker-length dynamic state and the current output block in Mata; do not retain a full second panel copy.
 - Finalize sorting, labels, characteristics, and any cross-block metadata only after all blocks are written.
 
-The toy writer uses `long` IDs and time, `byte` employment status, and `double` wages. The public simple-AKM route extends this scaffold with the complete frozen variable and storage-type contract verified by `tests/integration/test_panel_contract.do`.
+The toy writer uses `long` IDs and time, `byte` employment status, and `double` wages. The public simple-AKM route extends this scaffold with the complete frozen variable and storage-type contract verified by `tests/integration/test_panel_contract.do`. The stylized empirical-mobility route adds `unemp_duration` and, under full truth, `worker_type_true` and `firm_quality_true`.
 
 The private lifecycle integration creates the complete frozen panel through the shared output module and remains small, materialized test infrastructure. The public simple-AKM handler instead allocates the final Stata dataset once, stores each retained period into its worker-major row positions, and finalizes adjacent-observation flows in adaptive complete-worker blocks. It applies explicit storage types, labels, `%ty`, `%tq`, or `%tm` formatting, sorting, and `isid workerid time` validation without retaining a full duplicate panel.
 
 Public error handling is coordinated by the ado boundary. Configuration and unsupported-mode errors precede any replacement or draw. If a scientific or output error occurs after an authorized `clear`, the prior dataset and caller RNG state are restored. A source-only clean-install test removes the development Mata library before simulation, proving that the packaged Mata sources and internal loader are sufficient at runtime.
+
+The empirical handler advances a fixed monthly state twelve, three, or one times per annual, quarterly, or monthly output interval. It sums each monthly transition vector before writing `ntransitions`, converts internal year-valued tenure and unemployment duration to output-period units, and keeps only worker-length state plus current wage components. `_fesim_durations` converts the retained panel back to years for comparable distribution returns without changing data or RNG state.
 
 `src/fesim_flows.mata` finalizes one or more complete worker histories at a time. `newjob`, `from_unemp`, `jobtojob`, and `ntransitions` are missing in each worker's first output period because no prior observation exists. `to_unemp` is defined from the current and next observed states and is missing in the last period. A changed spell marks `newjob=1` even when the observed firm ID is unchanged, while `jobtojob=1` requires employment at different observed firms in adjacent periods. This distinguishes a same-firm return after nonemployment or hidden within-period moves from a directly observed employer-to-employer transition.
 

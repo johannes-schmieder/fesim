@@ -28,6 +28,11 @@ matrix rownames toy_truth_moments = alpha_true_mean alpha_true_sd ///
     epsilon_true_mean epsilon_true_sd epsilon_true_var cov_alpha_psi_true
 matrix colnames toy_truth_moments = realized
 
+matrix toy_durations = (7 \ 1 \ .5)
+matrix rownames toy_durations = tenure_years_N tenure_years_mean ///
+    tenure_years_sd
+matrix colnames toy_durations = realized
+
 quietly _fesim_moments, firms(3) truthmoments(toy_truth_moments)
 matrix toy_moments = r(moments)
 scalar toy_firms_active = r(N_firms_active)
@@ -48,6 +53,7 @@ local finalize_options ///
     peu(`=toy_p_eu') pue(`=toy_p_ue') pee(`=toy_p_ee') ///
     runtimetotal(.04) runtimesolve(0) runtimesimulate(.03) ///
     runtimeoutput(.01) parameters(toy_parameters) moments(toy_moments)
+local finalize_options `finalize_options' durations(toy_durations)
 
 _fesim_finalize, `finalize_options' reporting(report)
 
@@ -80,6 +86,7 @@ assert `"`r(version)'"' == "0.2.0-dev"
 assert `"`r(reference)'"' == "none"
 matrix report_parameters = r(parameters)
 matrix report_moments = r(moments)
+matrix report_durations = r(durations)
 assert mreldif(report_parameters, toy_parameters) == 0
 assert mreldif(report_moments, toy_moments) == 0
 
@@ -106,10 +113,13 @@ assert r(runtime_total) == report_runtime_total
 assert `"`r(command)'"' == `"`report_command'"'
 matrix noreport_parameters = r(parameters)
 matrix noreport_moments = r(moments)
+matrix noreport_durations = r(durations)
 mata: assert(mreldif(st_matrix("noreport_parameters"), ///
     st_matrix("report_parameters")) == 0)
 mata: assert(mreldif(st_matrix("noreport_moments"), ///
     st_matrix("report_moments")) == 0)
+mata: assert(mreldif(st_matrix("noreport_durations"), ///
+    st_matrix("report_durations")) == 0)
 quietly datasignature confirm
 assert `"`c(rngstate)'"' == `"`rng_before'"'
 

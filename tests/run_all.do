@@ -40,10 +40,11 @@ if `build_rc' {
 }
 
 local tests install_smoke smoke unit/test_parser unit/test_registry ///
-    unit/test_config unit/test_time unit/test_rates unit/test_hazards ///
+    unit/test_config unit/test_calibration_registry unit/test_time ///
+    unit/test_rates unit/test_hazards ///
     unit/test_destinations unit/test_rng ///
     unit/test_runtime ///
-    unit/test_lifecycle unit/test_flows unit/test_moments ///
+    unit/test_lifecycle unit/test_flows unit/test_moments unit/test_durations ///
     unit/test_components ///
     unit/test_akm_population ///
     unit/test_akm_initialization ///
@@ -53,10 +54,12 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     unit/test_akm_diagnostics ///
     integration/test_discovery ///
     integration/test_akm_public ///
+    integration/test_akm_stylized_public ///
     integration/test_output_blocks integration/test_panel_contract ///
     integration/test_results regression/akm_tiny ///
     statistical/akm_moments statistical/akm_exogeneity ///
-    docs/run_examples
+    statistical/akm_stylized_mobility ///
+    docs/run_examples docs/run_help_examples
 local n_tests : word count `tests'
 foreach test of local tests {
     capture log close fesim_test

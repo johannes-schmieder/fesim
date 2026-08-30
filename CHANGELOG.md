@@ -2,11 +2,22 @@
 
 ## Unreleased — 0.2.0
 
-### In development
+### Implemented on `main`
 
-- Generic empirical-mobility infrastructure under the owner-approved D-025
-  scientific contract. No empirical calibration or public empirical preset is
-  claimed while DG-08 remains open.
+- Standardized the installed help header, sources, and contact footer and
+  added three self-contained one-click documentation workflows.
+- Public `dgp(akm) preset(stylized)` simulation and the exact
+  `dgp(akmempirical)` alias under the owner-approved D-025/D-026 contracts.
+- Monthly internal EU/EE/UE hazards with worker, firm, tenure, and unemployment
+  duration heterogeneity; grouped origin-free UE and current-excluding
+  asymmetric EE destinations; and five correlated worker mobility types plus
+  continuous correlated firm quality.
+- Monthly-to-output latent-transition aggregation, output-period tenure and
+  unemployment duration, year-valued `r(durations)` distributions, and full
+  worker-type/firm-quality truth.
+- Auditable stylized parameter records and a registry-consistency test. The
+  defaults are explicitly uncalibrated; DG-08 remains open for any targeted or
+  Germany-labeled preset.
 
 ## 0.1.0 — 2026-08-29
 
@@ -31,7 +42,7 @@ design. They are not an empirical or paper calibration.
 
 ### Planned, not implemented in 0.1.0
 
-- `akm/empirical` and the `akmempirical` alias.
+- The later `akm/stylized` route and `akmempirical` alias.
 - `akmpaygap/simple` and the CCK-inspired `akmpaygap/cck2016` preset.
 - `bm/simple` and the `bmsimple` alias, pending an accepted equilibrium
   derivation.

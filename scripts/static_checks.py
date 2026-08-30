@@ -177,6 +177,34 @@ def check_runtime_dependencies() -> None:
     )
 
 
+def check_help_examples() -> None:
+    help_text = (ROOT / "fesim.sthlp").read_text(encoding="utf-8")
+    runner = (ROOT / "fesim_run.ado").read_text(encoding="utf-8")
+    require(
+        "{.-}\nhelp for {cmd:fesim} "
+        "{right:(Johannes F. Schmieder)}\n{.-}" in help_text,
+        "fesim help lacks the shared author header",
+    )
+    examples = ("discovery", "simulate", "estimate")
+    for example in examples:
+        require(
+            help_text.count(f"{{* example_start - {example}}}{{...}}") == 1,
+            f"help example marker is missing or duplicated: {example}",
+        )
+        require(
+            f"fesim_run {example} using fesim.sthlp" in help_text,
+            f"help example has no run link: {example}",
+        )
+    require(
+        help_text.count("{* example_end}{...}") == len(examples),
+        "help example end-marker count is inconsistent",
+    )
+    require("program define fesim_run" in runner, "fesim_run is incomplete")
+    require("capture restore" in runner, "fesim_run does not restore caller data")
+    author = help_text[help_text.index("{title:Author}") :]
+    require("{title:" not in author[len("{title:Author}") :], "Author is not final")
+
+
 def check_static_workflow() -> None:
     workflow = ROOT / ".github/workflows/static.yml"
     require(workflow.is_file(), "static GitHub Actions workflow is missing")
@@ -203,6 +231,7 @@ def main() -> int:
         check_mata_build_coverage,
         check_test_registration,
         check_runtime_dependencies,
+        check_help_examples,
         check_static_workflow,
     )
     try:

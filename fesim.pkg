@@ -6,8 +6,10 @@ d
 d Distribution-Date: 20260829
 d Requires: Stata 19 or later; qualified on macOS Apple Silicon and Windows x86-64
 f fesim.ado
+f fesim_run.ado
 f _fesim_load.ado
 f _fesim_finalize.ado
+f _fesim_durations.ado
 f _fesim_moments.ado
 f _fesim_network.ado
 f _fesim_truth.ado
@@ -31,4 +33,5 @@ f src/fesim_lifecycle.mata
 f src/fesim_akm_simple.mata
 f src/fesim_empirical.mata
 f src/fesim_akm_handler.mata
+f src/fesim_emp_handler.mata
 f src/fesim_dispatch.mata

@@ -128,13 +128,31 @@ program define fesim_config, rclass
         local value_`name' = strtrim(`"`formatted'"')
     }
 
-    if real(`"`value_p_eu'"') + real(`"`value_p_ee'"') >= 1 {
-        di as error "p_eu + p_ee must be strictly less than 1"
-        exit 198
+    if `"`resolved_preset'"' == "simple" {
+        if real(`"`value_p_eu'"') + real(`"`value_p_ee'"') >= 1 {
+            di as error "p_eu + p_ee must be strictly less than 1"
+            exit 198
+        }
+        if real(`"`value_firms'"') < 2 & real(`"`value_p_ee'"') > 0 {
+            di as error "firms() must be at least 2 when p_ee is positive"
+            exit 198
+        }
     }
-    if real(`"`value_firms'"') < 2 & real(`"`value_p_ee'"') > 0 {
-        di as error "firms() must be at least 2 when p_ee is positive"
-        exit 198
+    else if `"`resolved_preset'"' == "stylized" {
+        if real(`"`value_firms'"') < 2 {
+            di as error "firms() must be at least 2 for akm/stylized"
+            exit 198
+        }
+        if real(`"`value_sd_worker'"') == 0 & ///
+            real(`"`value_rho_z_alpha'"') != 0 {
+            di as error "rho_z_alpha must be zero when sd_worker is zero"
+            exit 198
+        }
+        if real(`"`value_sd_firm'"') == 0 & ///
+            real(`"`value_rho_q_psi'"') != 0 {
+            di as error "rho_q_psi must be zero when sd_firm is zero"
+            exit 198
+        }
     }
     if real(`"`value_workers'"') * real(`"`value_periods'"') > 2147483647 {
         di as error "workers() times periods() exceeds the supported observation count"
@@ -158,6 +176,7 @@ program define fesim_config, rclass
     local time_format `"`r(format)'"'
     local interval_unit `"`r(interval_unit)'"'
     local internal_clock `"`r(internal_clock)'"'
+    if `"`resolved_preset'"' == "stylized" local internal_clock "month"
     local start_value = r(start_value)
     local end_value = r(end_value)
     local periods_per_year = r(periods_per_year)
@@ -184,15 +203,30 @@ program define fesim_config, rclass
         local source_`name' "option"
     }
     if `"`initial'"' == "" {
-        local initial "stationary"
-        local source_initial "package"
+        if `"`resolved_preset'"' == "stylized" {
+            local initial "random"
+            local source_initial "preset"
+        }
+        else {
+            local initial "stationary"
+            local source_initial "package"
+        }
     }
     if !inlist(`"`initial'"', "stationary", "random", "allunemployed") {
         di as error "initial() must be stationary, random, or allunemployed"
         exit 198
     }
+    if `"`resolved_preset'"' == "stylized" & `"`initial'"' == "stationary" {
+        di as error "initial(stationary) is unavailable for akm/stylized"
+        exit 198
+    }
     if `"`initial'"' == "random" & real(`"`value_burnin'"') < 1 {
-        di as error "initial(random) requires burnin() of at least one output period"
+        if `"`resolved_preset'"' == "stylized" {
+            di as error "initial(random) requires burnin() of at least one year for akm/stylized"
+        }
+        else {
+            di as error "initial(random) requires burnin() of at least one output period"
+        }
         exit 198
     }
     if `"`jobrule'"' == "" {
@@ -240,7 +274,7 @@ program define fesim_config, rclass
     local model_overrides = strtrim(`"`model_overrides'"')
     if `"`model_overrides'"' != "" local calibration_class "stylized_modified"
 
-    local fields "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend"
+    local fields `"`scalar_parameters'"'
     local overrides ""
     local parameter_overrides ""
     foreach name of local fields {
@@ -260,9 +294,12 @@ program define fesim_config, rclass
     local overrides = strtrim(`"`overrides'"')
     local parameter_overrides = strtrim(`"`parameter_overrides'"')
 
-    local config `"dgp=`canonical' preset=`resolved_preset' workers=`value_workers' firms=`value_firms' periods=`value_periods' frequency=`frequency' start=`start' seed=`seed' initial=`initial' burnin=`value_burnin' jobrule=`jobrule' truth=`truth' connectivity=`connectivity' report=`reporting' mu=`value_mu' sd_worker=`value_sd_worker' sd_firm=`value_sd_firm' sd_error=`value_sd_error' firm_size_sd=`value_firm_size_sd' p_eu=`value_p_eu' p_ee=`value_p_ee' p_ue=`value_p_ue' wage_trend=`value_wage_trend'"'
-
-    local config_sources `"dgp=registry preset=registry workers=`source_workers' firms=`source_firms' periods=`source_periods' frequency=`source_frequency' start=`source_start' seed=`source_seed' initial=`source_initial' burnin=`source_burnin' jobrule=`source_jobrule' truth=`source_truth' connectivity=`source_connectivity' report=`source_report' mu=`source_mu' sd_worker=`source_sd_worker' sd_firm=`source_sd_firm' sd_error=`source_sd_error' firm_size_sd=`source_firm_size_sd' p_eu=`source_p_eu' p_ee=`source_p_ee' p_ue=`source_p_ue' wage_trend=`source_wage_trend'"'
+    local config `"dgp=`canonical' preset=`resolved_preset' workers=`value_workers' firms=`value_firms' periods=`value_periods' frequency=`frequency' start=`start' seed=`seed' initial=`initial' burnin=`value_burnin' jobrule=`jobrule' truth=`truth' connectivity=`connectivity' report=`reporting'"'
+    local config_sources `"dgp=registry preset=registry workers=`source_workers' firms=`source_firms' periods=`source_periods' frequency=`source_frequency' start=`source_start' seed=`source_seed' initial=`source_initial' burnin=`source_burnin' jobrule=`source_jobrule' truth=`source_truth' connectivity=`source_connectivity' report=`source_report'"'
+    foreach name of local model_parameters {
+        local config `"`config' `name'=`value_`name''"'
+        local config_sources `"`config_sources' `name'=`source_`name''"'
+    }
 
     local n_parameters : word count `scalar_parameters'
     tempname parameter_matrix

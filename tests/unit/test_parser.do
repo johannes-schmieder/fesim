@@ -27,7 +27,7 @@ capture noisily fesim describe akm, preset(unknown)
 local rc = _rc
 assert `rc' == 198
 
-capture noisily fesim describe akmsimple, preset(empirical)
+capture noisily fesim describe akmsimple, preset(stylized)
 local rc = _rc
 assert `rc' == 198
 

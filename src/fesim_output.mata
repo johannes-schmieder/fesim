@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_output_schema_version()
 {
-    return(4)
+    return(5)
 }
 
 real scalar fesim_output_initialize_panel(
@@ -96,6 +96,91 @@ void fesim_output_store_akm_period(
         st_store(rows_to_write, "match_true", wage_components[, 6])
         st_store(rows_to_write, "epsilon_true", wage_components[, 7])
         st_store(rows_to_write, "lnwage_true", wage_components[, 8])
+    }
+}
+
+real scalar fesim_output_init_emp_panel(
+    real scalar workers,
+    real scalar periods,
+    real scalar start_value,
+    string scalar time_format,
+    string scalar truth)
+{
+    real scalar requested
+    real rowvector extra_indices
+
+    truth = strlower(strtrim(truth))
+    requested = fesim_output_initialize_panel(
+        workers, periods, start_value, time_format, truth)
+    extra_indices = st_addvar("double", "unemp_duration")
+    if (truth == "full") {
+        extra_indices = st_addvar(J(1, 2, "double"), ///
+            ("worker_type_true", "firm_quality_true"))
+    }
+    return(requested)
+}
+
+void fesim_output_store_emp_period(
+    struct fesim_state scalar state,
+    struct fesim_population scalar population,
+    real matrix wage_components,
+    real scalar output_period,
+    real scalar periods,
+    real scalar start_value,
+    real scalar delta_years,
+    string scalar truth)
+{
+    real colvector employed_rows
+    real colvector firm_quality
+    real colvector rows_to_write
+    real colvector unemployment_duration
+
+    fesim_emp_population_validate(population)
+    fesim_state_validate(state, population)
+    truth = strlower(strtrim(truth))
+    if (missing(delta_years) | delta_years <= 0 | ///
+        (truth != "none" & truth != "basic" & truth != "full")) {
+        _error(3300, "stylized AKM period-output inputs are invalid")
+    }
+    fesim_output_store_akm_period(
+        state, population, wage_components, output_period, periods, ///
+        start_value, truth)
+    rows_to_write = (0::(population.workers - 1)) :* periods :+ ///
+        output_period
+    st_store(rows_to_write, "tenure", state.tenure / delta_years)
+    unemployment_duration = state.unemployment_duration / delta_years
+    st_store(rows_to_write, "unemp_duration", unemployment_duration)
+    if (truth == "full") {
+        st_store(rows_to_write, "worker_type_true", ///
+            population.worker_mobility)
+        firm_quality = J(population.workers, 1, .)
+        employed_rows = selectindex(state.employed :== 1)
+        if (length(employed_rows)) {
+            firm_quality[employed_rows] = ///
+                population.firm_quality[state.firm_id[employed_rows]]
+        }
+        st_store(rows_to_write, "firm_quality_true", firm_quality)
+    }
+}
+
+void fesim_output_finalize_emp_panel(string scalar truth)
+{
+    truth = strlower(strtrim(truth))
+    if (truth != "none" & truth != "basic" & truth != "full") {
+        _error(3300, "stylized AKM truth mode is invalid")
+    }
+    if (st_varindex("unemp_duration") == .) {
+        _error(3300, "stylized AKM output lacks unemployment duration")
+    }
+    st_varlabel("unemp_duration", ///
+        "Unemployment duration in output-period units")
+    if (truth == "full") {
+        if (st_varindex("worker_type_true") == . | ///
+            st_varindex("firm_quality_true") == .) {
+            _error(3300, "full stylized AKM truth output is incomplete")
+        }
+        st_varlabel("worker_type_true", "True worker mobility type")
+        st_varlabel("firm_quality_true", "True observed-firm quality")
     }
 }
 

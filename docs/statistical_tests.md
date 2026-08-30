@@ -1,6 +1,6 @@
-# Simple-AKM statistical qualification
+# AKM statistical qualification
 
-The statistical tests complement exact fixtures: they ask whether a moderately large public simulation is consistent with the model's declared distributional and independence targets. Seeds are fixed for reproducibility, but tolerances are specified from sampling theory before inspecting the realized pass/fail result.
+The statistical tests complement exact fixtures. The simple-AKM tests ask whether a moderately large public simulation is consistent with declared distributional and independence targets, using sampling-theory tolerances fixed before inspecting pass/fail outcomes. The stylized empirical-mobility test instead uses conservative fixed-seed mechanism contrasts; it is a regression test, not an inferential or calibration test.
 
 ## Moment and transition test
 
@@ -23,3 +23,13 @@ The same run compares errors among the first 2,500 workers with errors in the fu
 It then correlates the contemporaneous residual with entry, direct job-to-job movement, new-job, next-period exit, latent transition-count, and tenure measures. Under independent component streams these correlations are zero; each must be below `10 / sqrt(n)` in absolute value using its actual nonmissing sample size.
 
 Eight- and ten-standard-error bands are deliberately conservative family-wide safeguards. They are tight enough to catch material changes in primitive distributions, rate conversion, assignment, sorting, or RNG-stream separation, while making false failures negligible under the declared DGP. Tolerances may change only with an estimand/sample-design explanation, not in response to an isolated failed seed.
+
+## Stylized empirical-mobility test
+
+`tests/statistical/akm_stylized_mobility.do` uses 5,000 workers and 100 firms to test three public mechanisms with fixed primitives:
+
+- moving only `theta_sort` from zero to one must raise employment-weighted worker-firm covariance by more than .02, while the zero-sorting covariance remains within .01 of zero;
+- latent correlations of .8 must produce positive realized worker-type/worker-effect and firm-quality/firm-effect correlations in broad attenuation-aware ranges;
+- changing only the EU/EE/UE duration slopes from zero to materially negative values must increase mean tenure by at least 25 percent and mean unemployment duration by at least 50 percent.
+
+These are conservative mechanism regressions, not empirical target tests. The design deliberately zeros all competing heterogeneity or destination terms relevant to each contrast and holds seed, population size, hazards, and remaining primitives fixed. They complement the exact hazard, destination, lifecycle, and public alias/output tests.
