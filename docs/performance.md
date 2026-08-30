@@ -149,6 +149,49 @@ The component and edge counts are realized outcomes under
 complete-design comparisons, so they do not identify the marginal cost of one
 EE redirection.
 
+## Checkpoint 36 iterated leave-out diagnostics
+
+Checkpoint 36 adds the `r(leaveout)` audit to the shared output stage. The
+worker-history algorithm repeatedly finds articulation workers and retains the
+deterministic largest remaining component until it is robust or empty. The
+complete-match audit uses the same iterative depth-first traversal and counts
+only bridge edges whose deletion separates firms. Both traversals use
+adjacency lists; no dense worker-by-firm or firm-by-firm matrix is formed.
+
+Exact results at `df8ef9d3afa7a9720b2cd61243ba270459481d1e` are:
+
+| Route | Workers | Rows | Command | Internal total | Simulate | Output | Worker-set observation share | Base cut workers | Base vulnerable matches | Final vulnerable matches | Max RSS |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| simple | 10,000 | 100,000 | 1.831 s | 1.634 s | 0.865 s | 0.769 s | 0.999808 | 2 | 3 | 0 | 226,820,096 B |
+| simple | 100,000 | 1,000,000 | 13.353 s | 12.642 s | 5.829 s | 6.813 s | 1.000000 | 0 | 0 | 0 | 514,097,152 B |
+| stylized | 10,000 | 100,000 | 4.792 s | 4.598 s | 3.830 s | 0.768 s | 0.999630 | 3 | 4 | 0 | 232,914,944 B |
+
+Every final nonempty worker set is leave-one-worker robust by construction and
+all three benchmark sets are also leave-one-match robust. At 10,000 workers,
+the simple audit retains 9,998 workers, 497 firms, and 24,455 matches; the
+stylized audit retains 9,991 workers, 496 firms, and 22,085 matches. At 100,000
+workers, the simple largest component is already robust and the worker-set
+observation share is one.
+
+Relative to the Checkpoint 34 standard public controls, simple output time rose
+from 0.544 to 0.769 seconds at 10,000 workers and from 5.537 to 6.813 seconds at
+100,000 workers; total time rose by 15.6% and 11.5%, respectively. Maximum RSS
+rose by 2.4% at 10,000 workers and fell by 0.3% at 100,000 workers. Relative to
+the Checkpoint 30 stylized control, 10,000-worker output time rose from 0.549
+to 0.768 seconds and total time rose by 6.8%, while maximum RSS rose by 0.7%.
+These are single-run complete-command comparisons, not isolated causal timing
+estimates.
+
+The standards-compliant JSON SHA256 values are
+`ce8c7cf17490737182f8dcfddabe2d073af6606fb7acd5afab1f06def5415827`
+for the 10,000-worker simple result,
+`d5cdda18250b4c84be41eea599c2438890b4d8346cacd6909036aed78bf9b9d2`
+for the 100,000-worker simple result, and
+`bb0814da2c3a1276a2f5cb3d5aa140d98111c20cdd46a9d2fb73661656644dca`
+for the 10,000-worker stylized result. macOS Stata lingered only after writing
+each PASS result; exact completed PIDs were terminated, so external wall times
+include the post-PASS wait and are not reported as command runtimes.
+
 ## Reproducing
 
 From a clean checkout:
@@ -156,6 +199,7 @@ From a clean checkout:
 ```bash
 scripts/run_public_benchmarks.sh /path/to/stata-mp
 INCLUDE_MILLION=1 scripts/run_public_benchmarks.sh /path/to/stata-mp
+scripts/run_stylized_benchmarks.sh /path/to/stata-mp
 ```
 
 The second command repeats the two smaller controls before attempting the
