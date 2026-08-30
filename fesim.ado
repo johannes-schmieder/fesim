@@ -246,7 +246,8 @@ program define fesim__simulate, rclass
         p_kappa_ee p_ee_worker p_ee_firm p_ee_duration p_kappa_ue ///
         p_ue_worker p_ue_duration p_theta_sort p_theta_quality ///
         p_theta_up p_theta_down p_block_count p_block_log_bonus ///
-        p_bridge_count
+        p_bridge_count p_ladder_down_share p_ladder_lateral_share ///
+        p_ladder_up_share p_ladder_band
     matrix `resolved_parameters' = r(parameters)
     scalar `p_mu' = `resolved_parameters'["mu", "value"]
     scalar `p_sd_worker' = `resolved_parameters'["sd_worker", "value"]
@@ -258,6 +259,14 @@ program define fesim__simulate, rclass
     scalar `p_block_log_bonus' = ///
         `resolved_parameters'["block_log_bonus", "value"]
     scalar `p_bridge_count' = `resolved_parameters'["bridge_count", "value"]
+    scalar `p_ladder_down_share' = ///
+        `resolved_parameters'["ladder_down_share", "value"]
+    scalar `p_ladder_lateral_share' = ///
+        `resolved_parameters'["ladder_lateral_share", "value"]
+    scalar `p_ladder_up_share' = ///
+        `resolved_parameters'["ladder_up_share", "value"]
+    scalar `p_ladder_band' = ///
+        `resolved_parameters'["ladder_band", "value"]
     if `"`resolved_preset'"' == "simple" {
         scalar `p_eu' = `resolved_parameters'["p_eu", "value"]
         scalar `p_ee' = `resolved_parameters'["p_ee", "value"]
@@ -322,6 +331,10 @@ program define fesim__simulate, rclass
             st_numscalar("`p_block_count'"), ///
             st_numscalar("`p_block_log_bonus'"), ///
             st_numscalar("`p_bridge_count'"), ///
+            st_numscalar("`p_ladder_down_share'"), ///
+            st_numscalar("`p_ladder_lateral_share'"), ///
+            st_numscalar("`p_ladder_up_share'"), ///
+            st_numscalar("`p_ladder_band'"), ///
             st_numscalar("`p_mu'"), st_numscalar("`p_sd_worker'"), ///
             st_numscalar("`p_sd_firm'"), st_numscalar("`p_sd_error'"), ///
             st_numscalar("`p_firm_size_sd'"), st_numscalar("`p_eu'"), ///
@@ -340,6 +353,10 @@ program define fesim__simulate, rclass
             st_numscalar("`p_block_count'"), ///
             st_numscalar("`p_block_log_bonus'"), ///
             st_numscalar("`p_bridge_count'"), ///
+            st_numscalar("`p_ladder_down_share'"), ///
+            st_numscalar("`p_ladder_lateral_share'"), ///
+            st_numscalar("`p_ladder_up_share'"), ///
+            st_numscalar("`p_ladder_band'"), ///
             st_numscalar("`p_mu'"), st_numscalar("`p_sd_worker'"), ///
             st_numscalar("`p_sd_firm'"), st_numscalar("`p_sd_error'"), ///
             st_numscalar("`p_firm_size_sd'"), ///

@@ -15,10 +15,10 @@ destination weight is multiplied by `exp(block_log_bonus)` when the destination
 is in the reference community. Defaults are four communities and `log(9)`;
 `block_log_bonus=0` delegates to the exact frozen random destination rule.
 
-The common option is `network(random|blocks|bridges)`. Network scalars remain
+The common option is `network(random|blocks|bridges|ladder)`. Network scalars remain
 inside `parameters()`; supplying a network parameter under an irrelevant
-design is an error. Under `truth(full)`, a
-nonrandom design adds `worker_block_true` and `firm_block_true`. Worker truth is
+design is an error. Under `truth(full)`, `network(blocks)` and
+`network(bridges)` add `worker_block_true` and `firm_block_true`. Worker truth is
 permanent; firm truth is the current employer's community and is missing while
 unemployed. `r(network_design)` and `_dta[fesim_network_design]` record the
 resolved design.
@@ -54,6 +54,19 @@ objects. Completing the adjacent block-level chain does not establish a
 leave-one-worker, leave-one-match, or KSS leave-out result in the realized
 worker-firm graph. The observed-graph articulation and bridge-link counts below
 are separate descriptive diagnostics.
+
+`network(ladder)` changes only the destination of an ordinary EE event. Firms
+are ranked in both public routes by persistent wage effect `psi_j`, using
+percentile midranks so ties are lateral. A candidate within `ladder_band` of
+the origin rank is lateral; candidates below and above that band are downward
+and upward. Defaults are `.10`, `.20`, and `.70` for downward, lateral, and
+upward shares and `.10` for the band. Unavailable directions are removed and
+the configured shares are renormalized over directions with positive ordinary
+mass. Within direction, the simple route retains attraction weights and the
+stylized route retains its type, quality, sorting, and asymmetric-distance
+kernel. The same existing destination uniform samples the mixture. No event,
+initialization, UE, wage, or extra RNG draw is introduced. The design is a
+reduced-form wage ladder, not a structural BM or revealed-preference model.
 
 The installed internal `_fesim_network` ado constructs two observed graphs after the panel and common flow variables are finalized. The bipartite worker-firm graph supplies connected-component diagnostics. The undirected firm mobility graph supplies direct-move link diagnostics. Both are computed from the retained output panel; neither reconstructs unobserved events between output snapshots.
 

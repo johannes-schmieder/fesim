@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_akm_handler_schema_version()
 {
-    return(4)
+    return(5)
 }
 
 real scalar fesim_akm_variance_from_sums(
@@ -53,6 +53,10 @@ real scalar fesim_akm_simulate_to_stata(
     real scalar block_count,
     real scalar block_log_bonus,
     real scalar bridge_count,
+    real scalar ladder_down_share,
+    real scalar ladder_lateral_share,
+    real scalar ladder_up_share,
+    real scalar ladder_band,
     real scalar mean_log_wage,
     real scalar worker_sd,
     real scalar firm_sd,
@@ -115,6 +119,13 @@ real scalar fesim_akm_simulate_to_stata(
         missing(block_count) | missing(block_log_bonus) | ///
         missing(bridge_count) | bridge_count < 0 | ///
         bridge_count != floor(bridge_count) | ///
+        any(missing((ladder_down_share, ladder_lateral_share, ///
+        ladder_up_share, ladder_band))) | ladder_down_share < 0 | ///
+        ladder_down_share > 1 | ladder_lateral_share < 0 | ///
+        ladder_lateral_share > 1 | ladder_up_share < 0 | ///
+        ladder_up_share > 1 | ladder_band < 0 | ladder_band > 1 | ///
+        abs(ladder_down_share + ladder_lateral_share + ///
+            ladder_up_share - 1) > 1e-12 | ///
         annual_eu < 0 | annual_eu > 1 | annual_ee < 0 | ///
         annual_ee > 1 | annual_ue < 0 | annual_ue > 1 | ///
         annual_eu + annual_ee >= 1 | ///
@@ -127,7 +138,7 @@ real scalar fesim_akm_simulate_to_stata(
     }
     network_mode = strlower(strtrim(network_mode))
     if (network_mode != "random" & network_mode != "blocks" & ///
-        network_mode != "bridges") {
+        network_mode != "bridges" & network_mode != "ladder") {
         _error(3300, "simple AKM network design is invalid")
     }
 
@@ -140,8 +151,15 @@ real scalar fesim_akm_simulate_to_stata(
         design_block_log_bonus = 0
         design_bridge_count = bridge_count
     }
-    design = fesim_netdesign_build(network_mode, workers, firms, ///
-        block_count, design_block_log_bonus, design_bridge_count, rng_state)
+    if (network_mode == "ladder") {
+        design = fesim_netdesign_build_ladder(
+            workers, firms, ladder_down_share, ladder_lateral_share, ///
+            ladder_up_share, ladder_band, population.firm_value, rng_state)
+    }
+    else {
+        design = fesim_netdesign_build(network_mode, workers, firms, ///
+            block_count, design_block_log_bonus, design_bridge_count, rng_state)
+    }
     fesim_netdesign_prepare(design, population.firm_weight)
     if (network_mode == "random") {
         state = fesim_akm_initialize_state(
@@ -150,6 +168,14 @@ real scalar fesim_akm_simulate_to_stata(
         state = fesim_akm_burn_in(
             state, population, burnin, delta_years, annual_eu, annual_ee, ///
             annual_ue, rng_state)
+    }
+    else if (network_mode == "ladder") {
+        state = fesim_akm_initialize_state(
+            population, initial, delta_years, annual_eu, annual_ee, ///
+            annual_ue, rng_state)
+        state = fesim_akm_burn_in_ladder(
+            state, population, design, burnin, delta_years, annual_eu, ///
+            annual_ee, annual_ue, rng_state)
     }
     else {
         state = fesim_akm_initialize_block(
@@ -206,6 +232,11 @@ real scalar fesim_akm_simulate_to_stata(
                 state = fesim_akm_advance(
                     state, population, delta_years, annual_eu, annual_ee, ///
                     annual_ue, rng_state)
+            }
+            else if (network_mode == "ladder") {
+                state = fesim_akm_advance_ladder(
+                    state, population, design, delta_years, annual_eu, ///
+                    annual_ee, annual_ue, rng_state)
             }
             else {
                 state = fesim_akm_advance_block(

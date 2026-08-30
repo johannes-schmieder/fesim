@@ -630,4 +630,73 @@ struct fesim_state scalar fesim_emp_burn_in_block(
     return(state)
 }
 
+struct fesim_state scalar fesim_emp_advance_ladder(
+    struct fesim_state scalar state,
+    struct fesim_population scalar population,
+    struct fesim_network_design scalar design,
+    struct fesim_empirical_params scalar params,
+    struct fesim_destination_tables scalar tables,
+    struct fesim_rng_state scalar rng_state)
+{
+    real colvector direct_rows
+    real colvector employed_before
+    real colvector firm_before
+
+    fesim_emp_population_validate(population)
+    fesim_state_validate(state, population)
+    fesim_emp_params_validate(params)
+    fesim_emp_tables_validate(population, tables)
+    fesim_netdesign_validate(design)
+    if (design.mode != "ladder" | tables.network_mode != "random" | ///
+        rows(design.firm_rank) != population.firms | ///
+        max(abs(design.firm_rank :- ///
+            fesim_netdesign_midranks(population.firm_value))) > 1e-12) {
+        _error(3300, "stylized AKM ladder mobility design is invalid")
+    }
+    employed_before = state.employed
+    firm_before = state.firm_id
+    state = fesim_emp_advance(state, population, params, tables, rng_state)
+    direct_rows = selectindex(employed_before :== 1 :& ///
+        state.employed :== 1 :& firm_before :!= state.firm_id)
+    if (length(direct_rows)) {
+        state.firm_id[direct_rows] = fesim_net_ladder_emp(
+            design, tables, population.worker_type_index[direct_rows], ///
+            firm_before[direct_rows], ///
+            state.last_destination_uniform[direct_rows])
+        state.current_value[direct_rows] = ///
+            population.worker_value[direct_rows] :+ ///
+            population.firm_value[state.firm_id[direct_rows]]
+    }
+    fesim_state_validate(state, population)
+    state.validated = 1
+    return(state)
+}
+
+struct fesim_state scalar fesim_emp_burn_in_ladder(
+    struct fesim_state scalar state,
+    struct fesim_population scalar population,
+    struct fesim_network_design scalar design,
+    real scalar burnin_years,
+    struct fesim_empirical_params scalar params,
+    struct fesim_destination_tables scalar tables,
+    struct fesim_rng_state scalar rng_state)
+{
+    real scalar month
+    real scalar months
+
+    if (missing(burnin_years) | burnin_years < 0) {
+        _error(3300, "empirical ladder burn-in years are invalid")
+    }
+    months = burnin_years / fesim_emp_month_years()
+    if (abs(months - floor(months + .5)) > 1e-10) {
+        _error(3300, "empirical ladder burn-in must use whole months")
+    }
+    months = floor(months + .5)
+    for (month = 1; month <= months; month++) {
+        state = fesim_emp_advance_ladder(
+            state, population, design, params, tables, rng_state)
+    }
+    return(state)
+}
+
 end

@@ -11,7 +11,7 @@ matrix `default_parameters' = r(parameters)
 assert `"`r(dgp)'"' == "akm"
 assert `"`r(preset)'"' == "simple"
 assert `"`r(calibration_class)'"' == "stylized"
-assert `"`r(config_schema)'"' == "akm_simple_v2"
+assert `"`r(config_schema)'"' == "akm_simple_v3"
 assert `"`r(seed)'"' == "current"
 assert `"`r(network)'"' == "random"
 assert `"`r(frequency)'"' == "year"
@@ -54,7 +54,7 @@ assert `"`r(truth)'"' == "full"
 assert `"`r(connectivity)'"' == "largest"
 assert `"`r(report)'"' == "noreport"
 assert `"`r(calibration_class)'"' == "stylized_modified"
-assert `"`r(parameter_names)'"' == "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend block_count block_log_bonus bridge_count"
+assert `"`r(parameter_names)'"' == "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
 assert `"`r(parameters_supplied)'"' == "mu sd_worker p_ee"
 assert `"`r(parameter_overrides)'"' == "mu=4 sd_worker=.5 p_ee=.2"
 assert `"`r(model_overrides)'"' == "mu=4 sd_worker=.5 p_ee=.2"
@@ -88,12 +88,12 @@ tempname stylized_alias_parameters stylized_canonical_parameters
 matrix `stylized_alias_parameters' = r(parameters)
 assert `"`r(dgp)'"' == "akm"
 assert `"`r(preset)'"' == "stylized"
-assert `"`r(config_schema)'"' == "akm_stylized_v2"
+assert `"`r(config_schema)'"' == "akm_stylized_v3"
 assert `"`r(calibration_class)'"' == "stylized"
 assert `"`r(initial)'"' == "random"
 assert `"`r(internal_clock)'"' == "month"
 assert r(burnin) == 5
-assert rowsof(`stylized_alias_parameters') == 30
+assert rowsof(`stylized_alias_parameters') == 34
 assert reldif(`stylized_alias_parameters'["rho_z_alpha", "value"], .3) < 1e-12
 assert reldif(`stylized_alias_parameters'["rho_q_psi", "value"], .5) < 1e-12
 assert reldif(`stylized_alias_parameters'["theta_sort", "value"], .25) < 1e-12
@@ -186,11 +186,34 @@ assert r(parameters)["bridge_count", "default"] == 4
 assert strpos(`"`r(config_sources)'"', "bridge_count=derived") > 0
 assert r(parameters)["block_log_bonus", "value"] == 0
 
+quietly fesim_config, network(ladder) workers(12) firms(3) ///
+    parameters(ladder_down_share .2 ladder_lateral_share .3 ///
+        ladder_up_share .5 ladder_band .15)
+assert `"`r(network)'"' == "ladder"
+assert `"`r(parameters_supplied)'"' == ///
+    "ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
+assert r(parameters)["ladder_down_share", "value"] == .2
+assert r(parameters)["ladder_lateral_share", "value"] == .3
+assert r(parameters)["ladder_up_share", "value"] == .5
+assert r(parameters)["ladder_band", "value"] == .15
+assert `"`r(calibration_class)'"' == "stylized"
+assert `"`r(model_overrides)'"' == ""
+
 capture noisily fesim_config, network(random) parameters(block_count 4)
 assert _rc == 198
 capture noisily fesim_config, network(blocks) parameters(bridge_count 4)
 assert _rc == 198
 capture noisily fesim_config, network(bridges) parameters(block_log_bonus 1)
+assert _rc == 198
+capture noisily fesim_config, network(random) parameters(ladder_band .2)
+assert _rc == 198
+capture noisily fesim_config, network(ladder) parameters(block_count 3)
+assert _rc == 198
+capture noisily fesim_config, network(ladder) ///
+    parameters(ladder_down_share .2 ladder_lateral_share .2 ///
+        ladder_up_share .5)
+assert _rc == 198
+capture noisily fesim_config, network(ladder) parameters(ladder_band 1.1)
 assert _rc == 198
 capture noisily fesim_config, network(blocks) workers(3) firms(8) ///
     parameters(block_count 4)

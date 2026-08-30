@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_emp_handler_schema_version()
 {
-    return(3)
+    return(4)
 }
 
 real colvector fesim_emp_truth_targets(
@@ -37,6 +37,10 @@ real scalar fesim_emp_simulate_to_stata(
     real scalar block_count,
     real scalar block_log_bonus,
     real scalar bridge_count,
+    real scalar ladder_down_share,
+    real scalar ladder_lateral_share,
+    real scalar ladder_up_share,
+    real scalar ladder_band,
     real scalar mean_log_wage,
     real scalar worker_sd,
     real scalar firm_sd,
@@ -118,6 +122,13 @@ real scalar fesim_emp_simulate_to_stata(
         missing(block_count) | missing(block_log_bonus) | ///
         missing(bridge_count) | bridge_count < 0 | ///
         bridge_count != floor(bridge_count) | ///
+        any(missing((ladder_down_share, ladder_lateral_share, ///
+        ladder_up_share, ladder_band))) | ladder_down_share < 0 | ///
+        ladder_down_share > 1 | ladder_lateral_share < 0 | ///
+        ladder_lateral_share > 1 | ladder_up_share < 0 | ///
+        ladder_up_share > 1 | ladder_band < 0 | ladder_band > 1 | ///
+        abs(ladder_down_share + ladder_lateral_share + ///
+            ladder_up_share - 1) > 1e-12 | ///
         missing(rho_z_alpha) | abs(rho_z_alpha) > 1 | ///
         missing(rho_q_psi) | abs(rho_q_psi) > 1 | ///
         (worker_sd == 0 & rho_z_alpha != 0) | ///
@@ -138,7 +149,7 @@ real scalar fesim_emp_simulate_to_stata(
     if ((initial != "random" & initial != "allunemployed") | ///
         (truth != "none" & truth != "basic" & truth != "full") | ///
         (network_mode != "random" & network_mode != "blocks" & ///
-        network_mode != "bridges")) {
+        network_mode != "bridges" & network_mode != "ladder")) {
         _error(3300, "stylized AKM initialization or truth mode is invalid")
     }
     months_per_output = floor(months_per_output + .5)
@@ -153,21 +164,35 @@ real scalar fesim_emp_simulate_to_stata(
         design_block_log_bonus = 0
         design_bridge_count = bridge_count
     }
-    design = fesim_netdesign_build(network_mode, workers, firms, ///
-        block_count, design_block_log_bonus, design_bridge_count, rng_state)
+    if (network_mode == "ladder") {
+        design = fesim_netdesign_build_ladder(
+            workers, firms, ladder_down_share, ladder_lateral_share, ///
+            ladder_up_share, ladder_band, population.firm_value, rng_state)
+    }
+    else {
+        design = fesim_netdesign_build(network_mode, workers, firms, ///
+            block_count, design_block_log_bonus, design_bridge_count, rng_state)
+    }
     fesim_netdesign_prepare(design, population.firm_weight)
     params = fesim_emp_params_build(
         kappa_eu, eu_worker, eu_firm, eu_duration, ///
         kappa_ee, ee_worker, ee_firm, ee_duration, ///
         kappa_ue, ue_worker, ue_duration)
-    if (network_mode == "random") {
+    if (network_mode == "random" | network_mode == "ladder") {
         tables = fesim_destination_build(
             population.firm_id, population.firm_weight, ///
             population.firm_quality, theta_sort, theta_quality, ///
             theta_up, theta_down)
         state = fesim_emp_initialize_state(population, initial, rng_state)
-        state = fesim_emp_burn_in(
-            state, population, burnin_years, params, tables, rng_state)
+        if (network_mode == "random") {
+            state = fesim_emp_burn_in(
+                state, population, burnin_years, params, tables, rng_state)
+        }
+        else {
+            state = fesim_emp_burn_in_ladder(
+                state, population, design, burnin_years, params, tables, ///
+                rng_state)
+        }
     }
     else {
         if (network_mode == "blocks") {
@@ -240,6 +265,10 @@ real scalar fesim_emp_simulate_to_stata(
                 if (network_mode == "random") {
                     state = fesim_emp_advance(
                         state, population, params, tables, rng_state)
+                }
+                else if (network_mode == "ladder") {
+                    state = fesim_emp_advance_ladder(
+                        state, population, design, params, tables, rng_state)
                 }
                 else {
                     state = fesim_emp_advance_block(

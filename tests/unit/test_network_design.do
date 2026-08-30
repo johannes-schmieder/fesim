@@ -4,7 +4,7 @@ set more off
 set varabbrev off
 
 mata:
-assert(fesim_netdesign_schema_version() == 2)
+assert(fesim_netdesign_schema_version() == 3)
 
 random_rng = fesim_rng_init(24680, 1)
 random_design = fesim_netdesign_build(
@@ -18,6 +18,69 @@ random_baseline_rng = fesim_rng_init(24680, 1)
 random_baseline = fesim_rng_runiform(
     random_baseline_rng, "network_design", 20, 1)
 assert(random_after == random_baseline)
+
+ladder_effect = (-2 \ -1 \ -.5 \ 0 \ .05 \ .1 \ .2 \ .3 \ .4 \ .5)
+assert(fesim_netdesign_midranks((0 \ 0 \ 1 \ 2)) == ///
+    (.25 \ .25 \ .625 \ .875))
+ladder_rng = fesim_rng_init(24680, 1)
+ladder_design = fesim_netdesign_build_ladder(
+    12, 10, .1, .2, .7, .1, ladder_effect, ladder_rng)
+assert(ladder_design.mode == "ladder")
+assert(ladder_design.block_count == 1)
+assert(ladder_design.ladder_down_share == .1)
+assert(ladder_design.ladder_lateral_share == .2)
+assert(ladder_design.ladder_up_share == .7)
+assert(ladder_design.ladder_band == .1)
+ladder_after = fesim_rng_runiform(ladder_rng, "network_design", 20, 1)
+assert(ladder_after == random_baseline)
+ladder_weight = (1::10)
+ladder_weight = ladder_weight / sum(ladder_weight)
+fesim_netdesign_prepare(ladder_design, ladder_weight)
+ladder_probability = fesim_netdesign_ladder_probs(
+    ladder_design, ladder_weight, 5)
+ladder_difference = ladder_design.firm_rank :- ///
+    ladder_design.firm_rank[5]
+ladder_direction = J(10, 1, 0) :- ///
+    (ladder_difference :< -ladder_design.ladder_band - 1e-12) :+ ///
+    (ladder_difference :> ladder_design.ladder_band + 1e-12)
+assert(abs(quadsum(ladder_probability :* (ladder_direction :== -1)) - .1) < 1e-12)
+assert(abs(quadsum(ladder_probability :* (ladder_direction :== 0)) - .2) < 1e-12)
+assert(abs(quadsum(ladder_probability :* (ladder_direction :== 1)) - .7) < 1e-12)
+assert(abs(ladder_probability[1] / ladder_probability[2] - ///
+    ladder_weight[1] / ladder_weight[2]) < 1e-12)
+assert(ladder_probability[5] == 0)
+
+boundary_probability = fesim_netdesign_ladder_probs(
+    ladder_design, ladder_weight, 1)
+boundary_difference = ladder_design.firm_rank :- ///
+    ladder_design.firm_rank[1]
+boundary_lateral = abs(boundary_difference) :<= ///
+    ladder_design.ladder_band + 1e-12
+boundary_up = boundary_difference :> ladder_design.ladder_band + 1e-12
+assert(abs(quadsum(boundary_probability :* boundary_lateral) - 2 / 9) < 1e-12)
+assert(abs(quadsum(boundary_probability :* boundary_up) - 7 / 9) < 1e-12)
+
+ladder_uniform = ((.5::99999.5) / 100000)
+ladder_current = J(100000, 1, 5)
+ladder_sample = fesim_net_ladder_akm(
+    ladder_design, ladder_weight, ladder_current, ladder_uniform)
+sample_direction = ladder_design.firm_rank[ladder_sample] :- ///
+    ladder_design.firm_rank[5]
+assert(abs(mean(sample_direction :< ///
+    -ladder_design.ladder_band - 1e-12) - .1) < 2e-5)
+assert(abs(mean(abs(sample_direction) :<= ///
+    ladder_design.ladder_band + 1e-12) - .2) < 2e-5)
+assert(abs(mean(sample_direction :> ///
+    ladder_design.ladder_band + 1e-12) - .7) < 2e-5)
+
+tied_design = fesim_netdesign_build_ladder(
+    4, 4, .1, .2, .7, 0, (0 \ 0 \ 1 \ 2), ///
+    fesim_rng_init(55, 1))
+fesim_netdesign_prepare(tied_design, J(4, 1, .25))
+tied_probability = fesim_netdesign_ladder_probs(
+    tied_design, J(4, 1, .25), 1)
+assert(abs(tied_probability[2] - 2 / 9) < 1e-12)
+assert(abs(tied_probability[3] + tied_probability[4] - 7 / 9) < 1e-12)
 
 block_rng_a = fesim_rng_init(13579, 1)
 block_design_a = fesim_netdesign_build(
@@ -117,6 +180,9 @@ assert(bridge_design.bridge_phase == 3)
 assert(bridge_design.bridge_filled == 3)
 assert(sum(bridge_design.bridge_interval_count) == 3)
 assert(!any(missing(bridge_design.bridge_ledger)))
+infeasible_ladder = fesim_netdesign_build_ladder(
+    8, 8, 1, 0, 0, 0, (1::8), fesim_rng_init(1, 1))
+fesim_netdesign_prepare(infeasible_ladder, J(8, 1, .125))
 end
 
 capture mata: fesim_netdesign_build( ///
@@ -124,6 +190,12 @@ capture mata: fesim_netdesign_build( ///
 assert _rc == 3300
 capture mata: fesim_netdesign_build( ///
     "blocks", 8, 8, 4, -1, 0, fesim_rng_init(1, 1))
+assert _rc == 3300
+capture mata: fesim_netdesign_build_ladder( ///
+    8, 8, .1, .2, .6, .1, (1::8), fesim_rng_init(1, 1))
+assert _rc == 3300
+capture mata: fesim_netdesign_ladder_probs( ///
+    infeasible_ladder, J(8, 1, .125), 1)
 assert _rc == 3300
 
 di as result "FESIM NETWORK-DESIGN UNIT TESTS PASS"

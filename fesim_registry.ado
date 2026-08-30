@@ -49,16 +49,16 @@ program define fesim_registry, rclass
     if `"`action'"' == "parameters" {
         return local common_options "workers firms periods frequency start seed initial burnin jobrule truth connectivity network report"
         if `"`resolved_preset'"' == "simple" {
-            return local scalar_parameters "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend block_count block_log_bonus bridge_count"
+            return local scalar_parameters "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
             return local model_parameters "mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend"
-            return local network_parameters "block_count block_log_bonus bridge_count"
-            return local config_schema "akm_simple_v2"
+            return local network_parameters "block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
+            return local config_schema "akm_simple_v3"
         }
         else {
-            return local scalar_parameters "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down block_count block_log_bonus bridge_count"
+            return local scalar_parameters "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
             return local model_parameters "mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down"
-            return local network_parameters "block_count block_log_bonus bridge_count"
-            return local config_schema "akm_stylized_v2"
+            return local network_parameters "block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
+            return local config_schema "akm_stylized_v3"
         }
         return local dgp "akm"
         return local preset `"`resolved_preset'"'
@@ -78,7 +78,7 @@ program define fesim_registry, rclass
     else {
         local model "mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down"
     }
-    local network_model "block_count block_log_bonus bridge_count"
+    local network_model "block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
     local all `"`common' `model' `network_model'"'
     if !`: list name in all' {
         di as error "unknown fesim parameter: `name'"
@@ -223,6 +223,37 @@ program define fesim_registry, rclass
         local upper_closed "yes"
         local scope "network"
         local description "Exact bridge count; defaults dynamically to block_count minus one"
+    }
+    else if inlist(`"`name'"', "ladder_down_share", ///
+        "ladder_lateral_share", "ladder_up_share") {
+        local unit "EE destination direction share"
+        if `"`name'"' == "ladder_down_share" {
+            local default ".1"
+            local description "Downward firm-wage-rank destination share"
+        }
+        else if `"`name'"' == "ladder_lateral_share" {
+            local default ".2"
+            local description "Lateral firm-wage-rank destination share"
+        }
+        else {
+            local default ".7"
+            local description "Upward firm-wage-rank destination share"
+        }
+        local lower "0"
+        local upper "1"
+        local lower_closed "yes"
+        local upper_closed "yes"
+        local scope "network"
+    }
+    else if `"`name'"' == "ladder_band" {
+        local unit "percentile-rank distance"
+        local default ".1"
+        local lower "0"
+        local upper "1"
+        local lower_closed "yes"
+        local upper_closed "yes"
+        local scope "network"
+        local description "Maximum absolute firm-wage-rank distance classified as lateral"
     }
     else {
         local named_option "no"
@@ -443,13 +474,13 @@ program define fesim_registry__resolve, rclass
         if `"`resolved_preset'"' == "simple" {
             local title "Simple additive AKM with exogenous random mobility"
             local calibration_class "stylized"
-            local config_schema "akm_simple_v2"
+            local config_schema "akm_simple_v3"
             local configurable "yes"
         }
         else {
             local title "Reduced-form AKM with stylized empirical mobility"
             local calibration_class "stylized"
-            local config_schema "akm_stylized_v2"
+            local config_schema "akm_stylized_v3"
             local configurable "yes"
         }
     }

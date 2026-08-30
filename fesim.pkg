@@ -3,7 +3,7 @@ d fesim
 d Version: 0.2.0-dev
 d Linked employer-employee panel simulation
 d
-d Distribution-Date: 20260829
+d Distribution-Date: 20260830
 d Requires: Stata 19 or later; qualified on macOS Apple Silicon and Windows x86-64
 f fesim.ado
 f fesim_run.ado

@@ -99,6 +99,11 @@ struct fesim_network_design {
     real scalar block_count
     real scalar block_log_bonus
     real scalar bridge_count
+    real scalar ladder_down_share
+    real scalar ladder_lateral_share
+    real scalar ladder_up_share
+    real scalar ladder_band
+    real colvector firm_rank
     real colvector worker_block
     real colvector firm_block
     real colvector worker_priority
@@ -168,7 +173,7 @@ struct fesim_empirical_params {
 
 real scalar fesim_mata_api_version()
 {
-    return(22)
+    return(23)
 }
 
 real scalar fesim_config_schema_version()

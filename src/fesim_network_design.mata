@@ -4,7 +4,7 @@ mata:
 
 real scalar fesim_netdesign_schema_version()
 {
-    return(2)
+    return(3)
 }
 
 real colvector fesim_netdesign_balanced(
@@ -41,17 +41,30 @@ void fesim_netdesign_validate(struct fesim_network_design scalar design)
     if (design.schema_version != fesim_netdesign_schema_version() | ///
         design.validated != 1 | workers < 1 | firms < 1 | ///
         rows(design.worker_priority) != workers | ///
+        rows(design.firm_rank) != firms | ///
         rows(design.bridge_candidate_output_period) != workers | ///
         rows(design.bridge_candidate_internal_period) != workers | ///
         rows(design.bridge_interval_count) != workers | ///
         (design.mode != "random" & design.mode != "blocks" & ///
-        design.mode != "bridges") | ///
-        missing(design.block_count) | design.block_count < 1 | ///
+        design.mode != "bridges" & design.mode != "ladder")) {
+        _error(3300, "network design is invalid")
+    }
+    if (missing(design.block_count) | design.block_count < 1 | ///
         design.block_count != floor(design.block_count) | ///
         missing(design.block_log_bonus) | design.block_log_bonus < 0 | ///
         design.block_log_bonus > 30 | missing(design.bridge_count) | ///
-        design.bridge_count < 0 | design.bridge_count != floor(design.bridge_count) | ///
-        any(missing(design.worker_block)) | ///
+        design.bridge_count < 0 | ///
+        design.bridge_count != floor(design.bridge_count) | ///
+        any(missing((design.ladder_down_share, ///
+        design.ladder_lateral_share, design.ladder_up_share, ///
+        design.ladder_band))) | design.ladder_down_share < 0 | ///
+        design.ladder_down_share > 1 | design.ladder_lateral_share < 0 | ///
+        design.ladder_lateral_share > 1 | design.ladder_up_share < 0 | ///
+        design.ladder_up_share > 1 | design.ladder_band < 0 | ///
+        design.ladder_band > 1) {
+        _error(3300, "network design is invalid")
+    }
+    if (any(missing(design.worker_block)) | ///
         any(missing(design.firm_block)) | ///
         any(missing(design.worker_priority)) | ///
         any(design.worker_block :< 1) | ///
@@ -60,8 +73,10 @@ void fesim_netdesign_validate(struct fesim_network_design scalar design)
         any(design.firm_block :> design.block_count) | ///
         any(design.worker_priority :< 1) | ///
         any(design.worker_priority :> workers) | ///
-        any(design.worker_priority :!= floor(design.worker_priority)) | ///
-        missing(design.bridge_phase) | design.bridge_phase < 0 | ///
+        any(design.worker_priority :!= floor(design.worker_priority))) {
+        _error(3300, "network design is invalid")
+    }
+    if (missing(design.bridge_phase) | design.bridge_phase < 0 | ///
         design.bridge_phase > 3 | ///
         design.bridge_phase != floor(design.bridge_phase) | ///
         missing(design.bridge_output_period) | ///
@@ -86,11 +101,33 @@ void fesim_netdesign_validate(struct fesim_network_design scalar design)
     if (design.mode == "random") {
         if (design.block_count != 1 | design.block_log_bonus != 0 | ///
             design.bridge_count != 0 | any(design.worker_block :!= 1) | ///
-            any(design.firm_block :!= 1)) {
+            any(design.firm_block :!= 1) | ///
+            design.ladder_down_share != 0 | ///
+            design.ladder_lateral_share != 0 | ///
+            design.ladder_up_share != 0 | design.ladder_band != 0 | ///
+            any(design.firm_rank :< .)) {
             _error(3300, "random network design is invalid")
         }
     }
+    else if (design.mode == "ladder") {
+        if (design.block_count != 1 | design.block_log_bonus != 0 | ///
+            design.bridge_count != 0 | any(design.worker_block :!= 1) | ///
+            any(design.firm_block :!= 1) | ///
+            any(missing(design.firm_rank)) | ///
+            any(design.firm_rank :< 0) | any(design.firm_rank :> 1) | ///
+            abs(design.ladder_down_share + ///
+                design.ladder_lateral_share + ///
+                design.ladder_up_share - 1) > 1e-12) {
+            _error(3300, "ladder network design is invalid")
+        }
+    }
     else {
+        if (design.ladder_down_share != 0 | ///
+            design.ladder_lateral_share != 0 | ///
+            design.ladder_up_share != 0 | design.ladder_band != 0 | ///
+            any(design.firm_rank :< .)) {
+            _error(3300, "block network design has ladder parameters")
+        }
         if (design.block_count > min((workers, firms))) {
             _error(3300, "network blocks exceed workers or firms")
         }
@@ -178,6 +215,11 @@ struct fesim_network_design scalar fesim_netdesign_build(
     }
     design.schema_version = fesim_netdesign_schema_version()
     design.mode = mode
+    design.ladder_down_share = 0
+    design.ladder_lateral_share = 0
+    design.ladder_up_share = 0
+    design.ladder_band = 0
+    design.firm_rank = J(firms, 1, .)
     design.firm_cumulative = J(0, 0, .)
     design.bridge_phase = 0
     design.bridge_output_period = 0
@@ -248,6 +290,69 @@ struct fesim_network_design scalar fesim_netdesign_build(
     return(design)
 }
 
+real colvector fesim_netdesign_midranks(real colvector firm_effect)
+{
+    real scalar firms
+    real scalar group
+    real scalar first
+    real scalar last
+    real colvector rank
+    real matrix info
+    real matrix sorted
+
+    firms = rows(firm_effect)
+    if (cols(firm_effect) != 1 | firms < 1 | any(missing(firm_effect))) {
+        _error(3300, "ladder firm effects are invalid")
+    }
+    sorted = sort((firm_effect, (1::firms)), (1, 2))
+    info = panelsetup(sorted, 1)
+    rank = J(firms, 1, .)
+    for (group = 1; group <= rows(info); group++) {
+        first = info[group, 1]
+        last = info[group, 2]
+        rank[sorted[first..last, 2]] = ///
+            J(last - first + 1, 1, ((first + last) / 2 - .5) / firms)
+    }
+    return(rank)
+}
+
+struct fesim_network_design scalar fesim_netdesign_build_ladder(
+    real scalar workers,
+    real scalar firms,
+    real scalar ladder_down_share,
+    real scalar ladder_lateral_share,
+    real scalar ladder_up_share,
+    real scalar ladder_band,
+    real colvector firm_effect,
+    struct fesim_rng_state scalar rng_state)
+{
+    struct fesim_network_design scalar design
+
+    if (missing(ladder_down_share) | missing(ladder_lateral_share) | ///
+        missing(ladder_up_share) | missing(ladder_band) | ///
+        ladder_down_share < 0 | ladder_down_share > 1 | ///
+        ladder_lateral_share < 0 | ladder_lateral_share > 1 | ///
+        ladder_up_share < 0 | ladder_up_share > 1 | ///
+        abs(ladder_down_share + ladder_lateral_share + ///
+            ladder_up_share - 1) > 1e-12 | ///
+        ladder_band < 0 | ladder_band > 1 | ///
+        rows(firm_effect) != firms) {
+        _error(3300, "ladder network design inputs are invalid")
+    }
+    design = fesim_netdesign_build(
+        "random", workers, firms, 1, 0, 0, rng_state)
+    design.validated = 0
+    design.mode = "ladder"
+    design.ladder_down_share = ladder_down_share
+    design.ladder_lateral_share = ladder_lateral_share
+    design.ladder_up_share = ladder_up_share
+    design.ladder_band = ladder_band
+    design.firm_rank = fesim_netdesign_midranks(firm_effect)
+    design.validated = 1
+    fesim_netdesign_validate(design)
+    return(design)
+}
+
 void fesim_netdesign_prepare(
     struct fesim_network_design scalar design,
     real colvector firm_weight)
@@ -302,7 +407,7 @@ real colvector fesim_netdesign_sample_common(
         any(uniform_draw :>= 1)) {
         _error(3300, "block common-destination inputs are invalid")
     }
-    if (design.mode == "random" | ///
+    if (design.mode == "random" | design.mode == "ladder" | ///
         (design.mode == "blocks" & design.block_log_bonus == 0)) {
         return(fesim_destination_sample_common(firm_weight, uniform_draw))
     }
@@ -351,7 +456,7 @@ real colvector fesim_netdesign_sample_excl(
         any(uniform_draw :>= 1)) {
         _error(3300, "block excluded-destination inputs are invalid")
     }
-    if (design.mode == "random" | ///
+    if (design.mode == "random" | design.mode == "ladder" | ///
         (design.mode == "blocks" & design.block_log_bonus == 0)) {
         return(fesim_destination_sample_excl(
             firm_weight, current_firm, uniform_draw))
@@ -416,6 +521,162 @@ real colvector fesim_netdesign_excl_probs(
     probability = probability / denominator
     probability[current_firm] = 0
     return(probability)
+}
+
+real colvector fesim_netdesign_ladder_probs(
+    struct fesim_network_design scalar design,
+    real colvector ordinary_mass,
+    real scalar current_firm)
+{
+    real scalar category
+    real scalar firms
+    real colvector available_share
+    real colvector base_mass
+    real colvector category_mass
+    real colvector difference
+    real colvector direction
+    real colvector mask
+    real colvector probability
+    real colvector share
+
+    fesim_netdesign_validate(design)
+    firms = rows(design.firm_rank)
+    if (design.mode != "ladder" | firms < 2 | ///
+        cols(ordinary_mass) != 1 | rows(ordinary_mass) != firms | ///
+        any(missing(ordinary_mass)) | any(ordinary_mass :< 0) | ///
+        missing(current_firm) | current_firm < 1 | ///
+        current_firm > firms | current_firm != floor(current_firm)) {
+        _error(3300, "ladder destination probabilities are invalid")
+    }
+    base_mass = ordinary_mass
+    base_mass[current_firm] = 0
+    if (sum(base_mass) <= 0) {
+        _error(3300, "ladder origin leaves no ordinary destination mass")
+    }
+    difference = design.firm_rank :- design.firm_rank[current_firm]
+    direction = J(firms, 1, 0)
+    direction = direction :- ///
+        (difference :< -design.ladder_band - 1e-12)
+    direction = direction :+ ///
+        (difference :> design.ladder_band + 1e-12)
+    direction[current_firm] = 2
+    category_mass = (quadsum(base_mass :* (direction :== -1)) \
+        quadsum(base_mass :* (direction :== 0)) \
+        quadsum(base_mass :* (direction :== 1)))
+    share = (design.ladder_down_share \
+        design.ladder_lateral_share \
+        design.ladder_up_share)
+    available_share = share :* (category_mass :> 0)
+    if (sum(available_share) <= 0) {
+        _error(3300, "ladder shares assign no mass to an available direction")
+    }
+    available_share = available_share / sum(available_share)
+    probability = J(firms, 1, 0)
+    for (category = 1; category <= 3; category++) {
+        if (available_share[category] > 0) {
+            mask = direction :== category - 2
+            probability = probability :+ base_mass :* mask :* ///
+                (available_share[category] / category_mass[category])
+        }
+    }
+    if (probability[current_firm] != 0 | ///
+        abs(sum(probability) - 1) > 1e-10) {
+        _error(3300, "ladder destination mixture is invalid")
+    }
+    return(probability)
+}
+
+real scalar fesim_netdesign_ladder_draw(
+    real colvector probability,
+    real scalar uniform_draw)
+{
+    real rowvector cumulative
+
+    if (cols(probability) != 1 | rows(probability) < 1 | ///
+        any(missing(probability)) | any(probability :< 0) | ///
+        abs(sum(probability) - 1) > 1e-10 | missing(uniform_draw) | ///
+        uniform_draw < 0 | uniform_draw >= 1) {
+        _error(3300, "ladder inverse-CDF inputs are invalid")
+    }
+    cumulative = runningsum(probability')
+    return(fesim_destination_prefix_index(
+        cumulative, cols(cumulative), uniform_draw))
+}
+
+real colvector fesim_net_ladder_akm(
+    struct fesim_network_design scalar design,
+    real colvector firm_weight,
+    real colvector current_firm,
+    real colvector uniform_draw)
+{
+    real scalar draw
+    real colvector destination
+    real colvector probability
+
+    fesim_netdesign_validate(design)
+    if (design.mode != "ladder" | ///
+        cols(firm_weight) != 1 | ///
+        rows(firm_weight) != rows(design.firm_rank) | ///
+        any(missing(firm_weight)) | any(firm_weight :<= 0) | ///
+        cols(current_firm) != 1 | cols(uniform_draw) != 1 | ///
+        rows(current_firm) != rows(uniform_draw) | ///
+        any(missing(current_firm)) | ///
+        any(current_firm :< 1) | ///
+        any(current_firm :> rows(firm_weight)) | ///
+        any(current_firm :!= floor(current_firm)) | ///
+        any(missing(uniform_draw)) | any(uniform_draw :< 0) | ///
+        any(uniform_draw :>= 1)) {
+        _error(3300, "simple ladder destination inputs are invalid")
+    }
+    destination = J(rows(uniform_draw), 1, .)
+    for (draw = 1; draw <= rows(uniform_draw); draw++) {
+        probability = fesim_netdesign_ladder_probs(
+            design, firm_weight, current_firm[draw])
+        destination[draw] = fesim_netdesign_ladder_draw(
+            probability, uniform_draw[draw])
+    }
+    return(destination)
+}
+
+real colvector fesim_net_ladder_emp(
+    struct fesim_network_design scalar design,
+    struct fesim_destination_tables scalar tables,
+    real colvector worker_type_index,
+    real colvector current_firm,
+    real colvector uniform_draw)
+{
+    real scalar draw
+    real colvector destination
+    real colvector probability
+
+    fesim_netdesign_validate(design)
+    fesim_destination_assert_valid(tables)
+    if (design.mode != "ladder" | tables.network_mode != "random" | ///
+        rows(tables.firm_id) != rows(design.firm_rank) | ///
+        cols(worker_type_index) != 1 | cols(current_firm) != 1 | ///
+        cols(uniform_draw) != 1 | ///
+        rows(worker_type_index) != rows(current_firm) | ///
+        rows(worker_type_index) != rows(uniform_draw) | ///
+        any(missing(worker_type_index)) | ///
+        any(worker_type_index :< 1) | any(worker_type_index :> 5) | ///
+        any(worker_type_index :!= floor(worker_type_index)) | ///
+        any(missing(current_firm)) | any(current_firm :< 1) | ///
+        any(current_firm :> rows(tables.firm_id)) | ///
+        any(current_firm :!= floor(current_firm)) | ///
+        any(missing(uniform_draw)) | any(uniform_draw :< 0) | ///
+        any(uniform_draw :>= 1)) {
+        _error(3300, "stylized ladder destination inputs are invalid")
+    }
+    destination = J(rows(uniform_draw), 1, .)
+    for (draw = 1; draw <= rows(uniform_draw); draw++) {
+        probability = fesim_destination_ee_probs(
+            tables, worker_type_index[draw], current_firm[draw])
+        probability = fesim_netdesign_ladder_probs(
+            design, probability, current_firm[draw])
+        destination[draw] = fesim_netdesign_ladder_draw(
+            probability, uniform_draw[draw])
+    }
+    return(destination)
 }
 
 struct fesim_network_design scalar fesim_netdesign_begin_output(

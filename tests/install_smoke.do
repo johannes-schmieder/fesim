@@ -69,7 +69,7 @@ capture noisily fesim describe akmsimple
 assert _rc == 0
 assert `"`r(dgp)'"' == "akm"
 assert `"`r(preset)'"' == "simple"
-assert `"`r(config_schema)'"' == "akm_simple_v2"
+assert `"`r(config_schema)'"' == "akm_simple_v3"
 assert strpos(`"`r(config)'"', "workers=10000") > 0
 
 quietly adopath - `"`repository_root'/build"'
@@ -89,7 +89,7 @@ confirm variable unemp_duration
 matrix installed_durations = r(durations)
 assert rowsof(installed_durations) == 12
 isid workerid time
-mata: assert(fesim_mata_api_version() == 22)
+mata: assert(fesim_mata_api_version() == 23)
 mata: mata clear
 quietly adopath ++ `"`repository_root'/build"'
 mata: mata mlib index

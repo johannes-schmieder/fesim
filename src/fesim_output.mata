@@ -61,7 +61,8 @@ void fesim_output_init_net_truth(
     if (design.mode == "bridges") {
         indices = st_addvar("byte", "nbridges_imposed")
     }
-    if (truth == "full" & design.mode != "random") {
+    if (truth == "full" & ///
+        (design.mode == "blocks" | design.mode == "bridges")) {
         indices = st_addvar(("long", "long"), ///
             ("worker_block_true", "firm_block_true"))
     }
@@ -96,7 +97,8 @@ void fesim_output_store_net_truth(
         st_store(rows_to_write, "nbridges_imposed", ///
             design.bridge_interval_count)
     }
-    if (truth != "full" | design.mode == "random") return
+    if (truth != "full" | ///
+        (design.mode != "blocks" & design.mode != "bridges")) return
     if (st_varindex("worker_block_true") == . | ///
         st_varindex("firm_block_true") == .) {
         _error(3300, "network truth variables are missing")
@@ -129,7 +131,8 @@ void fesim_output_finalize_net_truth(
         st_varlabel("nbridges_imposed", ///
             "Design-imposed EE bridges in output interval")
     }
-    if (truth == "full" & design.mode != "random") {
+    if (truth == "full" & ///
+        (design.mode == "blocks" | design.mode == "bridges")) {
         if (st_varindex("worker_block_true") == . | ///
             st_varindex("firm_block_true") == .) {
             _error(3300, "network truth output is incomplete")

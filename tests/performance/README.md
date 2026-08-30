@@ -38,10 +38,13 @@ matrix.
 `benchmark_network_blocks.do` compares the common random and default
 finite-bonus block designs. `benchmark_network_bridges.do` compares that public
 block design with the strict-block bridge design for both public routes and
-records the exact number of imposed bridges. Run their clean-checkout harnesses
+records the exact number of imposed bridges. `benchmark_network_ladder.do`
+compares random and default reduced-form ladder destinations in both public
+routes. Run their clean-checkout harnesses
 with:
 
 ```bash
 scripts/run_block_benchmarks.sh /path/to/stata-mp
 scripts/run_bridge_benchmarks.sh /path/to/stata-mp
+scripts/run_ladder_benchmarks.sh /path/to/stata-mp
 ```

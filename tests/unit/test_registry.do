@@ -15,7 +15,7 @@ assert `"`r(dgp)'"' == "akm"
 assert `"`r(dgp_alias)'"' == "akmsimple"
 assert `"`r(preset)'"' == "simple"
 assert `"`r(configurable)'"' == "yes"
-assert `"`r(config_schema)'"' == "akm_simple_v2"
+assert `"`r(config_schema)'"' == "akm_simple_v3"
 assert `"`r(status)'"' == "qualified"
 assert `"`r(implemented)'"' == "yes"
 
@@ -27,7 +27,7 @@ quietly fesim_registry, action(resolve) dgp(AKMEMPIRICAL)
 assert `"`r(dgp)'"' == "akm"
 assert `"`r(preset)'"' == "stylized"
 assert `"`r(configurable)'"' == "yes"
-assert `"`r(config_schema)'"' == "akm_stylized_v2"
+assert `"`r(config_schema)'"' == "akm_stylized_v3"
 assert `"`r(status)'"' == "qualified"
 assert `"`r(implemented)'"' == "yes"
 assert `"`r(calibration_class)'"' == "stylized"
@@ -41,9 +41,9 @@ assert _rc == 198
 
 quietly fesim_registry, action(parameters) dgp(akm) preset(simple)
 assert `"`r(common_options)'"' == "workers firms periods frequency start seed initial burnin jobrule truth connectivity network report"
-assert `"`r(scalar_parameters)'"' == "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend block_count block_log_bonus bridge_count"
+assert `"`r(scalar_parameters)'"' == "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
 assert `"`r(model_parameters)'"' == "mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend"
-assert `"`r(network_parameters)'"' == "block_count block_log_bonus bridge_count"
+assert `"`r(network_parameters)'"' == "block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
 
 quietly fesim_registry, action(parameter) dgp(akm) preset(simple) parameter(workers)
 assert `"`r(type)'"' == "integer"
@@ -78,9 +78,9 @@ assert `"`r(parameters_allowed)'"' == "no"
 assert `"`r(default_source)'"' == "package"
 
 quietly fesim_registry, action(parameters) dgp(akm) preset(stylized)
-assert `"`r(config_schema)'"' == "akm_stylized_v2"
+assert `"`r(config_schema)'"' == "akm_stylized_v3"
 assert `"`r(scalar_parameters)'"' == ///
-    "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down block_count block_log_bonus bridge_count"
+    "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
 assert `"`r(model_parameters)'"' == ///
     "mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down"
 
@@ -118,6 +118,22 @@ quietly fesim_registry, action(parameter) dgp(akm) ///
     preset(simple) parameter(bridge_count)
 assert r(default_value) == 3
 assert `"`r(scope)'"' == "network"
+quietly fesim_registry, action(parameter) dgp(akm) ///
+    preset(simple) parameter(ladder_down_share)
+assert r(default_value) == .1
+assert r(lower_value) == 0
+assert r(upper_value) == 1
+assert `"`r(scope)'"' == "network"
+quietly fesim_registry, action(parameter) dgp(akm) ///
+    preset(simple) parameter(ladder_lateral_share)
+assert r(default_value) == .2
+quietly fesim_registry, action(parameter) dgp(akm) ///
+    preset(simple) parameter(ladder_up_share)
+assert r(default_value) == .7
+quietly fesim_registry, action(parameter) dgp(akm) ///
+    preset(simple) parameter(ladder_band)
+assert r(default_value) == .1
+assert `"`r(unit)'"' == "percentile-rank distance"
 capture noisily fesim_registry, action(parameter) dgp(akm) ///
     preset(simple) parameter(unknown)
 assert _rc == 198

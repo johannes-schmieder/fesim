@@ -939,4 +939,71 @@ struct fesim_state scalar fesim_akm_burn_in_block(
     return(state)
 }
 
+struct fesim_state scalar fesim_akm_advance_ladder(
+    struct fesim_state scalar state,
+    struct fesim_population scalar population,
+    struct fesim_network_design scalar design,
+    real scalar delta_years,
+    real scalar annual_eu,
+    real scalar annual_ee,
+    real scalar annual_ue,
+    struct fesim_rng_state scalar rng_state)
+{
+    real colvector direct_rows
+    real colvector employed_before
+    real colvector firm_before
+
+    fesim_population_validate(population)
+    fesim_state_validate(state, population)
+    fesim_netdesign_validate(design)
+    if (design.mode != "ladder" | ///
+        rows(design.firm_rank) != population.firms | ///
+        max(abs(design.firm_rank :- ///
+            fesim_netdesign_midranks(population.firm_value))) > 1e-12) {
+        _error(3300, "simple AKM ladder mobility design is invalid")
+    }
+    employed_before = state.employed
+    firm_before = state.firm_id
+    state = fesim_akm_advance(
+        state, population, delta_years, annual_eu, annual_ee, annual_ue, ///
+        rng_state)
+    direct_rows = selectindex(employed_before :== 1 :& ///
+        state.employed :== 1 :& firm_before :!= state.firm_id)
+    if (length(direct_rows)) {
+        state.firm_id[direct_rows] = fesim_net_ladder_akm(
+            design, population.firm_weight, firm_before[direct_rows], ///
+            state.last_destination_uniform[direct_rows])
+        state.current_value[direct_rows] = ///
+            population.worker_value[direct_rows] + ///
+            population.firm_value[state.firm_id[direct_rows]]
+    }
+    fesim_state_validate(state, population)
+    state.validated = 1
+    return(state)
+}
+
+struct fesim_state scalar fesim_akm_burn_in_ladder(
+    struct fesim_state scalar state,
+    struct fesim_population scalar population,
+    struct fesim_network_design scalar design,
+    real scalar burnin,
+    real scalar delta_years,
+    real scalar annual_eu,
+    real scalar annual_ee,
+    real scalar annual_ue,
+    struct fesim_rng_state scalar rng_state)
+{
+    real scalar period
+
+    if (missing(burnin) | burnin < 0 | burnin != floor(burnin)) {
+        _error(3300, "simple AKM ladder burn-in must be a nonnegative integer")
+    }
+    for (period = 1; period <= burnin; period++) {
+        state = fesim_akm_advance_ladder(
+            state, population, design, delta_years, annual_eu, annual_ee, ///
+            annual_ue, rng_state)
+    }
+    return(state)
+}
+
 end

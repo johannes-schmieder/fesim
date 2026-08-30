@@ -36,6 +36,11 @@
   intervention counts, exact `r(bridges)` ledgers, and failure rather than
   fabricated or incomplete links. The completed block chain is not a KSS or
   leave-out connectedness claim.
+- Reduced-form `network(ladder)` EE destinations based on persistent
+  firm-wage-effect midranks, with configurable downward/lateral/upward shares,
+  an inclusive lateral percentile band, boundary renormalization, ordinary
+  within-direction DGP weights, and no change to initialization, UE, event
+  draws, or RNG consumption. This is not a structural BM claim.
 
 ## 0.1.0 — 2026-08-29
 

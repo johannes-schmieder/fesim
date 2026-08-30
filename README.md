@@ -20,7 +20,7 @@ fesim describe akmempirical
 
 `fesim describe akmsimple` reports the resolved `akm/simple` configuration and scalar-parameter matrix. The same resolver validates named common options and model-specific name-value pairs such as `parameters(mu 3.2 p_ee .10)`, records their sources, and serializes the result deterministically. In the frozen v0.1 contract, all model-specific scalars remain inside `parameters()`; only common controls have named options.
 
-The development branch also exposes the common `network(random|blocks|bridges)` stress designs. `network(random)` is the frozen compatibility default. `network(blocks)` assigns balanced independent worker and firm communities and multiplies same-block destination weights by `exp(block_log_bonus)`; `parameters(block_log_bonus 0)` nests the exact random destination rule. `network(bridges)` starts from strict communities and redirects an exact reproducible set of existing EE events across adjacent blocks without changing their occurrence or timing. Network scalars remain inside `parameters()`.
+The development branch also exposes the common `network(random|blocks|bridges|ladder)` stress designs. `network(random)` is the frozen compatibility default. `network(blocks)` assigns balanced independent worker and firm communities and multiplies same-block destination weights by `exp(block_log_bonus)`; `parameters(block_log_bonus 0)` nests the exact random destination rule. `network(bridges)` starts from strict communities and redirects an exact reproducible set of existing EE events across adjacent blocks without changing their occurrence or timing. `network(ladder)` changes only ordinary EE destinations, using persistent firm-wage-effect ranks and default downward/lateral/upward shares of `.10/.20/.70`. Network scalars remain inside `parameters()`.
 
 The public simulation routes are:
 
@@ -92,6 +92,22 @@ rather than fabricate events or return an incomplete plan. The ledger records
 worker, output/internal period, source/target firm, and source/target block.
 This is an imposed block-level stress design, not a KSS or leave-out
 connectedness claim.
+
+Generate a reduced-form firm-wage ladder while preserving event timing,
+initialization, and job-finding destinations:
+
+```stata
+fesim, dgp(akmsimple) network(ladder) workers(2000) firms(100) ///
+    periods(8) seed(97531) truth(full) ///
+    parameters(ladder_down_share .1 ladder_lateral_share .2 ///
+        ladder_up_share .7 ladder_band .1) clear
+```
+
+The lateral band is measured in percentile-rank distance using tied midranks.
+Unavailable directions are removed and the configured shares are renormalized;
+ordinary DGP weights are retained within direction. The design reuses the
+event's existing destination uniform and is explicitly reduced-form, not a
+structural Burdett–Mortensen or revealed-preference model.
 
 [`examples/akmsimple.do`](examples/akmsimple.do) is a tested end-to-end example. It simulates a connected panel and runs an AKM-style regression using only Stata's built-in `areg`; the example adds no runtime dependency.
 

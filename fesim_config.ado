@@ -98,6 +98,10 @@ program define fesim_config, rclass
     local has_block_count : list posof "block_count" in parameter_names
     local has_block_log_bonus : list posof "block_log_bonus" in parameter_names
     local has_bridge_count : list posof "bridge_count" in parameter_names
+    local has_ladder_down_share : list posof "ladder_down_share" in parameter_names
+    local has_ladder_lateral_share : list posof "ladder_lateral_share" in parameter_names
+    local has_ladder_up_share : list posof "ladder_up_share" in parameter_names
+    local has_ladder_band : list posof "ladder_band" in parameter_names
 
     local network = lower(strtrim(`"`network'"'))
     local source_network "option"
@@ -105,8 +109,8 @@ program define fesim_config, rclass
         local network "random"
         local source_network "package"
     }
-    if !inlist(`"`network'"', "random", "blocks", "bridges") {
-        di as error "network() must be random, blocks, or bridges"
+    if !inlist(`"`network'"', "random", "blocks", "bridges", "ladder") {
+        di as error "network() must be random, blocks, bridges, or ladder"
         exit 198
     }
     if `"`network'"' == "bridges" & `"`source_bridge_count'"' != "parameters" {
@@ -179,11 +183,17 @@ program define fesim_config, rclass
             exit 198
         }
     }
+    if abs(real(`"`value_ladder_down_share'"') + ///
+        real(`"`value_ladder_lateral_share'"') + ///
+        real(`"`value_ladder_up_share'"') - 1) > 1e-12 {
+        di as error "ladder direction shares must sum to one"
+        exit 198
+    }
     if real(`"`value_workers'"') * real(`"`value_periods'"') > 2147483647 {
         di as error "workers() times periods() exceeds the supported observation count"
         exit 198
     }
-    if `"`network'"' != "random" & ///
+    if inlist(`"`network'"', "blocks", "bridges") & ///
         real(`"`value_block_count'"') > ///
         min(real(`"`value_workers'"'), real(`"`value_firms'"')) {
         di as error "block_count may not exceed workers() or firms()"
@@ -194,9 +204,15 @@ program define fesim_config, rclass
         di as error "network(bridges) requires at least two firms per block"
         exit 198
     }
-    if `"`network'"' == "random" & ///
+    if !inlist(`"`network'"', "blocks", "bridges") & ///
         (`has_block_count' | `has_block_log_bonus' | `has_bridge_count') {
         di as error "network design parameters require network(blocks) or network(bridges)"
+        exit 198
+    }
+    if `"`network'"' != "ladder" & ///
+        (`has_ladder_down_share' | `has_ladder_lateral_share' | ///
+        `has_ladder_up_share' | `has_ladder_band') {
+        di as error "ladder parameters require network(ladder)"
         exit 198
     }
     if `"`network'"' == "blocks" & `has_bridge_count' {
