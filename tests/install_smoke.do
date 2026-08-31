@@ -106,8 +106,9 @@ confirm variable group
 matrix installed_paygap = r(decomposition)
 assert rowsof(installed_paygap) == 9
 assert abs(installed_paygap["adding_up_error", "symmetric"]) < 1e-10
-mata: assert(fesim_mata_api_version() == 28)
+mata: assert(fesim_mata_api_version() == 29)
 mata: assert(fesim_bm_schema_version() == 1)
+mata: assert(fesim_bm_history_schema_version() == 1)
 mata: mata clear
 quietly adopath ++ `"`repository_root'/build"'
 mata: mata mlib index

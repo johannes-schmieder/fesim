@@ -14,7 +14,11 @@
   and explicit failure diagnostics. D-037 adds deterministic midpoint-quantile
   finite firms by default plus an isolated-stream random mode, stable
   wage-ranked IDs, exact discrete stationary employment under strict upward
-  acceptance, and separate approximation diagnostics. Worker events and the
+  acceptance, and separate approximation diagnostics. D-038/API 29 adds an
+  internal exact continuous-time event engine with competing employed offers
+  and destruction, unemployed offers, uniform firm contacts, recorded rejected
+  offers, strict tie handling, stable spells and continuous durations, and
+  event/destination stream isolation. Initialization, aggregation, and the
   public simulation route are not yet implemented.
 
 ### Implemented on `main`

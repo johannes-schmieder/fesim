@@ -235,9 +235,39 @@ struct fesim_bm_firms {
     real scalar validated
 }
 
+struct fesim_bm_history {
+    real scalar schema_version
+    string scalar status
+    real scalar workers
+    real scalar firms
+    real scalar horizon
+    real scalar record_events
+    real colvector initial_employed
+    real colvector initial_firm_id
+    real colvector initial_spell_id
+    real colvector initial_tenure
+    real colvector initial_unemployment_duration
+    real colvector final_employed
+    real colvector final_firm_id
+    real colvector final_spell_id
+    real colvector final_tenure
+    real colvector final_unemployment_duration
+    real colvector final_transitions
+    real matrix events
+    real scalar total_events
+    real scalar unemployment_offers
+    real scalar employed_offers
+    real scalar destructions
+    real scalar accepted_entries
+    real scalar accepted_moves
+    real scalar rejected_offers
+    real scalar total_transitions
+    real scalar validated
+}
+
 real scalar fesim_mata_api_version()
 {
-    return(28)
+    return(29)
 }
 
 real scalar fesim_config_schema_version()

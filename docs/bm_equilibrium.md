@@ -359,6 +359,42 @@ repeatable under `seed()` and does not advance worker, mobility, destination,
 or other component streams. Theoretical, finite-firm, event-sample, and
 observed-panel moments remain distinct.
 
+## Continuous-time worker events
+
+D-038 implements exact continuous-time worker histories after the firm
+universe is fixed. While unemployed, the next event time is exponential with
+rate `lambda_u` and the event is a uniformly sampled firm offer. While
+employed, the next event time is exponential with rate `lambda_e+delta`; a
+second uniform selects destruction below
+`delta/(lambda_e+delta)` and an offer otherwise. This combined-clock
+construction is distributionally identical to racing independent offer and
+destruction clocks. The exact threshold is assigned to an offer, and endpoint
+uniforms are moved to the nearest package-defined open-unit boundary so
+waiting times are positive.
+
+An unemployed worker accepts every offer because all finite wages lie weakly
+above `R`. An employed worker accepts only
+
+\[
+w_{offer}>w_{current}.
+\]
+
+Thus contacts with the current firm, lower wages, or tied wages are recorded
+as rejected employed offers and do not alter tenure or spell ID. Accepted UE
+and EE offers increment the worker-local spell count and reset tenure;
+destruction starts unemployment duration at zero. All durations are measured
+in continuous years.
+
+Timing/type draws use `mobility_events`; contacted-firm draws use
+`destination_draws`. Fixed-size internal draw buffers amortize Stata RNG-state
+switching but do not mix component streams. The optional private ledger has
+11 columns: worker, time, kind, acceptance, origin, offered firm, destination,
+post-event spell, post-event tenure, post-event unemployment duration, and
+waiting time. Its rows are worker-major and strictly ordered within worker.
+Recording it does not change economic draws or final states. Events exactly at
+the horizon are included. API 29/BM-history schema 1 remains internal until
+initialization, aggregation, and the public handler are qualified.
+
 ## Sources
 
 - Burdett, Kenneth, and Dale T. Mortensen. 1998. “Wage Differentials,
