@@ -26,6 +26,7 @@ f src/fesim_hazards.mata
 f src/fesim_bm.mata
 f src/fesim_bm_events.mata
 f src/fesim_destinations.mata
+f src/fesim_bm_initial.mata
 f src/fesim_network_design.mata
 f src/fesim_flows.mata
 f src/fesim_moments.mata

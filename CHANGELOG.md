@@ -18,8 +18,11 @@
   internal exact continuous-time event engine with competing employed offers
   and destruction, unemployed offers, uniform firm contacts, recorded rejected
   offers, strict tie handling, stable spells and continuous durations, and
-  event/destination stream isolation. Initialization, aggregation, and the
-  public simulation route are not yet implemented.
+  event/destination stream isolation. D-039/API 30 adds exact finite stationary
+  initialization with stationary backward spell ages, documented random and
+  draw-free all-unemployed starts, unrecorded burn-in, retained-boundary count
+  reset, convergence diagnostics, and initialization-stream isolation.
+  Aggregation and the public simulation route are not yet implemented.
 
 ### Implemented on `main`
 

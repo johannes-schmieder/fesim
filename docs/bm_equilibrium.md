@@ -396,6 +396,43 @@ the horizon are included. Checkpoint 42 exact-qualifies API 29/BM-history
 schema 1, which remains internal until
 initialization, aggregation, and the public handler are qualified.
 
+## Initialization and burn-in
+
+D-039 uses the exact finite stationary allocation rather than substituting
+the continuum employed-wage CDF. The stationary state probabilities are
+
+\[
+P(U)=u,\qquad P(E,j)=L_j,
+\]
+
+where the `L_j` solve equation (14). Conditional on unemployment, elapsed
+unemployment duration is exponential with rate `lambda_u`. Conditional on
+firm `j`, elapsed tenure is exponential with rate
+
+\[
+h_j=\delta+\lambda_e\#\{k:w_k>w_j\}/J.
+\]
+
+This is the backward spell-age distribution in stationarity: accepted spell
+exits have constant hazard `h_j`, and rejected offers do not reset tenure.
+The initializer draws the joint state and age independently, consuming two
+uniforms per worker only from `initial_states`.
+
+The documented nonstationary alternative assigns employment probability
+one half and samples finite firms uniformly conditional on employment. It
+sets tenure and unemployment duration to zero and requires a positive burn-in
+measured in continuous years. The diagnostic all-unemployed alternative also
+sets durations and spell counts to zero but consumes no initialization draw.
+
+Burn-in calls the exact event engine without retaining its private event
+ledger. At the retained-sample boundary it preserves employment, employer,
+spell count, and continuous spell age, records elapsed burn-in years, and
+resets interval transition counts. Restarting the event clock there is exact
+because all primitive clocks are exponential and memoryless. Checkpoint 43
+introduces API 30/BM-state schema 1 for this private boundary; the public BM
+route remains closed until aggregation, truth/results, and handler
+qualification.
+
 ## Sources
 
 - Burdett, Kenneth, and Dale T. Mortensen. 1998. “Wage Differentials,

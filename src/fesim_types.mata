@@ -265,9 +265,25 @@ struct fesim_bm_history {
     real scalar validated
 }
 
+struct fesim_bm_state {
+    real scalar schema_version
+    string scalar status
+    string scalar initial_mode
+    real scalar workers
+    real scalar firms
+    real scalar elapsed_time
+    real colvector employed
+    real colvector firm_id
+    real colvector spell_id
+    real colvector tenure
+    real colvector unemployment_duration
+    real colvector ntransitions
+    real scalar validated
+}
+
 real scalar fesim_mata_api_version()
 {
-    return(29)
+    return(30)
 }
 
 real scalar fesim_config_schema_version()

@@ -44,6 +44,7 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     unit/test_config unit/test_calibration_registry unit/test_time ///
     unit/test_rates unit/test_hazards unit/test_bm_derivation ///
     unit/bm_equal_profit unit/test_bm_firms unit/test_bm_events ///
+    unit/test_bm_initialization ///
     unit/test_destinations unit/test_rng unit/test_network_design ///
     unit/test_runtime ///
     unit/test_lifecycle unit/test_flows unit/test_moments unit/test_durations ///
@@ -66,6 +67,7 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     statistical/akm_moments statistical/akm_exogeneity ///
     statistical/akm_stylized_mobility ///
     statistical/paygap_limits statistical/paygap_cck_moments ///
+    statistical/bm_burnin ///
     docs/run_examples docs/run_help_examples
 local n_tests : word count `tests'
 foreach test of local tests {
