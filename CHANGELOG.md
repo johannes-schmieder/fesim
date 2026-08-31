@@ -21,8 +21,12 @@
   event/destination stream isolation. D-039/API 30 adds exact finite stationary
   initialization with stationary backward spell ages, documented random and
   draw-free all-unemployed starts, unrecorded burn-in, retained-boundary count
-  reset, convergence diagnostics, and initialization-stream isolation.
-  Aggregation and the public simulation route are not yet implemented.
+  reset, convergence diagnostics, and initialization-stream isolation. D-040
+  and API 31 add right-closed end-of-period aggregation at annual, quarterly,
+  and monthly frequencies, exact interval exposure and primitive/accepted
+  event counts, adjacent-endpoint observed flows, and explicitly separated
+  theoretical, event, and observed flow diagnostics. The public simulation
+  route is not yet implemented.
 
 ### Implemented on `main`
 

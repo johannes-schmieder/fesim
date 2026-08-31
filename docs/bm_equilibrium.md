@@ -433,6 +433,53 @@ exact-qualifies API 30/BM-state schema 1 for this private boundary; the public
 BM route remains closed until aggregation, truth/results, and handler
 qualification.
 
+## Observation aggregation
+
+D-040 maps one continuous-time event ledger into worker-major end-of-period
+snapshots. Annual, quarterly, and monthly periods have lengths `1`, `1/4`, and
+`1/12` years. Interval `k` is `((k-1) Delta, k Delta]`; an event exactly on
+the right boundary is applied before snapshot `k` and counted in that
+interval. The time-zero initialized or burned-in state is an origin state,
+not a retained observation. Dominant- or longest-employer rules are not part
+of the canonical route.
+
+Each internal worker-period record carries exact employment and unemployment
+exposure plus the following counts:
+
+- unemployment and employed offers;
+- rejected employed offers;
+- destruction events;
+- accepted entries and accepted direct moves;
+- total primitive events and accepted state transitions.
+
+Thus `n_ue`, `n_ee`, and `n_eu` are accepted entry, accepted direct move, and
+destruction counts. They need not equal endpoint flow indicators. For example,
+a worker can separate and return to the same firm between observations. The
+interval then has one EU and one UE event, the endpoint is employed at the
+same firm, the spell ID changes, and observed UE/EU/EE indicators are all
+zero. This distinction is deliberate.
+
+Observed flows compare adjacent retained endpoints, following the common
+panel convention: backward-looking `from_unemp`, `newjob`, and `jobtojob` are
+missing in the first retained period; forward-looking `to_unemp` is missing
+in the last. An observed job-to-job move requires different endpoint firms,
+while `newjob` also detects a changed spell at the same endpoint firm.
+
+The internal flow diagnostic has rows for unemployment share, UE, EU, and EE.
+Its columns separate theory, exact event exposure, observed interval outcomes,
+and descriptive observed outcomes per year. Theory and event UE/EU/EE entries
+are annual hazards; observed entries are endpoint transition probabilities
+and those probabilities divided by period length. The unemployment-share row
+instead compares the theoretical level, exact time share, and endpoint share,
+with no annualized entry. These columns are not silently treated as the same
+estimand.
+
+Checkpoint 44 introduces API 31/BM-panel schema 1 for this private replay and
+diagnostic boundary. It consumes no random numbers and must produce identical
+nested endpoints, event totals, transition totals, and time exposure from the
+same history at annual, quarterly, and monthly frequencies. The public route
+remains closed until output/truth and handler qualification.
+
 ## Sources
 
 - Burdett, Kenneth, and Dale T. Mortensen. 1998. “Wage Differentials,

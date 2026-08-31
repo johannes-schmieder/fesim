@@ -281,9 +281,42 @@ struct fesim_bm_state {
     real scalar validated
 }
 
+struct fesim_bm_panel {
+    real scalar schema_version
+    string scalar status
+    string scalar frequency
+    real scalar workers
+    real scalar firms
+    real scalar periods
+    real scalar period_length
+    real scalar horizon
+    real colvector worker_id
+    real colvector period_index
+    real colvector employed
+    real colvector firm_id
+    real colvector spell_id
+    real colvector tenure
+    real colvector unemployment_duration
+    real colvector n_eu
+    real colvector n_ee
+    real colvector n_ue
+    real colvector n_unemployment_offers
+    real colvector n_employed_offers
+    real colvector n_rejected_offers
+    real colvector n_events
+    real colvector ntransitions
+    real colvector employment_exposure
+    real colvector unemployment_exposure
+    real colvector newjob
+    real colvector from_unemp
+    real colvector to_unemp
+    real colvector jobtojob
+    real scalar validated
+}
+
 real scalar fesim_mata_api_version()
 {
-    return(30)
+    return(31)
 }
 
 real scalar fesim_config_schema_version()
