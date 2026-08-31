@@ -474,8 +474,8 @@ instead compares the theoretical level, exact time share, and endpoint share,
 with no annualized entry. These columns are not silently treated as the same
 estimand.
 
-Checkpoint 44 introduces API 31/BM-panel schema 1 for this private replay and
-diagnostic boundary. It consumes no random numbers and must produce identical
+Checkpoint 44 exact-qualifies API 31/BM-panel schema 1 for this private replay
+and diagnostic boundary. It consumes no random numbers and produces identical
 nested endpoints, event totals, transition totals, and time exposure from the
 same history at annual, quarterly, and monthly frequencies. The public route
 remains closed until output/truth and handler qualification.
