@@ -522,7 +522,9 @@ not claimed to solve a separate finite wage-posting game. Solver diagnostics
 likewise retain theoretical and finite EE hazards and all solution/grid
 residuals separately. The API-32/BM-output-schema-1 implementation is private,
 draw-free, source-installed, and requires empty Stata data after preflighting
-all output arrays; public BM simulation remains closed pending later gates.
+all output arrays. Checkpoint 45 exact-qualifies this boundary at
+`b2dd74270b3f8c23b42a97a996c32c2fb9966d2e`; public BM simulation remains
+closed pending later gates.
 
 ## Sources
 
