@@ -350,7 +350,8 @@ to the continuum employment mass `1-u` up to floating-point error. Expected
 headcount is `N*L_j`; `J*L_j` is the finite employment scale directly
 comparable to continuum `ell(w_j)`.
 
-API 28 and finite-firm schema 1 implement the inverse CDF, both constructions,
+Checkpoint 41 exact-qualifies API 28 and finite-firm schema 1, which implement
+the inverse CDF, both constructions,
 the exact recursion, strict-tie handling, finite job-to-job rate, and separate
 offer-CDF, worker-CDF, employment-quadrature, and stationary-flow diagnostics.
 The default construction consumes no random numbers. Random construction is
