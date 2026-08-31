@@ -429,8 +429,8 @@ ledger. At the retained-sample boundary it preserves employment, employer,
 spell count, and continuous spell age, records elapsed burn-in years, and
 resets interval transition counts. Restarting the event clock there is exact
 because all primitive clocks are exponential and memoryless. Checkpoint 43
-introduces API 30/BM-state schema 1 for this private boundary; the public BM
-route remains closed until aggregation, truth/results, and handler
+exact-qualifies API 30/BM-state schema 1 for this private boundary; the public
+BM route remains closed until aggregation, truth/results, and handler
 qualification.
 
 ## Sources
