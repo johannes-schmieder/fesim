@@ -33,6 +33,7 @@ quietly do `"`repository_root'/src/fesim_network.mata"'
 quietly do `"`repository_root'/src/fesim_runtime.mata"'
 quietly do `"`repository_root'/src/fesim_output.mata"'
 quietly do `"`repository_root'/src/fesim_bm_aggregate.mata"'
+quietly do `"`repository_root'/src/fesim_bm_output.mata"'
 quietly do `"`repository_root'/src/fesim_lifecycle.mata"'
 quietly do `"`repository_root'/src/fesim_akm_simple.mata"'
 quietly do `"`repository_root'/src/fesim_empirical.mata"'
@@ -48,7 +49,7 @@ mata: mata mlib add lfesim fesim_*(), dir(`"`output_dir'"') complete
 quietly adopath ++ `"`output_dir'"'
 mata: mata clear
 mata: mata mlib index
-mata: assert(fesim_mata_api_version() == 31)
+mata: assert(fesim_mata_api_version() == 32)
 mata: assert(fesim_config_schema_version() == 2)
 mata: assert(fesim_rng_schema_version() == 2)
 mata: assert(cols(fesim_rng_component_names()) == 9)
@@ -61,6 +62,7 @@ mata: assert(fesim_bm_firms_schema_version() == 1)
 mata: assert(fesim_bm_history_schema_version() == 1)
 mata: assert(fesim_bm_state_schema_version() == 1)
 mata: assert(fesim_bm_panel_schema_version() == 1)
+mata: assert(fesim_bm_output_schema_version() == 1)
 mata: assert(fesim_destination_schema_version() == 3)
 mata: assert(fesim_flow_schema_version() == 1)
 mata: assert(fesim_moment_schema_version() == 1)

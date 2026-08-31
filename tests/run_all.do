@@ -45,6 +45,7 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     unit/test_rates unit/test_hazards unit/test_bm_derivation ///
     unit/bm_equal_profit unit/test_bm_firms unit/test_bm_events ///
     unit/test_bm_initialization unit/test_bm_aggregation ///
+    unit/test_bm_output ///
     unit/test_destinations unit/test_rng unit/test_network_design ///
     unit/test_runtime ///
     unit/test_lifecycle unit/test_flows unit/test_moments unit/test_durations ///
@@ -63,7 +64,8 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     integration/test_network_blocks ///
     integration/test_network_bridges integration/test_network_ladder ///
     integration/test_output_blocks integration/test_panel_contract ///
-    integration/test_results integration/bm_frequency regression/akm_tiny ///
+    integration/test_results integration/bm_frequency integration/bm_output ///
+    regression/akm_tiny ///
     statistical/akm_moments statistical/akm_exogeneity ///
     statistical/akm_stylized_mobility ///
     statistical/paygap_limits statistical/paygap_cck_moments ///

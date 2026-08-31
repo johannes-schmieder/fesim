@@ -34,6 +34,7 @@ f src/fesim_network.mata
 f src/fesim_runtime.mata
 f src/fesim_output.mata
 f src/fesim_bm_aggregate.mata
+f src/fesim_bm_output.mata
 f src/fesim_lifecycle.mata
 f src/fesim_akm_simple.mata
 f src/fesim_empirical.mata

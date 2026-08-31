@@ -25,8 +25,11 @@
   and API 31 add right-closed end-of-period aggregation at annual, quarterly,
   and monthly frequencies, exact interval exposure and primitive/accepted
   event counts, adjacent-endpoint observed flows, and explicitly separated
-  theoretical, event, and observed flow diagnostics. The public simulation
-  route is not yet implemented.
+  theoretical, event, and observed flow diagnostics. D-041 and API 32 add a
+  private public-shaped panel writer, level-to-log accepted-wage mapping,
+  none/basic/full BM truth, closed-form worker values, exact interval truth,
+  and separately labeled finite-versus-continuum firm diagnostics. The public
+  simulation route is not yet implemented.
 
 ### Implemented on `main`
 

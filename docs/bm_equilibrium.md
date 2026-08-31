@@ -480,6 +480,50 @@ nested endpoints, event totals, transition totals, and time exposure from the
 same history at annual, quarterly, and monthly frequencies. The public route
 remains closed until output/truth and handler qualification.
 
+## Output, truth, and value diagnostics
+
+D-041 maps each employed endpoint's accepted posted wage level `w` to the
+common panel as `lnwage=lnwage_true=log(w)`. `posted_wage_true` and
+`productivity_true` remain structural levels and are missing with all
+job-specific truth under nonemployment. The canonical model adds no
+measurement error. Tenure and unemployment duration are stored internally in
+years and converted to output-period units at the panel boundary.
+
+The exact unemployment value is
+
+\[
+U=\frac{b+\lambda_u C(p-R)}{r}
+=\frac{R+\lambda_e C(p-R)}{r}.
+\]
+
+Writing `q=F(w)` and `A=r+delta+lambda_e`, direct integration of the value
+derivative gives
+
+\[
+W(w)=U+\frac{2(p-R)\lambda_e}{(\delta+\lambda_e)^2}
+\left[q+\frac{r}{\lambda_e}
+\log\left(1-\frac{\lambda_e q}{A}\right)\right].
+\]
+
+Thus `W(R)=U`, and employment value rises strictly over the wage support. Full
+truth repeats `R` and `U` as economy-wide values, attaches `W(w)` and the
+observed firm's offer quantile to employed rows, and exposes exact primitive
+and accepted interval event counts plus employment and unemployment exposure
+in years. Exact counts include the first retained interval even though the
+common adjacent-observation `ntransitions` is missing in each worker's first
+row.
+
+The firm diagnostic table reports offer quantile and posted wage, exact finite
+stationary mass, expected headcount for the requested worker population,
+conditional employment share, continuum employment, finite-scaled employment,
+continuum equal-profit flow profit, and finite-scaled flow profit. These labels
+are deliberate: the finite grid discretizes the continuum equilibrium and is
+not claimed to solve a separate finite wage-posting game. Solver diagnostics
+likewise retain theoretical and finite EE hazards and all solution/grid
+residuals separately. The API-32/BM-output-schema-1 implementation is private,
+draw-free, source-installed, and requires empty Stata data after preflighting
+all output arrays; public BM simulation remains closed pending later gates.
+
 ## Sources
 
 - Burdett, Kenneth, and Dale T. Mortensen. 1998. “Wage Differentials,
