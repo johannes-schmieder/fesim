@@ -164,6 +164,9 @@ struct fesim_population scalar fesim_emp_generate_population(
     population.firm_weight = fesim_akm_stable_weights(
         attraction_standard, firm_size_sd)
     population.firm_quality = fesim_emp_standardize(quality_latent)
+    population.group = J(workers, 1, .)
+    population.firm_alt_value = J(firms, 1, .)
+    population.firm_surplus = J(firms, 1, .)
     population.validated = 0
     fesim_emp_population_validate(population)
     population.validated = 1

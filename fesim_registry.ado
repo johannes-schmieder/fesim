@@ -1,4 +1,4 @@
-*! fesim configuration registry 0.2.0-dev 29aug2026
+*! fesim configuration registry 0.3.0-dev 31aug2026
 program define fesim_registry, rclass
     version 16.0
     syntax , ACTION(string) [ DGP(string) PRESet(string) PARAmeter(string) ]
@@ -12,7 +12,7 @@ program define fesim_registry, rclass
         }
         return local dgps "akm akmpaygap bm"
         return local aliases "akmsimple akmempirical bmsimple"
-        return local qualified "akm/simple akm/stylized akm/germany_chk_2002_2009"
+        return local qualified "akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016"
         return local status "partial"
         return scalar n_dgps = 3
         exit
@@ -32,7 +32,8 @@ program define fesim_registry, rclass
     local canonical `"`r(dgp)'"'
     local resolved_preset `"`r(preset)'"'
     if !inlist(`"`canonical'/`resolved_preset'"', ///
-        "akm/simple", "akm/stylized", "akm/germany_chk_2002_2009") {
+        "akm/simple", "akm/stylized", "akm/germany_chk_2002_2009", ///
+        "akmpaygap/simple", "akmpaygap/cck2016") {
         if `"`action'"' == "parameters" {
             return local common_options ""
             return local scalar_parameters ""
@@ -48,7 +49,13 @@ program define fesim_registry, rclass
 
     if `"`action'"' == "parameters" {
         return local common_options "workers firms periods frequency start seed initial burnin jobrule truth connectivity network report"
-        if `"`resolved_preset'"' == "simple" {
+        if `"`canonical'"' == "akmpaygap" {
+            return local scalar_parameters "workers firms periods burnin female_share mu_m mu_f sd_worker_m sd_worker_f premium_intercept_m premium_intercept_f premium_loading_m premium_loading_f premium_deviation_sd_m premium_deviation_sd_f sd_error_m sd_error_f firm_size_sd p_eu_m p_ee_m p_ue_m p_eu_f p_ee_f p_ue_f group_sort_m group_sort_f worker_sort_m worker_sort_f wage_trend_m wage_trend_f block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
+            return local model_parameters "female_share mu_m mu_f sd_worker_m sd_worker_f premium_intercept_m premium_intercept_f premium_loading_m premium_loading_f premium_deviation_sd_m premium_deviation_sd_f sd_error_m sd_error_f firm_size_sd p_eu_m p_ee_m p_ue_m p_eu_f p_ee_f p_ue_f group_sort_m group_sort_f worker_sort_m worker_sort_f wage_trend_m wage_trend_f"
+            return local network_parameters "block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
+            return local config_schema "akmpaygap_`resolved_preset'_v1"
+        }
+        else if `"`resolved_preset'"' == "simple" {
             return local scalar_parameters "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
             return local model_parameters "mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend"
             return local network_parameters "block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
@@ -63,7 +70,7 @@ program define fesim_registry, rclass
             }
             else return local config_schema "akm_germany_chk_2002_2009_v1"
         }
-        return local dgp "akm"
+        return local dgp `"`canonical'"'
         return local preset `"`resolved_preset'"'
         exit
     }
@@ -75,7 +82,10 @@ program define fesim_registry, rclass
     }
 
     local common "workers firms periods frequency start seed initial burnin jobrule truth connectivity network report"
-    if `"`resolved_preset'"' == "simple" {
+    if `"`canonical'"' == "akmpaygap" {
+        local model "female_share mu_m mu_f sd_worker_m sd_worker_f premium_intercept_m premium_intercept_f premium_loading_m premium_loading_f premium_deviation_sd_m premium_deviation_sd_f sd_error_m sd_error_f firm_size_sd p_eu_m p_ee_m p_ue_m p_eu_f p_ee_f p_ue_f group_sort_m group_sort_f worker_sort_m worker_sort_f wage_trend_m wage_trend_f"
+    }
+    else if `"`resolved_preset'"' == "simple" {
         local model "mu sd_worker sd_firm sd_error firm_size_sd p_eu p_ee p_ue wage_trend"
     }
     else {
@@ -100,7 +110,7 @@ program define fesim_registry, rclass
     local named_option "no"
     local parameters_allowed "yes"
     local description ""
-    local applicability `"akm/`resolved_preset'"'
+    local applicability `"`canonical'/`resolved_preset'"'
 
     if inlist(`"`name'"', "workers", "firms", "periods", "burnin") {
         local type "integer"
@@ -117,19 +127,22 @@ program define fesim_registry, rclass
             local description "Number of workers"
         }
         else if `"`name'"' == "firms" {
-            if `"`resolved_preset'"' == "germany_chk_2002_2009" ///
+            if inlist(`"`resolved_preset'"', ///
+                "germany_chk_2002_2009", "cck2016") ///
                 local default "1000"
             else local default "500"
             local description "Number of firms"
         }
         else if `"`name'"' == "periods" {
-            if `"`resolved_preset'"' == "germany_chk_2002_2009" ///
+            if inlist(`"`resolved_preset'"', ///
+                "germany_chk_2002_2009", "cck2016") ///
                 local default "8"
             else local default "10"
             local description "Number of retained periods"
         }
         else {
-            if `"`resolved_preset'"' == "simple" {
+            if `"`canonical'"' == "akm" & ///
+                `"`resolved_preset'"' == "simple" {
                 local default "0"
                 local default_source "package"
                 local unit "internal periods"
@@ -153,7 +166,8 @@ program define fesim_registry, rclass
             local description "Panel time frequency"
         }
         else if `"`name'"' == "start" {
-            if `"`resolved_preset'"' == "germany_chk_2002_2009" {
+            if inlist(`"`resolved_preset'"', ///
+                "germany_chk_2002_2009", "cck2016") {
                 local default "2002"
                 local default_source "preset"
             }
@@ -161,7 +175,8 @@ program define fesim_registry, rclass
             local description "First retained period"
         }
         else if `"`name'"' == "initial" {
-            if `"`resolved_preset'"' == "simple" local default "stationary"
+            if `"`canonical'"' == "akm" & ///
+                `"`resolved_preset'"' == "simple" local default "stationary"
             else {
                 local default "random"
                 local default_source "preset"
@@ -268,7 +283,119 @@ program define fesim_registry, rclass
     }
     else {
         local named_option "no"
-        if `"`name'"' == "mu" {
+        if `"`canonical'"' == "akmpaygap" {
+            if `"`resolved_preset'"' == "simple" {
+                if `"`name'"' == "female_share" local default ".5"
+                else if `"`name'"' == "mu_m" local default "3"
+                else if `"`name'"' == "mu_f" local default "2.9"
+                else if inlist(`"`name'"', "sd_worker_m", ///
+                    "sd_worker_f") local default ".4"
+                else if `"`name'"' == "premium_intercept_m" ///
+                    local default ".05"
+                else if `"`name'"' == "premium_intercept_f" ///
+                    local default ".03"
+                else if `"`name'"' == "premium_loading_m" ///
+                    local default ".15"
+                else if `"`name'"' == "premium_loading_f" ///
+                    local default ".12"
+                else if `"`name'"' == "premium_deviation_sd_m" ///
+                    local default "0"
+                else if `"`name'"' == "premium_deviation_sd_f" ///
+                    local default ".09"
+                else if inlist(`"`name'"', "sd_error_m", ///
+                    "sd_error_f") local default ".2"
+                else if `"`name'"' == "firm_size_sd" local default "1"
+                else if inlist(`"`name'"', "p_eu_m", ///
+                    "p_eu_f") local default ".08"
+                else if inlist(`"`name'"', "p_ee_m", ///
+                    "p_ee_f") local default ".12"
+                else if inlist(`"`name'"', "p_ue_m", ///
+                    "p_ue_f") local default ".6"
+                else if `"`name'"' == "group_sort_m" local default ".3"
+                else if `"`name'"' == "group_sort_f" local default "0"
+                else if inlist(`"`name'"', "worker_sort_m", ///
+                    "worker_sort_f") local default ".3"
+                else if inlist(`"`name'"', "wage_trend_m", ///
+                    "wage_trend_f") local default "0"
+            }
+            else {
+                if `"`name'"' == "female_share" local default ".46"
+                else if `"`name'"' == "mu_m" local default "3"
+                else if `"`name'"' == "mu_f" local default "2.815"
+                else if `"`name'"' == "sd_worker_m" local default ".420"
+                else if `"`name'"' == "sd_worker_f" local default ".400"
+                else if `"`name'"' == "premium_intercept_m" ///
+                    local default ".113"
+                else if `"`name'"' == "premium_intercept_f" ///
+                    local default ".099"
+                else if `"`name'"' == "premium_loading_m" ///
+                    local default ".247"
+                else if `"`name'"' == "premium_loading_f" ///
+                    local default ".12567"
+                else if `"`name'"' == "premium_deviation_sd_m" ///
+                    local default "0"
+                else if `"`name'"' == "premium_deviation_sd_f" ///
+                    local default ".171976891180182"
+                else if `"`name'"' == "sd_error_m" local default ".143"
+                else if `"`name'"' == "sd_error_f" local default ".125"
+                else if `"`name'"' == "firm_size_sd" local default "1"
+                else if inlist(`"`name'"', "p_eu_m", ///
+                    "p_eu_f") local default ".08"
+                else if inlist(`"`name'"', "p_ee_m", ///
+                    "p_ee_f") local default ".12"
+                else if inlist(`"`name'"', "p_ue_m", ///
+                    "p_ue_f") local default ".6"
+                else if `"`name'"' == "group_sort_m" local default ".142"
+                else if `"`name'"' == "group_sort_f" local default "0"
+                else if `"`name'"' == "worker_sort_m" local default ".18"
+                else if `"`name'"' == "worker_sort_f" local default ".273"
+                else if inlist(`"`name'"', "wage_trend_m", ///
+                    "wage_trend_f") local default ".05"
+            }
+            if `"`name'"' == "female_share" {
+                local unit "population share"
+                local lower "0"
+                local upper "1"
+                local description "Population share coded as women"
+            }
+            else if inlist(`"`name'"', "sd_worker_m", ///
+                "sd_worker_f", "premium_deviation_sd_m", ///
+                "premium_deviation_sd_f", "sd_error_m", ///
+                "sd_error_f", "firm_size_sd") {
+                local unit "standard deviation"
+                local lower "0"
+                local lower_closed "yes"
+                local description "Group-specific or firm primitive standard deviation"
+            }
+            else if inlist(`"`name'"', "p_eu_m", "p_ee_m", ///
+                "p_ue_m", "p_eu_f", "p_ee_f", "p_ue_f") {
+                local unit "annual probability"
+                local lower "0"
+                local upper "1"
+                local lower_closed "yes"
+                if inlist(`"`name'"', "p_ue_m", "p_ue_f") ///
+                    local upper_closed "yes"
+                local description "Group-specific annual employment transition probability"
+            }
+            else if inlist(`"`name'"', "mu_m", "mu_f") ///
+                local description "Group-specific log-wage intercept"
+            else if inlist(`"`name'"', "premium_intercept_m", ///
+                "premium_intercept_f") ///
+                local description "Group-specific firm-premium intercept"
+            else if inlist(`"`name'"', "premium_loading_m", ///
+                "premium_loading_f") ///
+                local description "Group-specific loading on common firm surplus"
+            else if inlist(`"`name'"', "group_sort_m", ///
+                "group_sort_f") ///
+                local description "Group-specific destination surplus tilt"
+            else if inlist(`"`name'"', "worker_sort_m", ///
+                "worker_sort_f") ///
+                local description "Worker-type by surplus destination tilt"
+            else if inlist(`"`name'"', "wage_trend_m", ///
+                "wage_trend_f") ///
+                local description "Group-specific annual log-wage trend"
+        }
+        else if `"`name'"' == "mu" {
             local default "3"
             local description "Mean log wage"
         }
@@ -517,9 +644,16 @@ program define fesim_registry__resolve, rclass
             di as error "registered presets are simple and cck2016"
             exit 198
         }
-        local title "Two-group AKM pay-gap design"
-        if `"`resolved_preset'"' == "simple" local calibration_class "stylized"
-        else local calibration_class "targeted; planned and unaudited"
+        if `"`resolved_preset'"' == "simple" {
+            local title "Stylized two-group AKM pay-gap design"
+            local calibration_class "stylized"
+        }
+        else {
+            local title "Two-group AKM pay-gap design targeted to CCK Portugal, 2002-2009"
+            local calibration_class "targeted"
+        }
+        local config_schema "akmpaygap_`resolved_preset'_v1"
+        local configurable "yes"
     }
     else {
         local presets "simple"
@@ -541,7 +675,8 @@ program define fesim_registry__resolve, rclass
     return local title `"`title'"'
     return local calibration_class `"`calibration_class'"'
     if inlist(`"`canonical'/`resolved_preset'"', ///
-        "akm/simple", "akm/stylized", "akm/germany_chk_2002_2009") {
+        "akm/simple", "akm/stylized", "akm/germany_chk_2002_2009", ///
+        "akmpaygap/simple", "akmpaygap/cck2016") {
         return local status "qualified"
         return local implemented "yes"
     }

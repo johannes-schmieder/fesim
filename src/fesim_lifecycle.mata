@@ -86,6 +86,9 @@ struct fesim_population scalar fesim_toy_generate_population(
     population.worker_type_index = J(config.workers, 1, .)
     population.worker_mobility = J(config.workers, 1, .)
     population.firm_quality = J(config.firms, 1, .)
+    population.group = J(config.workers, 1, .)
+    population.firm_alt_value = J(config.firms, 1, .)
+    population.firm_surplus = J(config.firms, 1, .)
     population.validated = 0
     fesim_population_validate(population)
     population.validated = 1
@@ -108,10 +111,13 @@ void fesim_population_validate(struct fesim_population scalar population)
         rows(population.worker_value) != population.workers | ///
         rows(population.worker_type_index) != population.workers | ///
         rows(population.worker_mobility) != population.workers | ///
+        rows(population.group) != population.workers | ///
         rows(population.firm_id) != population.firms | ///
         rows(population.firm_value) != population.firms | ///
         rows(population.firm_weight) != population.firms | ///
-        rows(population.firm_quality) != population.firms) {
+        rows(population.firm_quality) != population.firms | ///
+        rows(population.firm_alt_value) != population.firms | ///
+        rows(population.firm_surplus) != population.firms) {
         _error(3300, "population dimensions do not match their declared sizes")
     }
     if (any(population.worker_id :!= (1::population.workers)) | ///

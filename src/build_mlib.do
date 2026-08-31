@@ -32,8 +32,10 @@ quietly do `"`repository_root'/src/fesim_output.mata"'
 quietly do `"`repository_root'/src/fesim_lifecycle.mata"'
 quietly do `"`repository_root'/src/fesim_akm_simple.mata"'
 quietly do `"`repository_root'/src/fesim_empirical.mata"'
+quietly do `"`repository_root'/src/fesim_paygap.mata"'
 quietly do `"`repository_root'/src/fesim_akm_handler.mata"'
 quietly do `"`repository_root'/src/fesim_emp_handler.mata"'
+quietly do `"`repository_root'/src/fesim_paygap_handler.mata"'
 quietly do `"`repository_root'/src/fesim_dispatch.mata"'
 
 mata: mata mlib create lfesim, dir(`"`output_dir'"') replace
@@ -42,7 +44,7 @@ mata: mata mlib add lfesim fesim_*(), dir(`"`output_dir'"') complete
 quietly adopath ++ `"`output_dir'"'
 mata: mata clear
 mata: mata mlib index
-mata: assert(fesim_mata_api_version() == 25)
+mata: assert(fesim_mata_api_version() == 26)
 mata: assert(fesim_config_schema_version() == 2)
 mata: assert(fesim_rng_schema_version() == 2)
 mata: assert(cols(fesim_rng_component_names()) == 9)
@@ -57,15 +59,17 @@ mata: assert(fesim_network_schema_version() == 4)
 mata: assert(fesim_runtime_schema_version() == 1)
 mata: assert(fesim_output_schema_version() == 7)
 mata: assert(fesim_output_checked_rows(10000, 10) == 100000)
-mata: assert(fesim_population_schema_version() == 3)
+mata: assert(fesim_population_schema_version() == 4)
 mata: assert(fesim_akm_simple_schema_version() == 4)
 mata: assert(fesim_emp_schema_version() == 2)
+mata: assert(fesim_paygap_schema_version() == 1)
 mata: assert(fesim_akm_handler_schema_version() == 5)
 mata: assert(fesim_emp_handler_schema_version() == 5)
+mata: assert(fesim_paygap_handler_version() == 1)
 mata: assert(fesim_state_schema_version() == 5)
 mata: assert(fesim_results_schema_version() == 2)
 mata: assert(fesim_handler_schema_version() == 1)
-mata: assert(fesim_dispatch_status() == "akm_simple_stylized_and_germany_chk_public")
+mata: assert(fesim_dispatch_status() == "akm_and_paygap_public")
 mata: assert(fesim_dispatch_toy_smoke() == 1)
 
 capture confirm file `"`output_dir'/lfesim.mlib"'

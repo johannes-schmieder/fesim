@@ -1,8 +1,25 @@
 # Changelog
 
-## Unreleased — 0.2.0
+## Unreleased — 0.3.0
 
 ### Implemented on `main`
+
+- Public `dgp(akmpaygap)` with stylized `simple` and targeted `cck2016`
+  presets; men are `group=0`, women are `group=1`, and all gaps are men minus
+  women.
+- Population-standard-normal common firm surplus without realized-sample
+  restandardization; group-specific worker effects, premium schedules,
+  residual dispersions, annual transition probabilities, destination sorting,
+  and wage trends.
+- Exact male-reference, female-reference, and symmetric decompositions into
+  intercept, worker composition, sorting, premium schedule, time, and residual
+  components, with explicit adding-up errors and normalization metadata.
+- Two-column group moment/target matrices, full counterfactual premium-schedule
+  truth, CCK Table II/III target records and transformations, a fixed
+  100,000-worker validation record, limiting-case tests, and a documented
+  end-to-end example.
+- Promoted the development version from `0.2.0-dev` to `0.3.0-dev` to match
+  the DESIGN release ladder after opening the P4 public family.
 
 - Standardized the installed help header, sources, and contact footer and
   added three self-contained one-click documentation workflows.

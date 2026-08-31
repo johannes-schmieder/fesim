@@ -1,4 +1,4 @@
-*! fesim 0.2.0-dev 29aug2026
+*! fesim 0.3.0-dev 31aug2026
 program define fesim, rclass
     version 16.0
 
@@ -80,7 +80,7 @@ program define fesim__list, rclass
         di as txt "  " %-12s `"`dgp'"' %-19s `"`presets'"' ///
             %-27s `"`aliases'"' `"`r(status)'"'
     }
-    di as txt _newline "The akm/simple, akm/stylized, and akm/germany_chk_2002_2009 presets are available for simulation."
+    di as txt _newline "Qualified presets: `qualified'."
 
     return local command "list"
     return local dgps `"`dgps'"'
@@ -173,9 +173,11 @@ program define fesim__describe, rclass
         di as txt _newline "Configuration metadata for this preset is planned."
         return local calibration_class `"`calibration'"'
     }
-    if `"`dgp'"' == "akm" & ///
+    if (`"`dgp'"' == "akm" & ///
         inlist(`"`resolved_preset'"', "simple", "stylized", ///
-        "germany_chk_2002_2009") {
+        "germany_chk_2002_2009")) | ///
+        (`"`dgp'"' == "akmpaygap" & ///
+        inlist(`"`resolved_preset'"', "simple", "cck2016")) {
         di as txt "Simulation is available for this preset."
     }
     else {
@@ -248,14 +250,15 @@ program define fesim__simulate, rclass
         p_ue_worker p_ue_duration p_theta_sort p_theta_quality ///
         p_theta_up p_theta_down p_block_count p_block_log_bonus ///
         p_bridge_count p_ladder_down_share p_ladder_lateral_share ///
-        p_ladder_up_share p_ladder_band
+        p_ladder_up_share p_ladder_band p_female_share p_mu_m p_mu_f ///
+        p_sd_worker_m p_sd_worker_f p_premium_intercept_m ///
+        p_premium_intercept_f p_premium_loading_m p_premium_loading_f ///
+        p_premium_deviation_sd_m p_premium_deviation_sd_f ///
+        p_sd_error_m p_sd_error_f p_p_eu_m p_p_ee_m p_p_ue_m ///
+        p_p_eu_f p_p_ee_f p_p_ue_f p_group_sort_m p_group_sort_f ///
+        p_worker_sort_m p_worker_sort_f p_wage_trend_m p_wage_trend_f
     matrix `resolved_parameters' = r(parameters)
-    scalar `p_mu' = `resolved_parameters'["mu", "value"]
-    scalar `p_sd_worker' = `resolved_parameters'["sd_worker", "value"]
-    scalar `p_sd_firm' = `resolved_parameters'["sd_firm", "value"]
-    scalar `p_sd_error' = `resolved_parameters'["sd_error", "value"]
     scalar `p_firm_size_sd' = `resolved_parameters'["firm_size_sd", "value"]
-    scalar `p_wage_trend' = `resolved_parameters'["wage_trend", "value"]
     scalar `p_block_count' = `resolved_parameters'["block_count", "value"]
     scalar `p_block_log_bonus' = ///
         `resolved_parameters'["block_log_bonus", "value"]
@@ -268,12 +271,31 @@ program define fesim__simulate, rclass
         `resolved_parameters'["ladder_up_share", "value"]
     scalar `p_ladder_band' = ///
         `resolved_parameters'["ladder_band", "value"]
-    if `"`resolved_preset'"' == "simple" {
+    if `"`resolved_dgp'"' == "akmpaygap" {
+        foreach name in female_share mu_m mu_f sd_worker_m sd_worker_f ///
+            premium_intercept_m premium_intercept_f premium_loading_m ///
+            premium_loading_f premium_deviation_sd_m ///
+            premium_deviation_sd_f sd_error_m sd_error_f p_eu_m p_ee_m ///
+            p_ue_m p_eu_f p_ee_f p_ue_f group_sort_m group_sort_f ///
+            worker_sort_m worker_sort_f wage_trend_m wage_trend_f {
+            scalar `p_`name'' = ///
+                `resolved_parameters'["`name'", "value"]
+        }
+    }
+    else {
+        scalar `p_mu' = `resolved_parameters'["mu", "value"]
+        scalar `p_sd_worker' = `resolved_parameters'["sd_worker", "value"]
+        scalar `p_sd_firm' = `resolved_parameters'["sd_firm", "value"]
+        scalar `p_sd_error' = `resolved_parameters'["sd_error", "value"]
+        scalar `p_wage_trend' = `resolved_parameters'["wage_trend", "value"]
+    }
+    if `"`resolved_dgp'"' == "akm" & ///
+        `"`resolved_preset'"' == "simple" {
         scalar `p_eu' = `resolved_parameters'["p_eu", "value"]
         scalar `p_ee' = `resolved_parameters'["p_ee", "value"]
         scalar `p_ue' = `resolved_parameters'["p_ue", "value"]
     }
-    else if `"`resolved_preset'"' != "simple" {
+    else if `"`resolved_dgp'"' == "akm" {
         foreach name in rho_z_alpha rho_q_psi kappa_eu eu_worker ///
             eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration ///
             kappa_ue ue_worker ue_duration theta_sort theta_quality ///
@@ -287,14 +309,16 @@ program define fesim__simulate, rclass
         di as error "data are in memory; specify clear to permit replacement"
         exit 4
     }
-    if `"`resolved_dgp'"' != "akm" | ///
-        !inlist(`"`resolved_preset'"', "simple", "stylized", ///
-        "germany_chk_2002_2009") {
+    if !((`"`resolved_dgp'"' == "akm" & ///
+        inlist(`"`resolved_preset'"', "simple", "stylized", ///
+        "germany_chk_2002_2009")) | ///
+        (`"`resolved_dgp'"' == "akmpaygap" & ///
+        inlist(`"`resolved_preset'"', "simple", "cck2016"))) {
         di as error "simulation is not yet implemented for dgp(`resolved_dgp') preset(`resolved_preset')"
         exit 498
     }
     if `"`resolved_connectivity'"' == "force" {
-        di as error "connectivity(`resolved_connectivity') is not yet implemented for akm/`resolved_preset'"
+        di as error "connectivity(`resolved_connectivity') is not implemented for `resolved_dgp'/`resolved_preset'"
         exit 498
     }
     quietly _fesim_load
@@ -318,11 +342,16 @@ program define fesim__simulate, rclass
     quietly mata: fesim_runtime_start(st_matrix("`runtime_timers'")[1, 2])
 
     local handler_truth `"`resolved_truth'"'
+    if `"`resolved_dgp'"' == "akmpaygap" local handler_truth "full"
     if `"`resolved_connectivity'"' == "largest" & ///
-        `"`resolved_truth'"' == "none" local handler_truth "basic"
+        `"`resolved_truth'"' == "none" & ///
+        `"`resolved_dgp'"' != "akmpaygap" local handler_truth "basic"
 
-    tempname master_seed truth_moments truth_targets bridge_ledger covariance_target
-    if `"`resolved_preset'"' == "simple" {
+    tempname master_seed truth_moments truth_targets bridge_ledger ///
+        covariance_target group_moments group_targets decomposition ///
+        decomposition_targets
+    if `"`resolved_dgp'"' == "akm" & ///
+        `"`resolved_preset'"' == "simple" {
         capture noisily mata: st_numscalar("`master_seed'", ///
             fesim_akm_simulate_to_stata( ///
             `resolved_workers', `resolved_firms', `resolved_periods', ///
@@ -344,7 +373,7 @@ program define fesim__simulate, rclass
             st_numscalar("`p_wage_trend'"), ///
             "`truth_moments'", "`truth_targets'", "`bridge_ledger'"))
     }
-    else {
+    else if `"`resolved_dgp'"' == "akm" {
         scalar `covariance_target' = .
         if `"`resolved_preset'"' == "germany_chk_2002_2009" ///
             scalar `covariance_target' = .0205
@@ -386,6 +415,35 @@ program define fesim__simulate, rclass
             st_numscalar("`covariance_target'"), ///
             "`truth_moments'", "`truth_targets'", "`bridge_ledger'"))
     }
+    else {
+        capture noisily mata: st_numscalar("`master_seed'", ///
+            fesim_paygap_simulate_to_stata( ///
+            `resolved_workers', `resolved_firms', `resolved_periods', ///
+            `resolved_start', "`resolved_time_format'", `resolved_delta', ///
+            `seed_value', `seed_was_requested', "`resolved_initial'", ///
+            `resolved_burnin', st_numscalar("`p_female_share'"), ///
+            st_numscalar("`p_mu_m'"), st_numscalar("`p_mu_f'"), ///
+            st_numscalar("`p_sd_worker_m'"), ///
+            st_numscalar("`p_sd_worker_f'"), ///
+            st_numscalar("`p_premium_intercept_m'"), ///
+            st_numscalar("`p_premium_intercept_f'"), ///
+            st_numscalar("`p_premium_loading_m'"), ///
+            st_numscalar("`p_premium_loading_f'"), ///
+            st_numscalar("`p_premium_deviation_sd_m'"), ///
+            st_numscalar("`p_premium_deviation_sd_f'"), ///
+            st_numscalar("`p_sd_error_m'"), ///
+            st_numscalar("`p_sd_error_f'"), ///
+            st_numscalar("`p_firm_size_sd'"), ///
+            st_numscalar("`p_p_eu_m'"), st_numscalar("`p_p_ee_m'"), ///
+            st_numscalar("`p_p_ue_m'"), st_numscalar("`p_p_eu_f'"), ///
+            st_numscalar("`p_p_ee_f'"), st_numscalar("`p_p_ue_f'"), ///
+            st_numscalar("`p_group_sort_m'"), ///
+            st_numscalar("`p_group_sort_f'"), ///
+            st_numscalar("`p_worker_sort_m'"), ///
+            st_numscalar("`p_worker_sort_f'"), ///
+            st_numscalar("`p_wage_trend_m'"), ///
+            st_numscalar("`p_wage_trend_f'")))
+    }
     local simulation_rc = _rc
     if `simulation_rc' {
         quietly mata: fesim_runtime_stop( ///
@@ -425,22 +483,24 @@ program define fesim__simulate, rclass
         local bridge_option "bridges(`bridge_ledger')"
     }
 
-    matrix rownames `truth_moments' = alpha_true_mean alpha_true_sd ///
-        alpha_true_var psi_true_mean psi_true_sd psi_true_var ///
-        epsilon_true_mean epsilon_true_sd epsilon_true_var ///
-        cov_alpha_psi_true
-    matrix colnames `truth_moments' = realized
-    matrix rownames `truth_targets' = alpha_true_mean alpha_true_sd ///
-        alpha_true_var psi_true_mean psi_true_sd psi_true_var ///
-        epsilon_true_mean epsilon_true_sd epsilon_true_var
-    if inlist(`"`resolved_preset'"', "simple", ///
-        "germany_chk_2002_2009") {
-        matrix rownames `truth_targets' = alpha_true_mean alpha_true_sd ///
+    if `"`resolved_dgp'"' == "akm" {
+        matrix rownames `truth_moments' = alpha_true_mean alpha_true_sd ///
             alpha_true_var psi_true_mean psi_true_sd psi_true_var ///
             epsilon_true_mean epsilon_true_sd epsilon_true_var ///
             cov_alpha_psi_true
+        matrix colnames `truth_moments' = realized
+        matrix rownames `truth_targets' = alpha_true_mean alpha_true_sd ///
+            alpha_true_var psi_true_mean psi_true_sd psi_true_var ///
+            epsilon_true_mean epsilon_true_sd epsilon_true_var
+        if inlist(`"`resolved_preset'"', "simple", ///
+            "germany_chk_2002_2009") {
+            matrix rownames `truth_targets' = alpha_true_mean alpha_true_sd ///
+                alpha_true_var psi_true_mean psi_true_sd psi_true_var ///
+                epsilon_true_mean epsilon_true_sd epsilon_true_var ///
+                cov_alpha_psi_true
+        }
+        matrix colnames `truth_targets' = target
     }
-    matrix colnames `truth_targets' = target
 
     capture quietly _fesim_network, workers(`resolved_workers') ///
         firms(`resolved_firms') periods(`resolved_periods') ///
@@ -465,7 +525,8 @@ program define fesim__simulate, rclass
     local largest_worker_share = r(largest_component_worker_share)
     local largest_firm_share = r(largest_component_firm_share)
 
-    if `"`resolved_connectivity'"' == "largest" {
+    if `"`resolved_connectivity'"' == "largest" & ///
+        `"`resolved_dgp'"' != "akmpaygap" {
         capture quietly _fesim_truth
         local truth_rc = _rc
         if `truth_rc' {
@@ -485,8 +546,72 @@ program define fesim__simulate, rclass
         }
     }
 
+    local paygap_option ""
+    if `"`resolved_dgp'"' == "akmpaygap" {
+        capture noisily mata: fesim_paygap_results_to_stata( ///
+            `resolved_periods', st_numscalar("`p_mu_m'"), ///
+            st_numscalar("`p_mu_f'"), "`resolved_preset'", ///
+            "`truth_moments'", "`group_moments'", "`group_targets'", ///
+            "`decomposition'", "`decomposition_targets'")
+        local paygap_rc = _rc
+        if `paygap_rc' {
+            quietly mata: fesim_runtime_stop( ///
+                st_matrix("`runtime_timers'")[1, 1])
+            quietly mata: fesim_runtime_release(st_matrix("`runtime_timers'"))
+            if `had_data' quietly restore
+            else clear
+            quietly mata: fesim_rng_restore_state( ///
+                "`caller_rng'", "`caller_rngstate'")
+            exit `paygap_rc'
+        }
+        matrix rownames `truth_moments' = alpha_true_mean alpha_true_sd ///
+            alpha_true_var psi_true_mean psi_true_sd psi_true_var ///
+            epsilon_true_mean epsilon_true_sd epsilon_true_var ///
+            cov_alpha_psi_true
+        matrix colnames `truth_moments' = realized
+        matrix `truth_targets' = J(10, 1, .)
+        matrix rownames `truth_targets' = alpha_true_mean alpha_true_sd ///
+            alpha_true_var psi_true_mean psi_true_sd psi_true_var ///
+            epsilon_true_mean epsilon_true_sd epsilon_true_var ///
+            cov_alpha_psi_true
+        matrix colnames `truth_targets' = target
+        matrix rownames `group_moments' = N_workers N_employed ///
+            employment_rate lnwage_mean lnwage_sd alpha_mean alpha_sd ///
+            premium_mean premium_sd epsilon_mean epsilon_sd ///
+            corr_alpha_premium surplus_mean surplus_sd p_eu_realized ///
+            p_ue_realized p_ee_realized
+        matrix colnames `group_moments' = men women
+        matrix rownames `group_targets' = N_workers N_employed ///
+            employment_rate lnwage_mean lnwage_sd alpha_mean alpha_sd ///
+            premium_mean premium_sd epsilon_mean epsilon_sd ///
+            corr_alpha_premium surplus_mean surplus_sd p_eu_realized ///
+            p_ue_realized p_ee_realized
+        matrix colnames `group_targets' = men women
+        matrix rownames `decomposition' = total_gap intercept ///
+            worker_composition firm_total sorting premium_schedule time ///
+            residual adding_up_error
+        matrix colnames `decomposition' = male_reference female_reference ///
+            symmetric
+        matrix rownames `decomposition_targets' = total_gap intercept ///
+            worker_composition firm_total sorting premium_schedule time ///
+            residual adding_up_error
+        matrix colnames `decomposition_targets' = male_reference ///
+            female_reference symmetric
+        local paygap_option ///
+            "groupmoments(`group_moments') grouptargets(`group_targets') decomposition(`decomposition') decompositiontargets(`decomposition_targets')"
+        if `"`resolved_truth'"' == "none" {
+            quietly drop alpha_true psi_true time_true xb_true match_true ///
+                epsilon_true lnwage_true firm_surplus_true ///
+                psi_male_true psi_female_true
+        }
+        else if `"`resolved_truth'"' == "basic" {
+            quietly drop firm_surplus_true psi_male_true psi_female_true
+        }
+    }
+
     local duration_option ""
-    if `"`resolved_preset'"' != "simple" {
+    if `"`resolved_dgp'"' == "akm" & ///
+        `"`resolved_preset'"' != "simple" {
         capture quietly _fesim_durations, deltayears(`resolved_delta')
         local duration_rc = _rc
         if `duration_rc' {
@@ -504,8 +629,11 @@ program define fesim__simulate, rclass
         local duration_option "durations(`resolved_durations')"
     }
 
+    local common_target_option ""
+    if `"`resolved_dgp'"' == "akm" ///
+        local common_target_option "targets(`truth_targets')"
     capture quietly _fesim_moments, firms(`resolved_firms') ///
-        truthmoments(`truth_moments') targets(`truth_targets')
+        truthmoments(`truth_moments') `common_target_option'
     local moments_rc = _rc
     if `moments_rc' {
         quietly mata: fesim_runtime_stop( ///
@@ -519,7 +647,11 @@ program define fesim__simulate, rclass
     }
     tempname resolved_moments resolved_targets
     matrix `resolved_moments' = r(moments)
-    matrix `resolved_targets' = r(targets)
+    local common_targets_finalize ""
+    if `"`resolved_dgp'"' == "akm" {
+        matrix `resolved_targets' = r(targets)
+        local common_targets_finalize "targets(`resolved_targets')"
+    }
     local firms_active = r(N_firms_active)
     local employment_rate = r(employment_rate)
     local realized_eu = r(p_eu_realized)
@@ -538,6 +670,13 @@ program define fesim__simulate, rclass
     local scientific_config = subinstr(`"`resolved_config'"', ///
         " report=`resolved_reporting'", "", .)
     local resolved_command `"fesim `scientific_config'"'
+    local resolved_reference "none"
+    local paygap_metadata ""
+    if `"`resolved_dgp'"' == "akmpaygap" {
+        local resolved_reference "male_premium_schedule"
+        local paygap_metadata ///
+            "groupcoding(0_men_1_women) gapdirection(men_minus_women) surplusnormalization(population_standard_normal_no_sample_restandardization)"
+    }
     _fesim_finalize, dgp(`resolved_dgp') dgpalias(`resolved_alias') ///
         preset(`resolved_preset') calibrationclass(`calibration_class') ///
         command(`"`resolved_command'"') seed(`recorded_seed') rng(mt64s) ///
@@ -546,11 +685,12 @@ program define fesim__simulate, rclass
         internalclock(`resolved_internal_clock') jobrule(`resolved_jobrule') ///
         truth(`resolved_truth') burnin(`resolved_burnin') ///
         connectivity(`resolved_connectivity') ///
-        networkdesign(`resolved_network_mode') reference(none) ///
+        networkdesign(`resolved_network_mode') ///
+        reference(`resolved_reference') `paygap_metadata' ///
         workers(`network_workers') firms(`resolved_firms') ///
         periods(`resolved_periods') parameters(`resolved_parameters') ///
-        moments(`resolved_moments') targets(`resolved_targets') ///
-        `duration_option' `bridge_option' ///
+        moments(`resolved_moments') `common_targets_finalize' ///
+        `duration_option' `bridge_option' `paygap_option' ///
         network(`resolved_network') leaveout(`resolved_leaveout') ///
         components(`network_components') ///
         largestcomponentobsshare(`largest_observation_share') ///

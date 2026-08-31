@@ -6,7 +6,10 @@ The installed runtime will use only official Stata and Mata. It will not require
 
 ## Current implementation status
 
-The latest release is `v0.1.0`. The `main` branch is now `0.2.0-dev`, with three public AKM presets: the released `akm/simple` design, the explicitly uncalibrated `akm/stylized` monthly empirical-mobility design, and the distinct CHK-targeted `akm/germany_chk_2002_2009` design. Discovery, preset inspection, canonical alias resolution, and deterministic default reporting are available for all three:
+The latest release is `v0.1.0`. The `main` branch is now `0.3.0-dev`, with
+three public AKM presets and two public pay-gap presets. The pay-gap family
+includes a transparent stylized design and a CCK-inspired targeted design with
+an exact three-reference decomposition:
 
 ```stata
 fesim version
@@ -17,6 +20,8 @@ fesim describe akmsimple
 fesim describe akm, preset(simple)
 fesim describe akmempirical
 fesim describe akm, preset(germany_chk_2002_2009)
+fesim describe akmpaygap, preset(simple)
+fesim describe akmpaygap, preset(cck2016)
 ```
 
 `fesim describe akmsimple` reports the resolved `akm/simple` configuration and scalar-parameter matrix. The same resolver validates named common options and model-specific name-value pairs such as `parameters(mu 3.2 p_ee .10)`, records their sources, and serializes the result deterministically. In the frozen v0.1 contract, all model-specific scalars remain inside `parameters()`; only common controls have named options.
@@ -29,9 +34,15 @@ The public simulation routes are:
 fesim, dgp(akmsimple) seed(12345) clear
 fesim, dgp(akmempirical) seed(12345) clear
 fesim, dgp(akm) preset(germany_chk_2002_2009) seed(12345) clear
+fesim, dgp(akmpaygap) preset(simple) seed(12345) clear
+fesim, dgp(akmpaygap) preset(cck2016) seed(12345) clear
 ```
 
-The aliases resolve to `dgp(akm) preset(simple)` and `dgp(akm) preset(stylized)`, respectively; the Germany preset deliberately has no alias. All three generate the required worker-period panel, optional truth variables, common moments, metadata, and returned results. Retained periods are streamed into the final worker-major Stata dataset; the implementation does not retain a second full panel in Mata.
+The aliases resolve to `dgp(akm) preset(simple)` and `dgp(akm)
+preset(stylized)`, respectively; the Germany and pay-gap presets deliberately
+have no aliases. All public routes generate the required worker-period panel,
+optional truth variables, common moments, metadata, and returned results.
+Retained periods are streamed into the final worker-major Stata dataset.
 
 ## Quick start
 
@@ -128,6 +139,30 @@ Its `akm/stylized` defaults are deliberately uncalibrated. Wage and firm-size sc
 
 The separate `akm/germany_chk_2002_2009` preset targets Card, Heining, and Kline's 2002–2009 West German AKM worker-effect SD `.357`, establishment-effect SD `.230`, residual SD `.135`, and worker–establishment covariance `.0205`. Only `theta_sort=2.2` is fitted, using five 100,000-worker calibration seeds and five disjoint validation seeds. Transition hazards and durations remain D-026 stylized values, so the precise claim is **targeted wage dispersion and sorting**. See [docs/akm_germany_chk.md](docs/akm_germany_chk.md), [`examples/akm_germany_chk.do`](examples/akm_germany_chk.do), and the audited files under [`calibrations/`](calibrations/).
 
+Generate a two-group panel and inspect the exact men-minus-women
+decomposition under male, female, and symmetric premium-schedule references:
+
+```stata
+fesim, dgp(akmpaygap) preset(cck2016) workers(5000) firms(500) ///
+    periods(8) burnin(5) seed(13579) truth(full) noreport clear
+
+matrix list r(group_moments)
+matrix list r(group_targets)
+matrix list r(decomposition)
+matrix list r(decomposition_targets)
+```
+
+`group=0` denotes men and `group=1` women; all gaps are men minus women. The
+common firm-surplus index is population standard normal without realized-sample
+restandardization. `r(decomposition)` adds exactly and always includes
+male-reference, female-reference, and symmetric columns. The CCK-inspired
+preset targets selected Table II group moments and Table III total/firm/sorting
+moments, but it does not reproduce CCK's empirical low-surplus-firm
+normalization or full estimation procedure. See
+[docs/akm_paygap.md](docs/akm_paygap.md),
+[`examples/akmpaygap_cck2016.do`](examples/akmpaygap_cck2016.do), and the
+audited records under [`calibrations/`](calibrations/).
+
 An internal deterministic toy handler exercises the shared Mata lifecycle and typed containers. It is test infrastructure and is not registered as a public DGP. Only the shared output module may translate its results into the frozen Stata panel scaffold. The common blockwise finalizer constructs observed flow indicators and preserves latent transition counts with explicit boundary-period missingness.
 
 The common result finalizer attaches the frozen dataset characteristics, returns named scalars/macros/matrices, and implements compact `report`/`noreport` behavior without changing data or RNG state.
@@ -161,12 +196,12 @@ The supported minimum for v0.1 is Stata 19. Exact-source qualification covers St
 - A **preset** supplies a documented parameterization and calibration classification.
 - An **observation scheme** converts latent histories into annual, quarterly, or monthly Stata panels.
 
-For example, `dgp(akmsimple)` and `dgp(akmempirical)` are aliases for the canonical `dgp(akm) preset(simple)` and `dgp(akm) preset(stylized)` configurations. Both presets are stylized, not paper or country calibrations.
+For example, `dgp(akmsimple)` and `dgp(akmempirical)` are aliases for the canonical `dgp(akm) preset(simple)` and `dgp(akm) preset(stylized)` configurations. Both presets are stylized, not paper or country calibrations. `akmpaygap/cck2016` is separately classified as targeted.
 
 ## Development
 
 Read [DESIGN.md](DESIGN.md) before changing public behavior and [PLAN.md](PLAN.md) for the live implementation state. Build and test instructions are in [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/architecture.md](docs/architecture.md).
 
-The qualified component-stream protocol is documented in [docs/rng.md](docs/rng.md), the worker-block output strategy in [docs/output.md](docs/output.md), the common statistical definitions in [docs/moments.md](docs/moments.md), observed graph semantics in [docs/network.md](docs/network.md), frozen tiny-panel scope in [docs/regression.md](docs/regression.md), large-sample test bounds in [docs/statistical_tests.md](docs/statistical_tests.md), and exact-source runtime baselines in [docs/performance.md](docs/performance.md). User-visible release scope is summarized in [CHANGELOG.md](CHANGELOG.md).
+The qualified component-stream protocol is documented in [docs/rng.md](docs/rng.md), the worker-block output strategy in [docs/output.md](docs/output.md), the common statistical definitions in [docs/moments.md](docs/moments.md), the pay-gap model in [docs/akm_paygap.md](docs/akm_paygap.md), observed graph semantics in [docs/network.md](docs/network.md), frozen tiny-panel scope in [docs/regression.md](docs/regression.md), large-sample test bounds in [docs/statistical_tests.md](docs/statistical_tests.md), and exact-source runtime baselines in [docs/performance.md](docs/performance.md). User-visible release scope is summarized in [CHANGELOG.md](CHANGELOG.md).
 
 `fesim` is released under the MIT License. See [LICENSE](LICENSE).

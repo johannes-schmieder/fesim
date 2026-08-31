@@ -33,3 +33,23 @@ Eight- and ten-standard-error bands are deliberately conservative family-wide sa
 - changing only the EU/EE/UE duration slopes from zero to materially negative values must increase mean tenure by at least 25 percent and mean unemployment duration by at least 50 percent.
 
 These are conservative mechanism regressions, not empirical target tests. The design deliberately zeros all competing heterogeneity or destination terms relevant to each contrast and holds seed, population size, hazards, and remaining primitives fixed. They complement the exact hazard, destination, lifecycle, and public alias/output tests.
+
+## Pay-gap limiting cases and CCK target validation
+
+`tests/statistical/paygap_limits.do` uses a 20,000-worker all-equal public design
+to require a total gap below `.04`, worker composition below `.025`, sorting
+below `.015`, an exactly zero common-schedule component, and exact adding-up.
+A separate 40,000-worker design assigns distinct group EU/EE/UE probabilities
+and requires all six realized rates to lie within fixed conservative bands of
+`.006` to `.014`. These bands are wider than eight conditional-binomial
+standard errors for the fixed risk sets and seed.
+
+`tests/statistical/paygap_cck_moments.do` uses the documented 100,000-worker,
+1,000-firm, eight-year, five-year-burn-in validation design and seed 13579. The
+predeclared absolute tolerances are `.025` for group log-wage and premium SDs,
+`.01` for worker and residual SDs, `.04` for premium means, `.03` for
+worker-premium correlations and the total gap, `.02` for the total firm and
+premium-schedule components, and `.01` for male-reference sorting. Every
+reference must add within `1e-10`. These are fixed-seed reduced-form calibration
+tolerances, not sampling-theory confidence intervals or a claim to reproduce
+CCK's empirical estimator.

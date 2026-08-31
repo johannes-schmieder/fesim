@@ -1,4 +1,4 @@
-*! fesim common configuration resolver 0.2.0-dev 29aug2026
+*! fesim common configuration resolver 0.3.0-dev 31aug2026
 program define fesim_config, rclass
     version 16.0
     syntax [ , DGP(string) PRESet(string) WORKers(string) FIRMs(string) ///
@@ -113,6 +113,10 @@ program define fesim_config, rclass
         di as error "network() must be random, blocks, bridges, or ladder"
         exit 198
     }
+    if `"`canonical'"' == "akmpaygap" & `"`network'"' != "random" {
+        di as error "akmpaygap currently requires network(random)"
+        exit 198
+    }
     if `"`network'"' == "bridges" & `"`source_bridge_count'"' != "parameters" {
         local value_bridge_count = real(`"`value_block_count'"') - 1
         local default_bridge_count `"`value_bridge_count'"'
@@ -157,7 +161,23 @@ program define fesim_config, rclass
         local value_`name' = strtrim(`"`formatted'"')
     }
 
-    if `"`resolved_preset'"' == "simple" {
+    if `"`canonical'"' == "akmpaygap" {
+        if real(`"`value_firms'"') < 2 {
+            di as error "firms() must be at least 2 for akmpaygap/`resolved_preset'"
+            exit 198
+        }
+        if real(`"`value_p_eu_m'"') + ///
+            real(`"`value_p_ee_m'"') >= 1 {
+            di as error "p_eu_m + p_ee_m must be strictly less than 1"
+            exit 198
+        }
+        if real(`"`value_p_eu_f'"') + ///
+            real(`"`value_p_ee_f'"') >= 1 {
+            di as error "p_eu_f + p_ee_f must be strictly less than 1"
+            exit 198
+        }
+    }
+    else if `"`resolved_preset'"' == "simple" {
         if real(`"`value_p_eu'"') + real(`"`value_p_ee'"') >= 1 {
             di as error "p_eu + p_ee must be strictly less than 1"
             exit 198
@@ -244,7 +264,8 @@ program define fesim_config, rclass
     local start = lower(strtrim(`"`start'"'))
     local source_start "option"
     if `"`start'"' == "" {
-        if `"`resolved_preset'"' == "germany_chk_2002_2009" {
+        if inlist(`"`resolved_preset'"', ///
+            "germany_chk_2002_2009", "cck2016") {
             if `"`frequency'"' == "year" local start "2002"
             else if `"`frequency'"' == "quarter" local start "2002q1"
             else local start "2002m1"
@@ -260,7 +281,8 @@ program define fesim_config, rclass
     local time_format `"`r(format)'"'
     local interval_unit `"`r(interval_unit)'"'
     local internal_clock `"`r(internal_clock)'"'
-    if `"`resolved_preset'"' != "simple" local internal_clock "month"
+    if `"`canonical'"' == "akmpaygap" local internal_clock "output_period"
+    else if `"`resolved_preset'"' != "simple" local internal_clock "month"
     local start_value = r(start_value)
     local end_value = r(end_value)
     local periods_per_year = r(periods_per_year)
@@ -287,7 +309,8 @@ program define fesim_config, rclass
         local source_`name' "option"
     }
     if `"`initial'"' == "" {
-        if `"`resolved_preset'"' != "simple" {
+        if `"`canonical'"' == "akmpaygap" | ///
+            `"`resolved_preset'"' != "simple" {
             local initial "random"
             local source_initial "preset"
         }
@@ -300,13 +323,15 @@ program define fesim_config, rclass
         di as error "initial() must be stationary, random, or allunemployed"
         exit 198
     }
-    if `"`resolved_preset'"' != "simple" & `"`initial'"' == "stationary" {
-        di as error "initial(stationary) is unavailable for akm/`resolved_preset'"
+    if (`"`canonical'"' == "akmpaygap" | ///
+        `"`resolved_preset'"' != "simple") & `"`initial'"' == "stationary" {
+        di as error "initial(stationary) is unavailable for `canonical'/`resolved_preset'"
         exit 198
     }
     if `"`initial'"' == "random" & real(`"`value_burnin'"') < 1 {
-        if `"`resolved_preset'"' != "simple" {
-            di as error "initial(random) requires burnin() of at least one year for akm/`resolved_preset'"
+        if `"`canonical'"' == "akmpaygap" | ///
+            `"`resolved_preset'"' != "simple" {
+            di as error "initial(random) requires burnin() of at least one year for `canonical'/`resolved_preset'"
         }
         else {
             di as error "initial(random) requires burnin() of at least one output period"
@@ -357,7 +382,8 @@ program define fesim_config, rclass
     }
     local model_overrides = strtrim(`"`model_overrides'"')
     if `"`model_overrides'"' != "" {
-        if `"`resolved_preset'"' == "germany_chk_2002_2009" ///
+        if inlist(`"`resolved_preset'"', ///
+            "germany_chk_2002_2009", "cck2016") ///
             local calibration_class "targeted_modified"
         else local calibration_class "stylized_modified"
     }

@@ -42,6 +42,9 @@ struct fesim_population {
     real colvector worker_type_index
     real colvector worker_mobility
     real colvector firm_quality
+    real colvector group
+    real colvector firm_alt_value
+    real colvector firm_surplus
     real scalar validated
 }
 
@@ -173,7 +176,7 @@ struct fesim_empirical_params {
 
 real scalar fesim_mata_api_version()
 {
-    return(25)
+    return(26)
 }
 
 real scalar fesim_config_schema_version()
@@ -183,7 +186,7 @@ real scalar fesim_config_schema_version()
 
 real scalar fesim_population_schema_version()
 {
-    return(3)
+    return(4)
 }
 
 real scalar fesim_state_schema_version()

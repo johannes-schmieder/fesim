@@ -1,0 +1,2 @@
+stage,seed,workers,firms,periods,burnin,men_lnwage_sd,women_lnwage_sd,men_alpha_sd,women_alpha_sd,men_premium_mean,women_premium_mean,men_premium_sd,women_premium_sd,men_epsilon_sd,women_epsilon_sd,men_corr_alpha_premium,women_corr_alpha_premium,total_gap,firm_total,sorting_male_reference,premium_schedule_male_reference,adding_up_error_max
+validation,13579,100000,1000,8,5,.553327616,.510866430,.419637752,.399613165,.162173327,.109298769,.249989213,.213728430,.142789228,.124856900,.162250614,.158046677,.239395852,.052874559,.032905709,.019968849,0

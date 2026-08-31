@@ -1,8 +1,8 @@
-*! fesim Mata source loader 0.2.0-dev 29aug2026
+*! fesim Mata source loader 0.3.0-dev 31aug2026
 program define _fesim_load
     version 16.0
 
-    capture mata: assert(fesim_mata_api_version() == 25)
+    capture mata: assert(fesim_mata_api_version() == 26)
     if !_rc exit
 
     quietly findfile _fesim_load.ado
@@ -11,7 +11,7 @@ program define _fesim_load
     local package_root = substr(`"`loader_path'"', 1, ///
         strlen(`"`loader_path'"') - strlen(`"`loader_name'"') - 1)
     foreach source in types rng time hazards destinations network_design flows moments network runtime output lifecycle ///
-        akm_simple empirical akm_handler emp_handler dispatch {
+        akm_simple empirical paygap akm_handler emp_handler paygap_handler dispatch {
         local source_path `"`package_root'/src/fesim_`source'.mata"'
         capture confirm file `"`source_path'"'
         if _rc {
@@ -24,7 +24,7 @@ program define _fesim_load
         }
         quietly do `"`source_path'"'
     }
-    capture mata: assert(fesim_mata_api_version() == 25)
+    capture mata: assert(fesim_mata_api_version() == 26)
     if _rc {
         di as error "fesim Mata source failed to load"
         exit 3000

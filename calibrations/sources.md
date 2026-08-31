@@ -21,3 +21,50 @@ Only `theta_sort` is fitted to the sorting target. The fit holds `rho_z_alpha=.3
 The preset is therefore described narrowly as **targeted wage dispersion and sorting**. Its transition hazards, duration dependence, firm-size scale, latent correlations, and remaining destination slopes are transparent D-026 carryovers and are not German-calibrated. `mu=3` is a package normalization rather than a CHK target. The public default panel uses 10,000 workers and 1,000 firms for tractability while preserving the 10:1 worker–firm ratio of the fitting design; it retains the source-aligned eight annual periods beginning in 2002.
 
 Primary source: [accepted manuscript](https://eml.berkeley.edu/~pkline/papers/Germany_resubmit.pdf). The audited runtime targets are in `calibrations/targets.csv`; the seed-level fit and validation record is in `calibrations/germany_chk_2002_2009_results.csv`; the executable validation harness is `calibrations/fit_germany_chk_2002_2009.do`.
+
+## `akmpaygap/simple`
+
+The two-group simple values are the owner-approved D-035 transparent baseline.
+They are package values, not estimates from a paper or administrative dataset.
+The design uses common transition probabilities and firm attraction so that
+worker composition, firm sorting, and premium schedules can be varied
+separately.
+
+## `akmpaygap/cck2016`
+
+This targeted preset uses Card, Cardoso, and Kline (2016), “Bargaining,
+Sorting, and the Gender Wage Gap: Quantifying the Impact of Firms on the
+Relative Pay of Women,” *Quarterly Journal of Economics* 131(2): 633–686.
+
+CCK Table II supplies group-specific log-wage, worker-effect, firm-premium, and
+residual standard deviations; mean firm premiums; worker-premium correlations;
+and the `.590` cross-group firm-premium correlation. Table III supplies the
+men-minus-women total gap `.234`, total firm contribution `.049`,
+male-reference sorting `.035`, and male-reference premium-schedule contribution
+`.015`. The published rounded sorting and schedule components add to `.050`
+while the published firm total is `.049`; `fesim` records all four targets but
+uses exact realized adding-up identities.
+
+The package maps those targets to a population-standard-normal common surplus.
+In particular, `group_sort_m=.142` is the rounded `.035/.247` sorting tilt;
+`premium_loading_f=.12567` is `.590*.213`; and
+`premium_deviation_sd_f=.171976891180182` is
+`sqrt(.213^2-.12567^2)`. The group/type sorting coefficients and common `.05`
+annual trend are supporting reduced-form moment-fit parameters. Equal `.08`,
+`.12`, and `.60` group transition probabilities and common `firm_size_sd=1`
+are stylized package values, not CCK estimates.
+
+The precise claim is **targeted group wage/effect moments and a male-reference
+firm decomposition**. CCK's empirical low-surplus-firm normalization is not
+reproduced: `fesim` uses a population-standard-normal latent surplus without
+finite-sample restandardization. It also omits the paper's full empirical
+estimation, covariates, establishment sample, and counterfactual reweighting.
+
+The audited source PDF SHA-256 is
+`0ad3c4a2f0192d2bd78e8901b7ce83e94e080423758282690129c7326ca1978a`.
+Primary source: [NBER working paper](https://www.nber.org/papers/w18850) and
+[published article](https://doi.org/10.1093/qje/qjv038). Runtime targets are in
+`calibrations/targets.csv`, defaults and transformations in
+`calibrations/presets.csv`, the fixed validation record in
+`calibrations/paygap_cck2016_results.csv`, and the executable large-sample check
+in `tests/statistical/paygap_cck_moments.do`.

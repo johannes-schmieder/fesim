@@ -25,4 +25,12 @@ assert `"`r(calibration_class)'"' == "targeted"
 assert rowsof(r(targets)) == 10
 isid workerid time
 
+capture noisily do `"`repository_root'/examples/akmpaygap_cck2016.do"'
+assert _rc == 0
+assert _N == 8000
+assert `"`r(calibration_class)'"' == "targeted"
+assert rowsof(r(group_moments)) == 17
+assert rowsof(r(decomposition)) == 9
+isid workerid time
+
 di as result "FESIM DOCUMENTED EXAMPLES PASS"

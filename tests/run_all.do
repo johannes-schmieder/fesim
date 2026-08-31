@@ -51,17 +51,20 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     unit/test_akm_initialization ///
     unit/test_akm_mobility ///
     unit/test_empirical_lifecycle ///
+    unit/test_paygap_lifecycle unit/test_paygap_decomp ///
     unit/test_akm_wages ///
     unit/test_akm_diagnostics ///
     integration/test_discovery ///
     integration/test_akm_public ///
     integration/test_akm_stylized_public ///
-    integration/test_akm_germany_chk_public integration/test_network_blocks ///
+    integration/test_akm_germany_chk_public integration/test_paygap_public ///
+    integration/test_network_blocks ///
     integration/test_network_bridges integration/test_network_ladder ///
     integration/test_output_blocks integration/test_panel_contract ///
     integration/test_results regression/akm_tiny ///
     statistical/akm_moments statistical/akm_exogeneity ///
     statistical/akm_stylized_mobility ///
+    statistical/paygap_limits statistical/paygap_cck_moments ///
     docs/run_examples docs/run_help_examples
 local n_tests : word count `tests'
 foreach test of local tests {

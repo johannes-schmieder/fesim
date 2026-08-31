@@ -55,7 +55,7 @@ assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
 capture noisily fesim version
 assert _rc == 0
-assert `"`r(version)'"' == "0.2.0-dev"
+assert `"`r(version)'"' == "0.3.0-dev"
 
 capture noisily fesim list
 assert _rc == 0
@@ -98,7 +98,15 @@ confirm variable unemp_duration
 matrix installed_durations = r(durations)
 assert rowsof(installed_durations) == 12
 isid workerid time
-mata: assert(fesim_mata_api_version() == 25)
+capture noisily fesim, dgp(akmpaygap) preset(simple) workers(40) ///
+    firms(8) periods(3) burnin(1) seed(24680) truth(none) noreport clear
+assert _rc == 0
+assert _N == 120
+confirm variable group
+matrix installed_paygap = r(decomposition)
+assert rowsof(installed_paygap) == 9
+assert abs(installed_paygap["adding_up_error", "symmetric"]) < 1e-10
+mata: assert(fesim_mata_api_version() == 26)
 mata: mata clear
 quietly adopath ++ `"`repository_root'/build"'
 mata: mata mlib index

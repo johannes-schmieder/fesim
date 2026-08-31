@@ -1,4 +1,4 @@
-*! fesim common metadata/result finalizer 0.2.0-dev 30aug2026
+*! fesim common metadata/result finalizer 0.3.0-dev 31aug2026
 program define _fesim_finalize, rclass
     version 16.0
     syntax , DGP(string) DGPALIAS(string) PRESET(string) ///
@@ -11,6 +11,9 @@ program define _fesim_finalize, rclass
         PARAMETERS(name) MOMENTS(name) ///
         [ TARGETS(name) NETWORK(name) LEAVEOUT(name) SOLVER(name) ///
         DURATIONS(name) BRIDGES(name) ///
+        GROUPMOMENTS(name) GROUPTARGETS(name) DECOMPOSITION(name) ///
+        DECOMPOSITIONTARGETS(name) GROUPCODING(string) ///
+        GAPDIRECTION(string) SURPLUSNORMALIZATION(string) ///
         FIRMSACTIVE(real -1) EMPLOYMENTRATE(real -1) ///
         PEU(real -1) PUE(real -1) PEE(real -1) COMPONENTS(real -1) ///
         LARGESTCOMPONENTOBSSHARE(real -1) ///
@@ -62,7 +65,8 @@ program define _fesim_finalize, rclass
             exit 198
         }
     }
-    foreach matrix_name in targets network leaveout solver durations bridges {
+    foreach matrix_name in targets network leaveout solver durations bridges ///
+        groupmoments grouptargets decomposition decompositiontargets {
         if `"``matrix_name''"' != "" {
             capture confirm matrix ``matrix_name''
             if _rc {
@@ -73,6 +77,21 @@ program define _fesim_finalize, rclass
             local column_names : colnames ``matrix_name''
             if strtrim(`"`row_names'`column_names'"') == "" {
                 di as error "`matrix_name'() must have stable row or column names"
+                exit 198
+            }
+        }
+    }
+    if `"`dgp'"' == "akmpaygap" {
+        foreach name in groupmoments grouptargets decomposition ///
+            decompositiontargets {
+            if `"``name''"' == "" {
+                di as error "akmpaygap requires `name'()"
+                exit 198
+            }
+        }
+        foreach name in groupcoding gapdirection surplusnormalization {
+            if strtrim(`"``name''"') == "" {
+                di as error "akmpaygap requires `name'()"
                 exit 198
             }
         }
@@ -162,6 +181,12 @@ program define _fesim_finalize, rclass
     char _dta[fesim_rng_method] `"`rngmethod'"'
     char _dta[fesim_stata_version] `"`c(stata_version)'"'
     char _dta[fesim_truth] `"`truth'"'
+    if `"`groupcoding'"' != "" ///
+        char _dta[fesim_group_coding] `"`groupcoding'"'
+    if `"`gapdirection'"' != "" ///
+        char _dta[fesim_gap_direction] `"`gapdirection'"'
+    if `"`surplusnormalization'"' != "" ///
+        char _dta[fesim_surplus_normalization] `"`surplusnormalization'"'
 
     tempname parameters_copy moments_copy
     matrix `parameters_copy' = `parameters'
@@ -189,6 +214,13 @@ program define _fesim_finalize, rclass
     if `"`bridges'"' != "" {
         tempname bridges_copy
         matrix `bridges_copy' = `bridges'
+    }
+    foreach matrix_name in groupmoments grouptargets decomposition ///
+        decompositiontargets {
+        if `"``matrix_name''"' != "" {
+            tempname `matrix_name'_copy
+            matrix ``matrix_name'_copy' = ``matrix_name''
+        }
     }
 
     return scalar N = _N
@@ -223,6 +255,12 @@ program define _fesim_finalize, rclass
     return local command `"`command'"'
     return local version `"`version'"'
     return local reference `"`reference'"'
+    if `"`groupcoding'"' != "" ///
+        return local group_coding `"`groupcoding'"'
+    if `"`gapdirection'"' != "" ///
+        return local gap_direction `"`gapdirection'"'
+    if `"`surplusnormalization'"' != "" ///
+        return local surplus_normalization `"`surplusnormalization'"'
     return matrix parameters = `parameters_copy'
     return matrix moments = `moments_copy'
     if `"`targets'"' != "" return matrix targets = `targets_copy'
@@ -231,6 +269,14 @@ program define _fesim_finalize, rclass
     if `"`solver'"' != "" return matrix solver = `solver_copy'
     if `"`durations'"' != "" return matrix durations = `durations_copy'
     if `"`bridges'"' != "" return matrix bridges = `bridges_copy'
+    if `"`groupmoments'"' != "" ///
+        return matrix group_moments = `groupmoments_copy'
+    if `"`grouptargets'"' != "" ///
+        return matrix group_targets = `grouptargets_copy'
+    if `"`decomposition'"' != "" ///
+        return matrix decomposition = `decomposition_copy'
+    if `"`decompositiontargets'"' != "" ///
+        return matrix decomposition_targets = `decompositiontargets_copy'
 
     if `"`reporting'"' == "report" {
         di as txt _newline "fesim simulation summary"

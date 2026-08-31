@@ -136,6 +136,41 @@ quietly fesim_config, dgp(akm) preset(germany_chk_2002_2009) ///
 assert `"`r(calibration_class)'"' == "targeted_modified"
 assert `"`r(model_overrides)'"' == "theta_sort=2.1"
 
+quietly fesim_config, dgp(akmpaygap) preset(simple)
+tempname paygap_simple_parameters
+matrix `paygap_simple_parameters' = r(parameters)
+assert `"`r(config_schema)'"' == "akmpaygap_simple_v1"
+assert `"`r(calibration_class)'"' == "stylized"
+assert `"`r(initial)'"' == "random"
+assert `"`r(internal_clock)'"' == "output_period"
+assert r(burnin) == 5
+assert `paygap_simple_parameters'["female_share", "value"] == .5
+
+quietly fesim_config, dgp(akmpaygap) preset(cck2016)
+tempname paygap_cck_parameters
+matrix `paygap_cck_parameters' = r(parameters)
+assert `"`r(config_schema)'"' == "akmpaygap_cck2016_v1"
+assert `"`r(calibration_class)'"' == "targeted"
+assert `"`r(start)'"' == "2002"
+assert r(firms) == 1000
+assert r(periods) == 8
+assert `paygap_cck_parameters'["sd_worker_m", "value"] == .420
+assert `paygap_cck_parameters'["premium_loading_m", "value"] == .247
+quietly fesim_config, dgp(akmpaygap) preset(cck2016) ///
+    parameters(group_sort_m .5)
+assert `"`r(calibration_class)'"' == "targeted_modified"
+assert `"`r(model_overrides)'"' == "group_sort_m=.5"
+capture noisily fesim_config, dgp(akmpaygap) network(blocks)
+assert _rc == 198
+capture noisily fesim_config, dgp(akmpaygap) initial(stationary)
+assert _rc == 198
+capture noisily fesim_config, dgp(akmpaygap) ///
+    parameters(female_share 1)
+assert _rc == 198
+capture noisily fesim_config, dgp(akmpaygap) ///
+    parameters(p_eu_m .7 p_ee_m .3)
+assert _rc == 198
+
 capture noisily fesim_config, dgp(akm) preset(empirical)
 assert _rc == 198
 capture noisily fesim_config, dgp(akmempirical) initial(stationary)

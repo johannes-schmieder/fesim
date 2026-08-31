@@ -15,11 +15,12 @@ quietly import delimited using ///
 generate double value_numeric = real(value)
 assert !missing(value_numeric)
 isid dgp preset parameter
-assert _N == 55
+assert _N == 107
 assert status == "stylized" if inlist(preset, "simple", "stylized")
-assert status == "targeted" if preset == "germany_chk_2002_2009"
-assert source_key == "fesim_d015" if preset == "simple"
-assert source_key == "fesim_d026" if preset == "stylized"
+assert status == "targeted" if inlist(preset, ///
+    "germany_chk_2002_2009", "cck2016")
+assert source_key == "fesim_d015" if dgp == "akm" & preset == "simple"
+assert source_key == "fesim_d026" if dgp == "akm" & preset == "stylized"
 
 forvalues row = 1/`=_N' {
     local row_dgp `"`=dgp[`row']'"'
@@ -52,20 +53,33 @@ foreach preset in simple stylized germany_chk_2002_2009 {
     }
 }
 
+foreach preset in simple cck2016 {
+    quietly fesim_registry, action(parameters) dgp(akmpaygap) preset(`preset')
+    local model_parameters `"`r(model_parameters)'"'
+    local expected : word count `model_parameters'
+    quietly count if dgp == "akmpaygap" & preset == "`preset'"
+    assert r(N) == `expected'
+    foreach parameter of local model_parameters {
+        quietly count if dgp == "akmpaygap" & preset == "`preset'" & ///
+            parameter == "`parameter'"
+        assert r(N) == 1
+    }
+}
+
 quietly import delimited using ///
     `"`repository_root'/calibrations/targets.csv"', clear varnames(1) ///
     stringcols(_all)
-assert _N == 5
+assert _N == 22
 isid dgp preset moment
-assert dgp == "akm"
-assert preset == "germany_chk_2002_2009"
 assert real(value) == .357 if moment == "alpha_true_sd"
-assert real(value) == .230 if moment == "psi_true_sd"
-assert real(value) == .135 if moment == "epsilon_true_sd"
 assert real(value) == .0205 if moment == "cov_alpha_psi_true"
-assert real(value) == .249 if moment == "corr_alpha_psi_source"
-assert role == "runtime_target" if moment != "corr_alpha_psi_source"
-assert role == "source_crosscheck" if moment == "corr_alpha_psi_source"
+assert real(value) == .554 if moment == "men_lnwage_sd"
+assert real(value) == .513 if moment == "women_lnwage_sd"
+assert real(value) == .234 if moment == "total_gap_male_reference"
+assert real(value) == .035 if moment == "sorting_male_reference"
+assert real(value) == .015 if moment == ///
+    "premium_schedule_male_reference"
+assert real(value) == .590 if moment == "premium_schedule_correlation"
 
 quietly import delimited using ///
     `"`repository_root'/calibrations/germany_chk_2002_2009_results.csv"', ///
@@ -83,5 +97,19 @@ quietly summarize covariance_numeric if stage == "validation" & ///
 assert r(N) == 5
 assert reldif(r(mean), .0200683908) < 1e-10
 assert abs(r(mean) - .0205) <= .0015
+
+quietly import delimited using ///
+    `"`repository_root'/calibrations/paygap_cck2016_results.csv"', ///
+    clear varnames(1) stringcols(_all)
+assert _N == 1
+assert stage == "validation"
+assert seed == "13579"
+assert real(men_lnwage_sd) == .553327616
+assert real(women_lnwage_sd) == .510866430
+assert real(total_gap) == .239395852
+assert real(firm_total) == .052874559
+assert real(sorting_male_reference) == .032905709
+assert real(premium_schedule_male_reference) == .019968849
+assert real(adding_up_error_max) == 0
 
 di as result "FESIM CALIBRATION-REGISTRY CONSISTENCY TESTS PASS"

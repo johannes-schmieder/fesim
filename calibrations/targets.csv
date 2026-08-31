@@ -4,3 +4,20 @@ akm,germany_chk_2002_2009,psi_true_sd,.230,log-wage standard deviation,runtime_t
 akm,germany_chk_2002_2009,epsilon_true_sd,.135,log-wage standard deviation,runtime_target,chk2013_table4,CHK 2013 Table 4,none,AKM residual dispersion
 akm,germany_chk_2002_2009,cov_alpha_psi_true,.0205,log-wage squared,runtime_target,chk2013_table5,CHK 2013 Table 5,.041 divided by 2,employment-weighted worker-establishment covariance
 akm,germany_chk_2002_2009,corr_alpha_psi_source,.249,correlation,source_crosscheck,chk2013_table5,CHK 2013 Table 5,none,reported correlation; covariance is the runtime sorting target
+akmpaygap,cck2016,men_lnwage_sd,.554,log-wage standard deviation,runtime_group_target,cck2016_table2,CCK 2016 Table II,none,male log-wage dispersion
+akmpaygap,cck2016,women_lnwage_sd,.513,log-wage standard deviation,runtime_group_target,cck2016_table2,CCK 2016 Table II,none,female log-wage dispersion
+akmpaygap,cck2016,men_alpha_sd,.420,log-wage standard deviation,runtime_group_target,cck2016_table2,CCK 2016 Table II,none,male worker-effect dispersion
+akmpaygap,cck2016,women_alpha_sd,.400,log-wage standard deviation,runtime_group_target,cck2016_table2,CCK 2016 Table II,none,female worker-effect dispersion
+akmpaygap,cck2016,men_premium_mean,.148,log wage,runtime_group_target,cck2016_table2,CCK 2016 Table II,none,male mean firm premium
+akmpaygap,cck2016,women_premium_mean,.099,log wage,runtime_group_target,cck2016_table2,CCK 2016 Table II,none,female mean firm premium
+akmpaygap,cck2016,men_premium_sd,.247,log-wage standard deviation,runtime_group_target,cck2016_table2,CCK 2016 Table II,none,male firm-premium dispersion
+akmpaygap,cck2016,women_premium_sd,.213,log-wage standard deviation,runtime_group_target,cck2016_table2,CCK 2016 Table II,none,female firm-premium dispersion
+akmpaygap,cck2016,men_epsilon_sd,.143,log-wage standard deviation,runtime_group_target,cck2016_table2,CCK 2016 Table II,none,male residual dispersion
+akmpaygap,cck2016,women_epsilon_sd,.125,log-wage standard deviation,runtime_group_target,cck2016_table2,CCK 2016 Table II,none,female residual dispersion
+akmpaygap,cck2016,men_corr_alpha_premium,.167,correlation,runtime_group_target,cck2016_table2,CCK 2016 Table II,none,male worker-premium correlation
+akmpaygap,cck2016,women_corr_alpha_premium,.152,correlation,runtime_group_target,cck2016_table2,CCK 2016 Table II,none,female worker-premium correlation
+akmpaygap,cck2016,total_gap_male_reference,.234,log wage,runtime_decomposition_target,cck2016_table3,CCK 2016 Table III,none,men-minus-women total gap
+akmpaygap,cck2016,firm_total_male_reference,.049,log wage,runtime_decomposition_target,cck2016_table3,CCK 2016 Table III,none,total firm component
+akmpaygap,cck2016,sorting_male_reference,.035,log wage,runtime_decomposition_target,cck2016_table3,CCK 2016 Table III,none,male-schedule sorting contribution
+akmpaygap,cck2016,premium_schedule_male_reference,.015,log wage,runtime_decomposition_target,cck2016_table3,CCK 2016 Table III,published rounded component,published sorting plus premium components round to .050 while firm total rounds to .049
+akmpaygap,cck2016,premium_schedule_correlation,.590,correlation,primitive_crosscheck,cck2016_table2,CCK 2016 Table II,none,cross-firm correlation of male and female premium schedules

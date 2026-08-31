@@ -8,6 +8,11 @@ worker-firm sorting and independence of wage shocks from mobility events.
 latent primitive correlations, and duration dependence while holding competing
 mechanisms fixed.
 
+`paygap_limits.do` checks the public all-equal limiting case and convergence of
+group-specific transition rates. `paygap_cck_moments.do` validates the
+CCK-inspired preset's group and male-reference decomposition targets in a
+fixed 100,000-worker simulation using predeclared finite-sample tolerances.
+
 The simple-AKM stochastic tolerances use declared effective sample sizes and
 conservative analytical bounds. The stylized-route thresholds are documented
 fixed-seed mechanism contrasts rather than sampling-theory or calibration

@@ -1,9 +1,9 @@
 v 3
 d fesim
-d Version: 0.2.0-dev
+d Version: 0.3.0-dev
 d Linked employer-employee panel simulation
 d
-d Distribution-Date: 20260830
+d Distribution-Date: 20260831
 d Requires: Stata 19 or later; qualified on macOS Apple Silicon and Windows x86-64
 f fesim.ado
 f fesim_run.ado
@@ -33,6 +33,8 @@ f src/fesim_output.mata
 f src/fesim_lifecycle.mata
 f src/fesim_akm_simple.mata
 f src/fesim_empirical.mata
+f src/fesim_paygap.mata
 f src/fesim_akm_handler.mata
 f src/fesim_emp_handler.mata
+f src/fesim_paygap_handler.mata
 f src/fesim_dispatch.mata
