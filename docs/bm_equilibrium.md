@@ -392,7 +392,8 @@ switching but do not mix component streams. The optional private ledger has
 post-event spell, post-event tenure, post-event unemployment duration, and
 waiting time. Its rows are worker-major and strictly ordered within worker.
 Recording it does not change economic draws or final states. Events exactly at
-the horizon are included. API 29/BM-history schema 1 remains internal until
+the horizon are included. Checkpoint 42 exact-qualifies API 29/BM-history
+schema 1, which remains internal until
 initialization, aggregation, and the public handler are qualified.
 
 ## Sources
