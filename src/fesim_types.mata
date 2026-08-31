@@ -204,9 +204,40 @@ struct fesim_bm_solution {
     real scalar validated
 }
 
+struct fesim_bm_firms {
+    real scalar schema_version
+    string scalar status
+    string scalar mode
+    real scalar firms
+    real scalar productivity
+    real colvector firm_id
+    real colvector offer_quantile
+    real colvector posted_wage
+    real colvector firm_productivity
+    real colvector continuum_employment
+    real colvector continuum_employment_mass
+    real colvector continuum_profit
+    real colvector expected_employment_mass
+    real colvector expected_employment_share
+    real colvector finite_scaled_employment
+    real colvector finite_scaled_profit
+    real colvector finite_worker_cdf
+    real scalar continuum_aggregate_employment
+    real scalar finite_aggregate_employment
+    real scalar finite_job_to_job_rate
+    real scalar offer_cdf_error
+    real scalar worker_cdf_error
+    real scalar continuum_employment_error
+    real scalar finite_employment_error
+    real scalar stationary_residual
+    real scalar minimum_wage_gap
+    real scalar wage_ties
+    real scalar validated
+}
+
 real scalar fesim_mata_api_version()
 {
-    return(27)
+    return(28)
 }
 
 real scalar fesim_config_schema_version()

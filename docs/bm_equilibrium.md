@@ -11,8 +11,9 @@ primitives; the equal-arrival model is an exact nested special case.
 
 This is an exact model with a stylized calibration. It is not the later
 heterogeneous-productivity BM extension. The continuum equilibrium is solved
-before a finite firm universe is constructed. The default finite-firm
-discretization remains DG-11 and is not fixed by this note.
+before a finite firm universe is constructed. D-037 fixes deterministic
+midpoint quantiles as the finite-firm default and retains isolated-stream
+random quantiles as an opt-in mode.
 
 ## Environment and primitives
 
@@ -296,7 +297,7 @@ Selected offer quantiles are:
 closed-form reservation wage with Simpson quadrature plus bisection, verifies
 the offer and worker CDFs, and checks equal profit and the equal-arrival case.
 
-## Solver and finite-firm boundary
+## Solver and finite-firm construction
 
 Checkpoint 40 implements the internal continuum solver in
 `src/fesim_bm.mata`. `fesim_bm_solve()`:
@@ -317,10 +318,45 @@ The solver and checker consume no random numbers and do not inspect or alter
 Stata data. They are internal infrastructure: `r(solver)` will be exposed only
 when the later public handler is qualified.
 
-DG-11 will separately select the default finite-firm construction. Either
-random or quantile firms approximate the continuum offer distribution, but
-theoretical moments in this note must remain distinct from finite-firm,
-event-sample, and observed-panel moments.
+D-037 selects both finite-firm modes and makes midpoint quantiles the default.
+For `J` firms,
+
+\[
+q_j=(j-1/2)/J,\qquad w_j=F^{-1}(q_j).
+\]
+
+Each firm receives offer probability `1/J`. This rule is deterministic,
+avoids exact support endpoints, and has offer-CDF Kolmogorov error `1/(2J)`.
+The opt-in random mode draws independent `q_j` from the uniform distribution
+using only the `firm_primitives` RNG stream. Both modes sort quantiles and
+wages before assigning stable rank IDs. The random-mode secondary sort key is
+the original draw position, so even a floating-point tie has deterministic
+identity.
+
+The finite wages remain a discretization of the continuum mixed strategy, not
+a solution to a finite wage-posting game. The package separately solves the
+exact stationary worker allocation for the discrete offer distribution. If
+`L_j` is firm `j`'s worker-mass share, then
+
+\[
+\left[\delta+\lambda_e\frac{\#\{k:w_k>w_j\}}{J}\right]L_j
+=\frac{\lambda_u u}{J}
++\frac{\lambda_e}{J}\sum_{k:w_k<w_j}L_k. \tag{14}
+\]
+
+The recursion uses strictly lower and higher wages. Equal-wage firms have
+equal mass, and offers at tied wages do not create job-to-job moves. It sums
+to the continuum employment mass `1-u` up to floating-point error. Expected
+headcount is `N*L_j`; `J*L_j` is the finite employment scale directly
+comparable to continuum `ell(w_j)`.
+
+API 28 and finite-firm schema 1 implement the inverse CDF, both constructions,
+the exact recursion, strict-tie handling, finite job-to-job rate, and separate
+offer-CDF, worker-CDF, employment-quadrature, and stationary-flow diagnostics.
+The default construction consumes no random numbers. Random construction is
+repeatable under `seed()` and does not advance worker, mobility, destination,
+or other component streams. Theoretical, finite-firm, event-sample, and
+observed-panel moments remain distinct.
 
 ## Sources
 

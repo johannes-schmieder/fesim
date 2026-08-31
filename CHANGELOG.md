@@ -8,10 +8,13 @@
   common-productivity firms, permanent wage posting, distinct unemployed and
   employed offer rates, endogenous reservation wages, and steady-state
   flow-profit maximization. The exact analytical equilibrium, output-unit
-  mapping, limits, and executable hand check are documented. An API-27
+  mapping, limits, and executable hand check are documented. An API-28
   internal analytical solver now adds cancellation-safe evaluation, an
   independent quadrature residual, support-grid and equal-profit validation,
-  and explicit failure diagnostics. Finite firms, worker events, and the
+  and explicit failure diagnostics. D-037 adds deterministic midpoint-quantile
+  finite firms by default plus an isolated-stream random mode, stable
+  wage-ranked IDs, exact discrete stationary employment under strict upward
+  acceptance, and separate approximation diagnostics. Worker events and the
   public simulation route are not yet implemented.
 
 ### Implemented on `main`

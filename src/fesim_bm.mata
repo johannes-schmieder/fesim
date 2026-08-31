@@ -7,6 +7,11 @@ real scalar fesim_bm_schema_version()
     return(1)
 }
 
+real scalar fesim_bm_firms_schema_version()
+{
+    return(1)
+}
+
 real scalar fesim_bm_log1p(real scalar x)
 {
     real scalar power, sign, term, total, order
@@ -422,6 +427,410 @@ struct fesim_bm_solution scalar fesim_bm_solve(
     fesim_bm_solution_validate(solution, tolerance)
     solution.validated = 1
     return(solution)
+}
+
+real colvector fesim_bm_inverse_offer_cdf(
+    real colvector quantile,
+    real scalar p,
+    real scalar reservation,
+    real scalar lambda_e,
+    real scalar delta)
+{
+    real scalar share
+
+    if (cols(quantile) != 1 | rows(quantile) < 1 | ///
+        any(missing(quantile)) | any(quantile :< 0) | ///
+        any(quantile :> 1) | missing(p) | missing(reservation) | ///
+        missing(lambda_e) | missing(delta) | p <= reservation | ///
+        lambda_e <= 0 | delta <= 0) {
+        _error(3300, "BM inverse-CDF inputs are invalid")
+    }
+    share = lambda_e / (delta + lambda_e)
+    return(p :- (p - reservation) :* (1 :- share :* quantile):^2)
+}
+
+real colvector fesim_bm_expected_mass(
+    struct fesim_bm_solution scalar solution,
+    real colvector wage)
+{
+    real scalar firms, i, last, count, lower_mass, higher_count
+    real scalar inflow, firm_mass
+    real colvector expected_mass
+
+    firms = rows(wage)
+    if (solution.validated != 1 | firms < 1 | cols(wage) != 1 | ///
+        any(missing(wage)) | any(wage :< solution.reservation_wage) | ///
+        any(wage :> solution.upper_wage)) {
+        _error(3300, "BM finite wage support is invalid")
+    }
+    if (firms > 1) {
+        if (min(wage[2..firms] :- wage[1..(firms - 1)]) < 0) {
+            _error(3300, "BM finite wages must be sorted")
+        }
+    }
+    expected_mass = J(firms, 1, .)
+    lower_mass = 0
+    i = 1
+    while (i <= firms) {
+        last = i
+        while (last < firms) {
+            if (wage[last + 1] != wage[i]) break
+            last = last + 1
+        }
+        count = last - i + 1
+        higher_count = firms - last
+        inflow = solution.lambda_u * solution.unemployment_rate / firms + ///
+            solution.lambda_e * lower_mass / firms
+        firm_mass = inflow / (solution.delta + ///
+            solution.lambda_e * higher_count / firms)
+        expected_mass[i..last] = J(count, 1, firm_mass)
+        lower_mass = lower_mass + count * firm_mass
+        i = last + 1
+    }
+    return(expected_mass)
+}
+
+real scalar fesim_bm_stationary_residual(
+    struct fesim_bm_solution scalar solution,
+    real colvector wage,
+    real colvector employment_mass)
+{
+    real scalar i, last, firms, lower_mass, higher_count, inflow
+    real scalar residual
+
+    firms = rows(wage)
+    if (solution.validated != 1 | firms < 1 | cols(wage) != 1 | ///
+        rows(employment_mass) != firms | cols(employment_mass) != 1 | ///
+        any(missing(wage)) | any(missing(employment_mass)) | ///
+        any(employment_mass :< 0)) {
+        _error(3300, "BM finite stationary inputs are invalid")
+    }
+    if (firms > 1) {
+        if (min(wage[2..firms] :- wage[1..(firms - 1)]) < 0) {
+            _error(3300, "BM finite stationary wages must be sorted")
+        }
+    }
+    residual = 0
+    lower_mass = 0
+    i = 1
+    while (i <= firms) {
+        last = i
+        while (last < firms) {
+            if (wage[last + 1] != wage[i]) break
+            last = last + 1
+        }
+        higher_count = firms - last
+        inflow = solution.lambda_u * solution.unemployment_rate / firms + ///
+            solution.lambda_e * lower_mass / firms
+        residual = max((residual, max(abs(inflow :- ///
+            (solution.delta + solution.lambda_e * higher_count / firms) :* ///
+            employment_mass[i..last]))))
+        lower_mass = lower_mass + sum(employment_mass[i..last])
+        i = last + 1
+    }
+    return(residual)
+}
+
+real scalar fesim_bm_finite_ee_rate(
+    struct fesim_bm_solution scalar solution,
+    real colvector wage,
+    real colvector employment_mass)
+{
+    real scalar firms, i, last, higher_count, weighted_acceptance
+
+    firms = rows(wage)
+    if (solution.validated != 1 | firms < 1 | cols(wage) != 1 | ///
+        rows(employment_mass) != firms | cols(employment_mass) != 1 | ///
+        any(missing(wage)) | any(missing(employment_mass)) | ///
+        any(employment_mass :< 0) | sum(employment_mass) <= 0) {
+        _error(3300, "BM finite job-to-job inputs are invalid")
+    }
+    if (firms > 1) {
+        if (min(wage[2..firms] :- wage[1..(firms - 1)]) < 0) {
+            _error(3300, "BM finite job-to-job wages must be sorted")
+        }
+    }
+    weighted_acceptance = 0
+    i = 1
+    while (i <= firms) {
+        last = i
+        while (last < firms) {
+            if (wage[last + 1] != wage[i]) break
+            last = last + 1
+        }
+        higher_count = firms - last
+        weighted_acceptance = weighted_acceptance + ///
+            sum(employment_mass[i..last]) * higher_count / firms
+        i = last + 1
+    }
+    return(solution.lambda_e * weighted_acceptance / sum(employment_mass))
+}
+
+void fesim_bm_firms_validate(
+    struct fesim_bm_solution scalar solution,
+    struct fesim_bm_firms scalar universe,
+    real scalar tolerance)
+{
+    real scalar firms, stationary_scale
+    real colvector id, empirical_right, empirical_left, theoretical_worker
+    real colvector wage_difference, size_difference
+
+    firms = universe.firms
+    if (solution.validated != 1 | ///
+        universe.schema_version != fesim_bm_firms_schema_version() | ///
+        universe.status != "constructed" | ///
+        (universe.mode != "quantile" & universe.mode != "random") | ///
+        missing(firms) | firms < 1 | firms != floor(firms) | ///
+        missing(tolerance) | tolerance <= 0 | tolerance > 1e-4 | ///
+        any(missing((universe.productivity, ///
+            universe.continuum_aggregate_employment, ///
+            universe.finite_aggregate_employment, ///
+            universe.finite_job_to_job_rate, universe.offer_cdf_error, ///
+            universe.worker_cdf_error, ///
+            universe.continuum_employment_error, ///
+            universe.finite_employment_error, ///
+            universe.stationary_residual, universe.wage_ties)))) {
+        _error(3300, "BM finite-firm structure is invalid")
+    }
+    if (rows(universe.firm_id) != firms | ///
+        rows(universe.offer_quantile) != firms | ///
+        rows(universe.posted_wage) != firms | ///
+        rows(universe.firm_productivity) != firms | ///
+        rows(universe.continuum_employment) != firms | ///
+        rows(universe.continuum_employment_mass) != firms | ///
+        rows(universe.continuum_profit) != firms | ///
+        rows(universe.expected_employment_mass) != firms | ///
+        rows(universe.expected_employment_share) != firms | ///
+        rows(universe.finite_scaled_employment) != firms | ///
+        rows(universe.finite_scaled_profit) != firms | ///
+        rows(universe.finite_worker_cdf) != firms | ///
+        cols(universe.firm_id) != 1 | ///
+        cols(universe.offer_quantile) != 1 | ///
+        cols(universe.posted_wage) != 1 | ///
+        cols(universe.firm_productivity) != 1 | ///
+        cols(universe.continuum_employment) != 1 | ///
+        cols(universe.continuum_employment_mass) != 1 | ///
+        cols(universe.continuum_profit) != 1 | ///
+        cols(universe.expected_employment_mass) != 1 | ///
+        cols(universe.expected_employment_share) != 1 | ///
+        cols(universe.finite_scaled_employment) != 1 | ///
+        cols(universe.finite_scaled_profit) != 1 | ///
+        cols(universe.finite_worker_cdf) != 1 | ///
+        any(missing((universe.firm_id, universe.offer_quantile, ///
+            universe.posted_wage, universe.firm_productivity, ///
+            universe.continuum_employment, ///
+            universe.continuum_employment_mass, ///
+            universe.continuum_profit, ///
+            universe.expected_employment_mass, ///
+            universe.expected_employment_share, ///
+            universe.finite_scaled_employment, ///
+            universe.finite_scaled_profit, universe.finite_worker_cdf)))) {
+        _error(3300, "BM finite-firm arrays are invalid")
+    }
+    id = 1::firms
+    if (any(universe.firm_id :!= id) | ///
+        universe.productivity != solution.p | ///
+        any(universe.firm_productivity :!= solution.p) | ///
+        any(universe.offer_quantile :< 0) | ///
+        any(universe.offer_quantile :> 1) | ///
+        any(universe.posted_wage :< solution.reservation_wage) | ///
+        any(universe.posted_wage :> solution.upper_wage) | ///
+        any(universe.continuum_employment :<= 0) | ///
+        any(universe.continuum_employment_mass :<= 0) | ///
+        any(universe.continuum_profit :<= 0) | ///
+        any(universe.expected_employment_mass :<= 0) | ///
+        any(universe.expected_employment_share :<= 0) | ///
+        any(universe.finite_scaled_employment :<= 0) | ///
+        any(universe.finite_scaled_profit :<= 0) | ///
+        any(universe.finite_worker_cdf :<= 0) | ///
+        any(universe.finite_worker_cdf :> 1 + tolerance)) {
+        _error(430, "BM finite-firm support or mass validation failed")
+    }
+    if (firms > 1) {
+        wage_difference = universe.posted_wage[2..firms] :- ///
+            universe.posted_wage[1..(firms - 1)]
+        size_difference = universe.expected_employment_mass[2..firms] :- ///
+            universe.expected_employment_mass[1..(firms - 1)]
+        if (min(wage_difference) < 0 | min(size_difference) < -tolerance | ///
+            universe.minimum_wage_gap != min(wage_difference) | ///
+            universe.wage_ties != sum(wage_difference :== 0)) {
+            _error(430, "BM finite-firm ordering validation failed")
+        }
+    }
+    else if (!missing(universe.minimum_wage_gap) | universe.wage_ties != 0) {
+        _error(430, "BM one-firm diagnostics are invalid")
+    }
+    if (mreldif(universe.posted_wage, fesim_bm_inverse_offer_cdf(
+            universe.offer_quantile, solution.p, ///
+            solution.reservation_wage, solution.lambda_e, ///
+            solution.delta)) > tolerance | ///
+        mreldif(universe.continuum_employment, fesim_bm_firm_employment(
+            universe.offer_quantile, solution.lambda_u, ///
+            solution.lambda_e, solution.delta)) > tolerance | ///
+        mreldif(universe.continuum_employment_mass, ///
+            universe.continuum_employment / firms) > tolerance | ///
+        mreldif(universe.continuum_profit, ///
+            (solution.p :- universe.posted_wage) :* ///
+            universe.continuum_employment) > tolerance | ///
+        max(abs(universe.continuum_profit :- ///
+            solution.equilibrium_profit)) / ///
+            max((1, abs(solution.equilibrium_profit))) > tolerance | ///
+        mreldif(universe.expected_employment_share, ///
+            universe.expected_employment_mass / ///
+            universe.finite_aggregate_employment) > tolerance | ///
+        mreldif(universe.finite_scaled_employment, ///
+            firms :* universe.expected_employment_mass) > tolerance | ///
+        mreldif(universe.finite_scaled_profit, ///
+            (solution.p :- universe.posted_wage) :* ///
+            universe.finite_scaled_employment) > tolerance) {
+        _error(430, "BM finite-firm derived quantities are invalid")
+    }
+    empirical_right = (1::firms) / firms
+    empirical_left = (0::(firms - 1)) / firms
+    theoretical_worker = fesim_bm_worker_cdf(
+        universe.offer_quantile, solution.lambda_e, solution.delta)
+    if (abs(universe.offer_cdf_error - max((
+            abs(empirical_right :- universe.offer_quantile)', ///
+            abs(empirical_left :- universe.offer_quantile)'))) > tolerance | ///
+        abs(universe.worker_cdf_error - ///
+            max(abs(universe.finite_worker_cdf :- theoretical_worker))) > ///
+            tolerance | ///
+        abs(universe.continuum_aggregate_employment - ///
+            mean(universe.continuum_employment)) > tolerance | ///
+        abs(universe.finite_aggregate_employment - ///
+            sum(universe.expected_employment_mass)) > tolerance | ///
+        abs(universe.continuum_employment_error - ///
+            (universe.continuum_aggregate_employment - ///
+            solution.employment_rate)) > tolerance | ///
+        abs(universe.finite_employment_error - ///
+            (universe.finite_aggregate_employment - ///
+            solution.employment_rate)) > tolerance) {
+        _error(430, "BM finite-firm approximation diagnostics are invalid")
+    }
+    stationary_scale = max((1, solution.lambda_u, solution.lambda_e, ///
+        solution.delta))
+    if (abs(universe.finite_aggregate_employment - ///
+            solution.employment_rate) > tolerance | ///
+        abs(universe.finite_worker_cdf[firms] - 1) > tolerance | ///
+        universe.stationary_residual / stationary_scale > tolerance | ///
+        abs(universe.stationary_residual - ///
+            fesim_bm_stationary_residual(solution, ///
+            universe.posted_wage, ///
+            universe.expected_employment_mass)) > tolerance | ///
+        abs(universe.finite_job_to_job_rate - ///
+            fesim_bm_finite_ee_rate(solution, universe.posted_wage, ///
+            universe.expected_employment_mass)) > tolerance | ///
+        universe.finite_job_to_job_rate < 0 | ///
+        universe.finite_job_to_job_rate >= solution.lambda_e) {
+        _error(430, "BM finite-firm stationary validation failed")
+    }
+}
+
+struct fesim_bm_firms scalar fesim_bm_construct_firms(
+    struct fesim_bm_solution scalar solution,
+    real scalar firms,
+    string scalar mode,
+    struct fesim_rng_state scalar rng_state,
+    real scalar tolerance)
+{
+    struct fesim_bm_firms scalar universe
+    real scalar i, last
+    real colvector draw_order, original_order, wage_difference
+
+    mode = strlower(strtrim(mode))
+    if (solution.validated != 1 | missing(firms) | firms < 1 | ///
+        firms != floor(firms) | firms > 1000000 | ///
+        (mode != "quantile" & mode != "random") | ///
+        missing(tolerance) | tolerance <= 0 | tolerance > 1e-4 | ///
+        rng_state.schema_version != fesim_rng_schema_version()) {
+        _error(3300, "BM finite-firm controls are invalid")
+    }
+    universe.schema_version = fesim_bm_firms_schema_version()
+    universe.status = "constructed"
+    universe.mode = mode
+    universe.firms = firms
+    universe.productivity = solution.p
+    if (mode == "quantile") {
+        universe.offer_quantile = ((1::firms) :- .5) / firms
+    }
+    else {
+        universe.offer_quantile = fesim_rng_runiform(
+            rng_state, "firm_primitives", firms, 1)
+        original_order = 1::firms
+        draw_order = order((universe.offer_quantile, original_order), (1, 2))
+        universe.offer_quantile = universe.offer_quantile[draw_order]
+    }
+    universe.firm_id = 1::firms
+    universe.posted_wage = fesim_bm_inverse_offer_cdf(
+        universe.offer_quantile, solution.p, ///
+        solution.reservation_wage, solution.lambda_e, solution.delta)
+    universe.firm_productivity = J(firms, 1, solution.p)
+    universe.continuum_employment = fesim_bm_firm_employment(
+        universe.offer_quantile, solution.lambda_u, ///
+        solution.lambda_e, solution.delta)
+    universe.continuum_employment_mass = ///
+        universe.continuum_employment / firms
+    universe.continuum_profit = ///
+        (solution.p :- universe.posted_wage) :* ///
+        universe.continuum_employment
+
+    universe.expected_employment_mass = fesim_bm_expected_mass(
+        solution, universe.posted_wage)
+    universe.finite_aggregate_employment = ///
+        sum(universe.expected_employment_mass)
+    universe.expected_employment_share = ///
+        universe.expected_employment_mass / ///
+        universe.finite_aggregate_employment
+    universe.finite_scaled_employment = ///
+        firms :* universe.expected_employment_mass
+    universe.finite_scaled_profit = ///
+        (solution.p :- universe.posted_wage) :* ///
+        universe.finite_scaled_employment
+    universe.finite_worker_cdf = runningsum(
+        universe.expected_employment_mass) / ///
+        universe.finite_aggregate_employment
+    i = 1
+    while (i <= firms) {
+        last = i
+        while (last < firms) {
+            if (universe.posted_wage[last + 1] != ///
+                universe.posted_wage[i]) break
+            last = last + 1
+        }
+        universe.finite_worker_cdf[i..last] = ///
+            universe.finite_worker_cdf[last]
+        i = last + 1
+    }
+    universe.finite_job_to_job_rate = fesim_bm_finite_ee_rate(
+        solution, universe.posted_wage, universe.expected_employment_mass)
+    universe.continuum_aggregate_employment = ///
+        mean(universe.continuum_employment)
+    universe.offer_cdf_error = max((
+        abs((1::firms) / firms :- universe.offer_quantile)', ///
+        abs((0::(firms - 1)) / firms :- universe.offer_quantile)'))
+    universe.worker_cdf_error = max(abs(
+        universe.finite_worker_cdf :- fesim_bm_worker_cdf(
+        universe.offer_quantile, solution.lambda_e, solution.delta)))
+    universe.continuum_employment_error = ///
+        universe.continuum_aggregate_employment - solution.employment_rate
+    universe.finite_employment_error = ///
+        universe.finite_aggregate_employment - solution.employment_rate
+    universe.stationary_residual = fesim_bm_stationary_residual(
+        solution, universe.posted_wage, universe.expected_employment_mass)
+    if (firms > 1) {
+        wage_difference = universe.posted_wage[2..firms] :- ///
+            universe.posted_wage[1..(firms - 1)]
+        universe.minimum_wage_gap = min(wage_difference)
+        universe.wage_ties = sum(wage_difference :== 0)
+    }
+    else {
+        universe.minimum_wage_gap = .
+        universe.wage_ties = 0
+    }
+    universe.validated = 0
+    fesim_bm_firms_validate(solution, universe, tolerance)
+    universe.validated = 1
+    return(universe)
 }
 
 end
