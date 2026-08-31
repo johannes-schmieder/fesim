@@ -2,14 +2,17 @@
 
 ## Unreleased — 0.3.0
 
-### Scientific contract accepted; runtime pending
+### Scientific contract and internal solver; public runtime pending
 
 - Fixed D-036 for the planned `bm/simple` route: homogeneous workers and
   common-productivity firms, permanent wage posting, distinct unemployed and
   employed offer rates, endogenous reservation wages, and steady-state
   flow-profit maximization. The exact analytical equilibrium, output-unit
-  mapping, limits, and executable hand check are documented; the solver and
-  simulation route are not yet implemented.
+  mapping, limits, and executable hand check are documented. An API-27
+  internal analytical solver now adds cancellation-safe evaluation, an
+  independent quadrature residual, support-grid and equal-profit validation,
+  and explicit failure diagnostics. Finite firms, worker events, and the
+  public simulation route are not yet implemented.
 
 ### Implemented on `main`
 

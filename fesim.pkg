@@ -23,6 +23,7 @@ f src/fesim_types.mata
 f src/fesim_rng.mata
 f src/fesim_time.mata
 f src/fesim_hazards.mata
+f src/fesim_bm.mata
 f src/fesim_destinations.mata
 f src/fesim_network_design.mata
 f src/fesim_flows.mata

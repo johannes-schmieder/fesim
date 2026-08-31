@@ -174,9 +174,39 @@ struct fesim_empirical_params {
     real scalar validated
 }
 
+struct fesim_bm_solution {
+    real scalar schema_version
+    string scalar status
+    real scalar b
+    real scalar p
+    real scalar lambda_u
+    real scalar lambda_e
+    real scalar delta
+    real scalar discount
+    real scalar surplus_coefficient
+    real scalar reservation_wage
+    real scalar upper_wage
+    real scalar unemployment_rate
+    real scalar employment_rate
+    real scalar job_to_job_rate
+    real scalar equilibrium_profit
+    real scalar reservation_residual
+    real scalar reservation_scaled_residual
+    real scalar equal_profit_residual
+    real scalar equal_profit_scaled_residual
+    real scalar monotonicity_violation
+    real scalar cdf_violation
+    real colvector support_grid
+    real colvector offer_cdf
+    real colvector worker_cdf
+    real colvector firm_employment
+    real colvector firm_profit
+    real scalar validated
+}
+
 real scalar fesim_mata_api_version()
 {
-    return(26)
+    return(27)
 }
 
 real scalar fesim_config_schema_version()

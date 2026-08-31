@@ -298,13 +298,24 @@ the offer and worker CDFs, and checks equal profit and the equal-arrival case.
 
 ## Solver and finite-firm boundary
 
-P5.2 should implement:
+Checkpoint 40 implements the internal continuum solver in
+`src/fesim_bm.mata`. `fesim_bm_solve()`:
 
-1. the analytical equations (7)–(13);
-2. an independently coded reservation residual using numerical quadrature;
-3. dense support checks for CDF bounds, monotonicity, support endpoints,
-   worker flow balance, and equal profit;
-4. explicit convergence/status diagnostics in `r(solver)`.
+1. evaluates equations (7)–(13) analytically;
+2. uses series expansions for small rate ratios to avoid cancellation in the
+   surplus coefficient, `log(1+x)`, and aggregate job-to-job rate;
+3. independently evaluates equation (1) by Simpson quadrature through
+   `fesim_bm_reservation_residual()` without using the closed-form coefficient;
+4. evaluates a linear wage-support grid and checks support endpoints, CDF
+   bounds and monotonicity, firm employment, and equal profit;
+5. returns a versioned Mata solution object with `converged_analytic` status,
+   theoretical moments, arrays, and scaled residual diagnostics; and
+6. rejects invalid primitives or nonpositive log-wage support with error 3300
+   and analytical/numerical validation failures with error 430.
+
+The solver and checker consume no random numbers and do not inspect or alter
+Stata data. They are internal infrastructure: `r(solver)` will be exposed only
+when the later public handler is qualified.
 
 DG-11 will separately select the default finite-firm construction. Either
 random or quantile firms approximate the continuum offer distribution, but
