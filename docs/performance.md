@@ -192,6 +192,34 @@ for the 10,000-worker stylized result. macOS Stata lingered only after writing
 each PASS result; exact completed PIDs were terminated, so external wall times
 include the post-PASS wait and are not reported as command runtimes.
 
+## Checkpoint 37 targeted Germany preset
+
+Checkpoint 37 adds the public `akm/germany_chk_2002_2009` preset. Its
+interactive defaults use 10,000 workers, 1,000 firms, eight annual output
+periods beginning in 2002, `truth(none)`, and `connectivity(keep)`. This
+preserves the 10:1 worker-firm ratio used by the 100,000-worker calibration
+design while keeping the public example practical.
+
+The exact result at `1a1068b812f21356712842924d3ea1a89b6adc3b` is:
+
+| Preset | Workers | Firms | Periods | Rows | Command | Internal total | Simulate | Output | Max RSS |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Germany CHK | 10,000 | 1,000 | 8 | 80,000 | 4.255 s | 4.070 s | 3.332 s | 0.738 s | 231,456,768 B |
+
+The result has 73,235 employed observations, 19,039 distinct worker-firm
+edges, and 20 connected components. The iterated worker set retains 9,821
+workers, 836 firms, and 18,707 matches; the final worker and match robustness
+flags are both one. These are realized graph outcomes under
+`connectivity(keep)`, not calibration targets.
+
+The JSON artifact is
+`build/benchmarks/1a1068b812f21356712842924d3ea1a89b6adc3b/germany-chk-10000x8-none.json`;
+its SHA256 is
+`517c7ce94306276e506525ab8cb1f53795a8f6bf9f643504cfe773a97eee6cff`.
+The macOS Stata batch process lingered after writing the complete JSON and PASS
+log. The exact completed PID was terminated after those artifacts were
+verified, so the inflated external wall time is not a command-runtime measure.
+
 ## Reproducing
 
 From a clean checkout:
@@ -200,6 +228,7 @@ From a clean checkout:
 scripts/run_public_benchmarks.sh /path/to/stata-mp
 INCLUDE_MILLION=1 scripts/run_public_benchmarks.sh /path/to/stata-mp
 scripts/run_stylized_benchmarks.sh /path/to/stata-mp
+scripts/run_germany_chk_benchmark.sh /path/to/stata-mp
 ```
 
 The second command repeats the two smaller controls before attempting the
