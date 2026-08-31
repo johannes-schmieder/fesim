@@ -18,4 +18,11 @@ assert _N == 6000
 assert `"`r(calibration_class)'"' == "stylized_modified"
 isid workerid time
 
+capture noisily do `"`repository_root'/examples/akm_germany_chk.do"'
+assert _rc == 0
+assert _N == 8000
+assert `"`r(calibration_class)'"' == "targeted"
+assert rowsof(r(targets)) == 10
+isid workerid time
+
 di as result "FESIM DOCUMENTED EXAMPLES PASS"

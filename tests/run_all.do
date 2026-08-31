@@ -55,7 +55,8 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     unit/test_akm_diagnostics ///
     integration/test_discovery ///
     integration/test_akm_public ///
-    integration/test_akm_stylized_public integration/test_network_blocks ///
+    integration/test_akm_stylized_public ///
+    integration/test_akm_germany_chk_public integration/test_network_blocks ///
     integration/test_network_bridges integration/test_network_ladder ///
     integration/test_output_blocks integration/test_panel_contract ///
     integration/test_results regression/akm_tiny ///

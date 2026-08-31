@@ -15,8 +15,9 @@ quietly import delimited using ///
 generate double value_numeric = real(value)
 assert !missing(value_numeric)
 isid dgp preset parameter
-assert _N == 32
-assert status == "stylized"
+assert _N == 55
+assert status == "stylized" if inlist(preset, "simple", "stylized")
+assert status == "targeted" if preset == "germany_chk_2002_2009"
 assert source_key == "fesim_d015" if preset == "simple"
 assert source_key == "fesim_d026" if preset == "stylized"
 
@@ -38,7 +39,7 @@ forvalues row = 1/`=_N' {
     }
 }
 
-foreach preset in simple stylized {
+foreach preset in simple stylized germany_chk_2002_2009 {
     quietly fesim_registry, action(parameters) dgp(akm) preset(`preset')
     local model_parameters `"`r(model_parameters)'"'
     local expected : word count `model_parameters'
@@ -50,5 +51,37 @@ foreach preset in simple stylized {
         assert r(N) == 1
     }
 }
+
+quietly import delimited using ///
+    `"`repository_root'/calibrations/targets.csv"', clear varnames(1) ///
+    stringcols(_all)
+assert _N == 5
+isid dgp preset moment
+assert dgp == "akm"
+assert preset == "germany_chk_2002_2009"
+assert real(value) == .357 if moment == "alpha_true_sd"
+assert real(value) == .230 if moment == "psi_true_sd"
+assert real(value) == .135 if moment == "epsilon_true_sd"
+assert real(value) == .0205 if moment == "cov_alpha_psi_true"
+assert real(value) == .249 if moment == "corr_alpha_psi_source"
+assert role == "runtime_target" if moment != "corr_alpha_psi_source"
+assert role == "source_crosscheck" if moment == "corr_alpha_psi_source"
+
+quietly import delimited using ///
+    `"`repository_root'/calibrations/germany_chk_2002_2009_results.csv"', ///
+    clear varnames(1) stringcols(_all)
+assert _N == 30
+isid stage seed theta_sort
+generate double theta_numeric = real(theta_sort)
+generate double covariance_numeric = real(cov_alpha_psi_true)
+quietly summarize covariance_numeric if stage == "calibration" & ///
+    abs(theta_numeric - 2.2) < 1e-12, meanonly
+assert r(N) == 5
+assert reldif(r(mean), .0206703882) < 1e-10
+quietly summarize covariance_numeric if stage == "validation" & ///
+    abs(theta_numeric - 2.2) < 1e-12, meanonly
+assert r(N) == 5
+assert reldif(r(mean), .0200683908) < 1e-10
+assert abs(r(mean) - .0205) <= .0015
 
 di as result "FESIM CALIBRATION-REGISTRY CONSISTENCY TESTS PASS"

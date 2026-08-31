@@ -6,7 +6,7 @@ The installed runtime will use only official Stata and Mata. It will not require
 
 ## Current implementation status
 
-The latest release is `v0.1.0`. The `main` branch is now `0.2.0-dev`, with two public routes: the released `akm/simple` design and the new explicitly uncalibrated `akm/stylized` monthly empirical-mobility design. Discovery, preset inspection, canonical alias resolution, and deterministic default reporting are available for both:
+The latest release is `v0.1.0`. The `main` branch is now `0.2.0-dev`, with three public AKM presets: the released `akm/simple` design, the explicitly uncalibrated `akm/stylized` monthly empirical-mobility design, and the distinct CHK-targeted `akm/germany_chk_2002_2009` design. Discovery, preset inspection, canonical alias resolution, and deterministic default reporting are available for all three:
 
 ```stata
 fesim version
@@ -16,6 +16,7 @@ fesim presets akm
 fesim describe akmsimple
 fesim describe akm, preset(simple)
 fesim describe akmempirical
+fesim describe akm, preset(germany_chk_2002_2009)
 ```
 
 `fesim describe akmsimple` reports the resolved `akm/simple` configuration and scalar-parameter matrix. The same resolver validates named common options and model-specific name-value pairs such as `parameters(mu 3.2 p_ee .10)`, records their sources, and serializes the result deterministically. In the frozen v0.1 contract, all model-specific scalars remain inside `parameters()`; only common controls have named options.
@@ -27,9 +28,10 @@ The public simulation routes are:
 ```stata
 fesim, dgp(akmsimple) seed(12345) clear
 fesim, dgp(akmempirical) seed(12345) clear
+fesim, dgp(akm) preset(germany_chk_2002_2009) seed(12345) clear
 ```
 
-The aliases resolve to `dgp(akm) preset(simple)` and `dgp(akm) preset(stylized)`, respectively. Both generate the required worker-period panel, optional truth variables, common moments, metadata, and returned results. Retained periods are streamed into the final worker-major Stata dataset; the implementation does not retain a second full panel in Mata.
+The aliases resolve to `dgp(akm) preset(simple)` and `dgp(akm) preset(stylized)`, respectively; the Germany preset deliberately has no alias. All three generate the required worker-period panel, optional truth variables, common moments, metadata, and returned results. Retained periods are streamed into the final worker-major Stata dataset; the implementation does not retain a second full panel in Mata.
 
 ## Quick start
 
@@ -123,6 +125,8 @@ matrix list r(durations)
 ```
 
 Its `akm/stylized` defaults are deliberately uncalibrated. Wage and firm-size scales reuse the simple baseline, continuous-hazard intercepts anchor its zero-covariate transition intensities to the simple annual probabilities, and modest slopes exercise worker heterogeneity, firm quality, duration dependence, sorting, and asymmetric moves. `ntransitions` aggregates all monthly events between output snapshots; `r(durations)` reports tenure and unemployment-duration distributions in years. With `truth(full)`, `worker_type_true` and `firm_quality_true` expose the core latent mobility objects. All coefficients remain inside `parameters()`. See [docs/akm_stylized.md](docs/akm_stylized.md), [`examples/akm_stylized.do`](examples/akm_stylized.do), and the auditable status table in [`calibrations/presets.csv`](calibrations/presets.csv).
+
+The separate `akm/germany_chk_2002_2009` preset targets Card, Heining, and Kline's 2002–2009 West German AKM worker-effect SD `.357`, establishment-effect SD `.230`, residual SD `.135`, and worker–establishment covariance `.0205`. Only `theta_sort=2.2` is fitted, using five 100,000-worker calibration seeds and five disjoint validation seeds. Transition hazards and durations remain D-026 stylized values, so the precise claim is **targeted wage dispersion and sorting**. See [docs/akm_germany_chk.md](docs/akm_germany_chk.md), [`examples/akm_germany_chk.do`](examples/akm_germany_chk.do), and the audited files under [`calibrations/`](calibrations/).
 
 An internal deterministic toy handler exercises the shared Mata lifecycle and typed containers. It is test infrastructure and is not registered as a public DGP. Only the shared output module may translate its results into the frozen Stata panel scaffold. The common blockwise finalizer constructs observed flow indicators and preserves latent transition counts with explicit boundary-period missingness.
 

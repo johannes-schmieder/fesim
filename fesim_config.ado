@@ -167,9 +167,9 @@ program define fesim_config, rclass
             exit 198
         }
     }
-    else if `"`resolved_preset'"' == "stylized" {
+    else if `"`resolved_preset'"' != "simple" {
         if real(`"`value_firms'"') < 2 {
-            di as error "firms() must be at least 2 for akm/stylized"
+            di as error "firms() must be at least 2 for akm/`resolved_preset'"
             exit 198
         }
         if real(`"`value_sd_worker'"') == 0 & ///
@@ -243,7 +243,15 @@ program define fesim_config, rclass
     }
     local start = lower(strtrim(`"`start'"'))
     local source_start "option"
-    if `"`start'"' == "" local source_start "package"
+    if `"`start'"' == "" {
+        if `"`resolved_preset'"' == "germany_chk_2002_2009" {
+            if `"`frequency'"' == "year" local start "2002"
+            else if `"`frequency'"' == "quarter" local start "2002q1"
+            else local start "2002m1"
+            local source_start "preset"
+        }
+        else local source_start "package"
+    }
     local time_options `"frequency(`frequency') periods(`value_periods')"'
     if `"`start'"' != "" local time_options `"`time_options' start(`start')"'
     quietly fesim_time, `time_options'
@@ -252,7 +260,7 @@ program define fesim_config, rclass
     local time_format `"`r(format)'"'
     local interval_unit `"`r(interval_unit)'"'
     local internal_clock `"`r(internal_clock)'"'
-    if `"`resolved_preset'"' == "stylized" local internal_clock "month"
+    if `"`resolved_preset'"' != "simple" local internal_clock "month"
     local start_value = r(start_value)
     local end_value = r(end_value)
     local periods_per_year = r(periods_per_year)
@@ -279,7 +287,7 @@ program define fesim_config, rclass
         local source_`name' "option"
     }
     if `"`initial'"' == "" {
-        if `"`resolved_preset'"' == "stylized" {
+        if `"`resolved_preset'"' != "simple" {
             local initial "random"
             local source_initial "preset"
         }
@@ -292,13 +300,13 @@ program define fesim_config, rclass
         di as error "initial() must be stationary, random, or allunemployed"
         exit 198
     }
-    if `"`resolved_preset'"' == "stylized" & `"`initial'"' == "stationary" {
-        di as error "initial(stationary) is unavailable for akm/stylized"
+    if `"`resolved_preset'"' != "simple" & `"`initial'"' == "stationary" {
+        di as error "initial(stationary) is unavailable for akm/`resolved_preset'"
         exit 198
     }
     if `"`initial'"' == "random" & real(`"`value_burnin'"') < 1 {
-        if `"`resolved_preset'"' == "stylized" {
-            di as error "initial(random) requires burnin() of at least one year for akm/stylized"
+        if `"`resolved_preset'"' != "simple" {
+            di as error "initial(random) requires burnin() of at least one year for akm/`resolved_preset'"
         }
         else {
             di as error "initial(random) requires burnin() of at least one output period"
@@ -348,7 +356,11 @@ program define fesim_config, rclass
         }
     }
     local model_overrides = strtrim(`"`model_overrides'"')
-    if `"`model_overrides'"' != "" local calibration_class "stylized_modified"
+    if `"`model_overrides'"' != "" {
+        if `"`resolved_preset'"' == "germany_chk_2002_2009" ///
+            local calibration_class "targeted_modified"
+        else local calibration_class "stylized_modified"
+    }
 
     local fields `"`scalar_parameters'"'
     local overrides ""

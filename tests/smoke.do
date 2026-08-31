@@ -21,12 +21,13 @@ assert r(api_level) == 1
 capture noisily fesim list
 assert _rc == 0
 assert `"`r(dgps)'"' == "akm akmpaygap bm"
-assert `"`r(qualified)'"' == "akm/simple akm/stylized"
+assert `"`r(qualified)'"' == ///
+    "akm/simple akm/stylized akm/germany_chk_2002_2009"
 
 capture noisily fesim presets akm
 assert _rc == 0
 assert `"`r(dgp)'"' == "akm"
-assert `"`r(presets)'"' == "simple stylized"
+assert `"`r(presets)'"' == "simple stylized germany_chk_2002_2009"
 
 capture noisily fesim describe AKMSIMPLE
 assert _rc == 0
@@ -48,10 +49,10 @@ assert _rc == 0
 quietly adopath ++ `"`repository_root'/build"'
 mata: mata clear
 mata: mata mlib index
-mata: assert(fesim_mata_api_version() == 24)
+mata: assert(fesim_mata_api_version() == 25)
 mata: assert(fesim_config_schema_version() == 2)
 mata: assert(fesim_moment_schema_version() == 1)
 mata: assert(fesim_akm_simple_schema_version() == 4)
-mata: assert(fesim_dispatch_status() == "akm_simple_and_stylized_public")
+mata: assert(fesim_dispatch_status() == "akm_simple_stylized_and_germany_chk_public")
 
 di as result "FESIM SOURCE SMOKE PASS"

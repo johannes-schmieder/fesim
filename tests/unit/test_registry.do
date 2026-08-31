@@ -6,7 +6,8 @@ set varabbrev off
 quietly fesim_registry, action(list)
 assert `"`r(dgps)'"' == "akm akmpaygap bm"
 assert `"`r(aliases)'"' == "akmsimple akmempirical bmsimple"
-assert `"`r(qualified)'"' == "akm/simple akm/stylized"
+assert `"`r(qualified)'"' == ///
+    "akm/simple akm/stylized akm/germany_chk_2002_2009"
 assert `"`r(status)'"' == "partial"
 assert r(n_dgps) == 3
 
@@ -31,6 +32,17 @@ assert `"`r(config_schema)'"' == "akm_stylized_v3"
 assert `"`r(status)'"' == "qualified"
 assert `"`r(implemented)'"' == "yes"
 assert `"`r(calibration_class)'"' == "stylized"
+
+quietly fesim_registry, action(resolve) dgp(akm) ///
+    preset(germany_chk_2002_2009)
+assert `"`r(dgp)'"' == "akm"
+assert `"`r(preset)'"' == "germany_chk_2002_2009"
+assert `"`r(presets)'"' == "simple stylized germany_chk_2002_2009"
+assert `"`r(configurable)'"' == "yes"
+assert `"`r(config_schema)'"' == "akm_germany_chk_2002_2009_v1"
+assert `"`r(calibration_class)'"' == "targeted"
+assert `"`r(status)'"' == "qualified"
+assert `"`r(implemented)'"' == "yes"
 
 capture noisily fesim_registry, action(resolve) dgp(akmsimple) preset(stylized)
 assert _rc == 198
@@ -83,6 +95,28 @@ assert `"`r(scalar_parameters)'"' == ///
     "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
 assert `"`r(model_parameters)'"' == ///
     "mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down"
+
+quietly fesim_registry, action(parameters) dgp(akm) ///
+    preset(germany_chk_2002_2009)
+assert `"`r(config_schema)'"' == "akm_germany_chk_2002_2009_v1"
+quietly fesim_registry, action(parameter) dgp(akm) ///
+    preset(germany_chk_2002_2009) parameter(firms)
+assert r(default_value) == 1000
+quietly fesim_registry, action(parameter) dgp(akm) ///
+    preset(germany_chk_2002_2009) parameter(periods)
+assert r(default_value) == 8
+quietly fesim_registry, action(parameter) dgp(akm) ///
+    preset(germany_chk_2002_2009) parameter(sd_worker)
+assert reldif(r(default_value), .357) < 1e-12
+quietly fesim_registry, action(parameter) dgp(akm) ///
+    preset(germany_chk_2002_2009) parameter(sd_firm)
+assert reldif(r(default_value), .230) < 1e-12
+quietly fesim_registry, action(parameter) dgp(akm) ///
+    preset(germany_chk_2002_2009) parameter(sd_error)
+assert reldif(r(default_value), .135) < 1e-12
+quietly fesim_registry, action(parameter) dgp(akm) ///
+    preset(germany_chk_2002_2009) parameter(theta_sort)
+assert reldif(r(default_value), 2.2) < 1e-12
 
 quietly fesim_registry, action(parameter) dgp(akm) ///
     preset(stylized) parameter(burnin)

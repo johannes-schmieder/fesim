@@ -55,7 +55,7 @@ leave-one-worker or leave-one-match result in the realized worker-firm graph.
 The realized leave-out audit described below is separate from the design label.
 
 `network(ladder)` changes only the destination of an ordinary EE event. Firms
-are ranked in both public routes by persistent wage effect `psi_j`, using
+are ranked in all public AKM presets by persistent wage effect `psi_j`, using
 percentile midranks so ties are lateral. A candidate within `ladder_band` of
 the origin rank is lateral; candidates below and above that band are downward
 and upward. Defaults are `.10`, `.20`, and `.70` for downward, lateral, and

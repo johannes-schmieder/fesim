@@ -4,14 +4,17 @@ set more off
 set varabbrev off
 
 args repository_root source_sha requested_workers requested_firms ///
-    requested_periods requested_truth result_path
+    requested_periods requested_truth result_path requested_preset
 local workers = real(`"`requested_workers'"')
 local firms = real(`"`requested_firms'"')
 local periods = real(`"`requested_periods'"')
 local truth = lower(strtrim(`"`requested_truth'"'))
+local preset = lower(strtrim(`"`requested_preset'"'))
+if `"`preset'"' == "" local preset "stylized"
 if `"`repository_root'"' == "" | `"`source_sha'"' == "" | ///
     missing(`workers') | missing(`firms') | missing(`periods') | ///
     !inlist(`"`truth'"', "none", "basic", "full") | ///
+    !inlist(`"`preset'"', "stylized", "germany_chk_2002_2009") | ///
     `"`result_path'"' == "" {
     di as error "benchmark_stylized_public.do received invalid arguments"
     exit 198
@@ -20,7 +23,7 @@ if `"`repository_root'"' == "" | `"`source_sha'"' == "" | ///
 quietly adopath ++ `"`repository_root'"'
 timer clear 1
 timer on 1
-quietly fesim, dgp(akm) preset(stylized) workers(`workers') ///
+quietly fesim, dgp(akm) preset(`preset') workers(`workers') ///
     firms(`firms') periods(`periods') seed(20260829) ///
     truth(`truth') connectivity(keep) noreport clear
 local N = r(N)
@@ -90,7 +93,7 @@ tempname result_file
 file open `result_file' using `"`result_path'"', write text replace
 file write `result_file' "{" _n
 file write `result_file' `"  "sha": "`source_sha'","' _n
-file write `result_file' `"  "preset": "stylized","' _n
+file write `result_file' `"  "preset": "`preset'","' _n
 file write `result_file' `"  "internal_clock": "month","' _n
 file write `result_file' `"  "workers": `workers',"' _n
 file write `result_file' `"  "firms": `firms',"' _n
@@ -143,4 +146,4 @@ file write `result_file' `"  "runtime_output": `json_runtime_output'"' _n
 file write `result_file' "}" _n
 file close `result_file'
 
-di as result "FESIM STYLIZED PUBLIC BENCHMARK PASS: `result_path'"
+di as result "FESIM EMPIRICAL PUBLIC BENCHMARK PASS: `result_path'"

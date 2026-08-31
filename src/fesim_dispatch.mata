@@ -4,7 +4,7 @@ mata:
 
 string scalar fesim_dispatch_status()
 {
-    return("akm_simple_and_stylized_public")
+    return("akm_simple_stylized_and_germany_chk_public")
 }
 
 void fesim_handler_validate(struct fesim_handler scalar handler)
@@ -27,7 +27,8 @@ struct fesim_handler scalar fesim_dispatch_handler(
     dgp = strlower(strtrim(dgp))
     preset = strlower(strtrim(preset))
     if (!((dgp == "_toy" & preset == "deterministic") | ///
-        (dgp == "akm" & (preset == "simple" | preset == "stylized")))) {
+        (dgp == "akm" & (preset == "simple" | preset == "stylized" | ///
+        preset == "germany_chk_2002_2009")))) {
         _error(3300, "no qualified fesim lifecycle handler for requested DGP and preset")
     }
     handler.schema_version = fesim_handler_schema_version()
@@ -39,7 +40,9 @@ struct fesim_handler scalar fesim_dispatch_handler(
     handler.solve_required = 0
     if (dgp == "_toy") handler.qualification = "internal_toy_only"
     else if (preset == "simple") handler.qualification = "public_streaming"
-    else handler.qualification = "public_monthly_streaming"
+    else if (preset == "stylized") ///
+        handler.qualification = "public_monthly_streaming"
+    else handler.qualification = "public_targeted_monthly_streaming"
     fesim_handler_validate(handler)
     return(handler)
 }

@@ -12,7 +12,7 @@ program define fesim_registry, rclass
         }
         return local dgps "akm akmpaygap bm"
         return local aliases "akmsimple akmempirical bmsimple"
-        return local qualified "akm/simple akm/stylized"
+        return local qualified "akm/simple akm/stylized akm/germany_chk_2002_2009"
         return local status "partial"
         return scalar n_dgps = 3
         exit
@@ -32,7 +32,7 @@ program define fesim_registry, rclass
     local canonical `"`r(dgp)'"'
     local resolved_preset `"`r(preset)'"'
     if !inlist(`"`canonical'/`resolved_preset'"', ///
-        "akm/simple", "akm/stylized") {
+        "akm/simple", "akm/stylized", "akm/germany_chk_2002_2009") {
         if `"`action'"' == "parameters" {
             return local common_options ""
             return local scalar_parameters ""
@@ -58,7 +58,10 @@ program define fesim_registry, rclass
             return local scalar_parameters "workers firms periods burnin mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
             return local model_parameters "mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down"
             return local network_parameters "block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
-            return local config_schema "akm_stylized_v3"
+            if `"`resolved_preset'"' == "stylized" {
+                return local config_schema "akm_stylized_v3"
+            }
+            else return local config_schema "akm_germany_chk_2002_2009_v1"
         }
         return local dgp "akm"
         return local preset `"`resolved_preset'"'
@@ -114,11 +117,15 @@ program define fesim_registry, rclass
             local description "Number of workers"
         }
         else if `"`name'"' == "firms" {
-            local default "500"
+            if `"`resolved_preset'"' == "germany_chk_2002_2009" ///
+                local default "1000"
+            else local default "500"
             local description "Number of firms"
         }
         else if `"`name'"' == "periods" {
-            local default "10"
+            if `"`resolved_preset'"' == "germany_chk_2002_2009" ///
+                local default "8"
+            else local default "10"
             local description "Number of retained periods"
         }
         else {
@@ -146,7 +153,11 @@ program define fesim_registry, rclass
             local description "Panel time frequency"
         }
         else if `"`name'"' == "start" {
-            local default "frequency-specific"
+            if `"`resolved_preset'"' == "germany_chk_2002_2009" {
+                local default "2002"
+                local default_source "preset"
+            }
+            else local default "frequency-specific"
             local description "First retained period"
         }
         else if `"`name'"' == "initial" {
@@ -262,21 +273,27 @@ program define fesim_registry, rclass
             local description "Mean log wage"
         }
         else if `"`name'"' == "sd_worker" {
-            local default ".4"
+            if `"`resolved_preset'"' == "germany_chk_2002_2009" ///
+                local default ".357"
+            else local default ".4"
             local lower "0"
             local lower_closed "yes"
             local unit "standard deviation"
             local description "Worker-effect standard deviation"
         }
         else if `"`name'"' == "sd_firm" {
-            local default ".15"
+            if `"`resolved_preset'"' == "germany_chk_2002_2009" ///
+                local default ".230"
+            else local default ".15"
             local lower "0"
             local lower_closed "yes"
             local unit "standard deviation"
             local description "Firm-effect standard deviation"
         }
         else if `"`name'"' == "sd_error" {
-            local default ".2"
+            if `"`resolved_preset'"' == "germany_chk_2002_2009" ///
+                local default ".135"
+            else local default ".2"
             local lower "0"
             local lower_closed "yes"
             local unit "standard deviation"
@@ -375,7 +392,9 @@ program define fesim_registry, rclass
             local description "Log-one-plus unemployment-duration coefficient in the UE log hazard"
         }
         else if `"`name'"' == "theta_sort" {
-            local default ".25"
+            if `"`resolved_preset'"' == "germany_chk_2002_2009" ///
+                local default "2.2"
+            else local default ".25"
             local description "Worker-type by firm-quality destination sorting coefficient"
         }
         else if `"`name'"' == "theta_quality" {
@@ -464,11 +483,12 @@ program define fesim_registry__resolve, rclass
     local config_schema ""
     local configurable "no"
     if `"`canonical'"' == "akm" {
-        local presets "simple stylized"
+        local presets "simple stylized germany_chk_2002_2009"
         local aliases "akmsimple akmempirical"
-        if !inlist(`"`resolved_preset'"', "simple", "stylized") {
+        if !inlist(`"`resolved_preset'"', "simple", "stylized", ///
+            "germany_chk_2002_2009") {
             di as error "unknown preset for dgp(akm): `resolved_preset'"
-            di as error "registered presets are simple and stylized"
+            di as error "registered presets are simple, stylized, and germany_chk_2002_2009"
             exit 198
         }
         if `"`resolved_preset'"' == "simple" {
@@ -477,10 +497,16 @@ program define fesim_registry__resolve, rclass
             local config_schema "akm_simple_v3"
             local configurable "yes"
         }
-        else {
+        else if `"`resolved_preset'"' == "stylized" {
             local title "Reduced-form AKM with stylized empirical mobility"
             local calibration_class "stylized"
             local config_schema "akm_stylized_v3"
+            local configurable "yes"
+        }
+        else {
+            local title "Reduced-form AKM targeted to CHK West Germany, 2002-2009"
+            local calibration_class "targeted"
+            local config_schema "akm_germany_chk_2002_2009_v1"
             local configurable "yes"
         }
     }
@@ -515,7 +541,7 @@ program define fesim_registry__resolve, rclass
     return local title `"`title'"'
     return local calibration_class `"`calibration_class'"'
     if inlist(`"`canonical'/`resolved_preset'"', ///
-        "akm/simple", "akm/stylized") {
+        "akm/simple", "akm/stylized", "akm/germany_chk_2002_2009") {
         return local status "qualified"
         return local implemented "yes"
     }

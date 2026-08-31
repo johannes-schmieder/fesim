@@ -4,21 +4,29 @@ mata:
 
 real scalar fesim_emp_handler_schema_version()
 {
-    return(4)
+    return(5)
 }
 
 real colvector fesim_emp_truth_targets(
     real scalar worker_sd,
     real scalar firm_sd,
-    real scalar error_sd)
+    real scalar error_sd,
+    real scalar covariance_target)
 {
     if (missing(worker_sd) | missing(firm_sd) | missing(error_sd) | ///
-        worker_sd < 0 | firm_sd < 0 | error_sd < 0) {
-        _error(3300, "stylized AKM truth targets are invalid")
+        worker_sd < 0 | firm_sd < 0 | error_sd < 0 | ///
+        (!missing(covariance_target) & ///
+        abs(covariance_target) > worker_sd * firm_sd + 1e-12)) {
+        _error(3300, "empirical AKM truth targets are invalid")
+    }
+    if (missing(covariance_target)) {
+        return((0 \ worker_sd \ worker_sd ^ 2 \ ///
+            0 \ firm_sd \ firm_sd ^ 2 \ ///
+            0 \ error_sd \ error_sd ^ 2))
     }
     return((0 \ worker_sd \ worker_sd ^ 2 \ ///
         0 \ firm_sd \ firm_sd ^ 2 \ ///
-        0 \ error_sd \ error_sd ^ 2))
+        0 \ error_sd \ error_sd ^ 2 \ covariance_target))
 }
 
 real scalar fesim_emp_simulate_to_stata(
@@ -64,6 +72,7 @@ real scalar fesim_emp_simulate_to_stata(
     real scalar theta_quality,
     real scalar theta_up,
     real scalar theta_down,
+    real scalar covariance_target,
     string scalar truth_moment_matrix,
     string scalar truth_target_matrix,
     string scalar bridge_matrix)
@@ -137,11 +146,13 @@ real scalar fesim_emp_simulate_to_stata(
         kappa_ee, ee_worker, ee_firm, ee_duration, kappa_ue, ///
         ue_worker, ue_duration, theta_sort, theta_quality, ///
         theta_up, theta_down))) | ///
+        (!missing(covariance_target) & ///
+        abs(covariance_target) > worker_sd * firm_sd + 1e-12) | ///
         (seed_was_requested != 0 & seed_was_requested != 1) | ///
         strtrim(truth_moment_matrix) == "" | ///
         strtrim(truth_target_matrix) == "" | ///
         strtrim(bridge_matrix) == "") {
-        _error(3300, "stylized AKM handler inputs are invalid")
+        _error(3300, "empirical AKM handler inputs are invalid")
     }
     initial = strlower(strtrim(initial))
     truth = strlower(strtrim(truth))
@@ -150,7 +161,7 @@ real scalar fesim_emp_simulate_to_stata(
         (truth != "none" & truth != "basic" & truth != "full") | ///
         (network_mode != "random" & network_mode != "blocks" & ///
         network_mode != "bridges" & network_mode != "ladder")) {
-        _error(3300, "stylized AKM initialization or truth mode is invalid")
+        _error(3300, "empirical AKM initialization or truth mode is invalid")
     }
     months_per_output = floor(months_per_output + .5)
 
@@ -379,7 +390,8 @@ real scalar fesim_emp_simulate_to_stata(
         covariance)
     st_matrix(truth_moment_matrix, truth_moments)
     st_matrix(truth_target_matrix, ///
-        fesim_emp_truth_targets(worker_sd, firm_sd, error_sd))
+        fesim_emp_truth_targets( ///
+            worker_sd, firm_sd, error_sd, covariance_target))
     return(rng_state.master_seed)
 }
 

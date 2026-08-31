@@ -59,4 +59,4 @@ Every model-specific scalar is accepted only inside `parameters()`. Changing one
 
 The public route is qualified for deterministic alias equivalence, all three output frequencies, monthly transition aggregation, duration-unit conversion, truth modes, caller-state preservation, configuration bounds, and common results. It reuses the already qualified hazard, grouped-destination, lifecycle, graph, moment, and RNG layers.
 
-DG-08 remains open only for a future targeted or Germany-labeled preset. `akm/stylized` must not be cited as a German calibration or as matching empirical targets.
+DG-08 is resolved by the separate `akm/germany_chk_2002_2009` preset. `akm/stylized` remains unchanged and must not be cited as a German calibration or as matching empirical targets.

@@ -22,7 +22,9 @@ qualified baseline and before/after interpretation.
 `benchmark_stylized_public.do` measures the public monthly empirical-mobility
 route, including five years of burn-in, monthly-to-output aggregation, duration
 returns, graph and leave-out diagnostics, and the final Stata dataset. Its
-harness also rejects malformed JSON.
+harness also rejects malformed JSON. The same benchmark accepts the distinct
+Germany preset when requested; `scripts/run_germany_chk_benchmark.sh` fixes its
+interactive defaults at 10,000 workers, 1,000 firms, and eight periods.
 It times construction of the five worker-type UE and EE tables and 100,000
 draws from each kernel, verifies exact current-firm exclusion, and records the
 numeric payload of the persistent tables. Run it from a clean checkout with:

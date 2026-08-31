@@ -63,7 +63,7 @@ assert r(n_dgps) == 3
 
 capture noisily fesim presets akm
 assert _rc == 0
-assert `"`r(presets)'"' == "simple stylized"
+assert `"`r(presets)'"' == "simple stylized germany_chk_2002_2009"
 
 capture noisily fesim describe akmsimple
 assert _rc == 0
@@ -81,6 +81,15 @@ assert _rc == 0
 assert _N == 24
 isid workerid time
 
+capture noisily fesim, dgp(akm) preset(germany_chk_2002_2009) ///
+    workers(12) firms(3) periods(2) seed(11111) truth(none) noreport clear
+assert _rc == 0
+assert _N == 24
+matrix installed_germany_targets = r(targets)
+assert rowsof(installed_germany_targets) == 10
+assert installed_germany_targets["cov_alpha_psi_true", "target"] == .0205
+isid workerid time
+
 capture noisily fesim, dgp(akmempirical) workers(12) firms(3) periods(2) ///
     seed(54321) truth(none) noreport clear
 assert _rc == 0
@@ -89,7 +98,7 @@ confirm variable unemp_duration
 matrix installed_durations = r(durations)
 assert rowsof(installed_durations) == 12
 isid workerid time
-mata: assert(fesim_mata_api_version() == 24)
+mata: assert(fesim_mata_api_version() == 25)
 mata: mata clear
 quietly adopath ++ `"`repository_root'/build"'
 mata: mata mlib index

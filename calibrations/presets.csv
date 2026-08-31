@@ -31,3 +31,26 @@ akm,stylized,theta_sort,.25,destination utility coefficient,stylized,fesim_d026,
 akm,stylized,theta_quality,.1,destination utility coefficient,stylized,fesim_d026,DESIGN D-026,none,modest high-quality preference,0.2.0
 akm,stylized,theta_up,.2,destination utility coefficient,stylized,fesim_d026,DESIGN D-026,none,modest upward-move preference,0.2.0
 akm,stylized,theta_down,-.1,destination utility coefficient,stylized,fesim_d026,DESIGN D-026,none,modest downward-move penalty,0.2.0
+akm,germany_chk_2002_2009,mu,3,log wage,targeted,fesim_d033,DESIGN D-033,normalization,package normalization; CHK mean log wage is not targeted,0.2.0
+akm,germany_chk_2002_2009,sd_worker,.357,standard deviation,targeted,chk2013_table4,CHK 2013 Table 4,none,worker-effect dispersion for 2002-2009 connected-set AKM sample,0.2.0
+akm,germany_chk_2002_2009,sd_firm,.230,standard deviation,targeted,chk2013_table4,CHK 2013 Table 4,none,establishment-effect dispersion for 2002-2009 connected-set AKM sample,0.2.0
+akm,germany_chk_2002_2009,sd_error,.135,standard deviation,targeted,chk2013_table4,CHK 2013 Table 4,none,AKM residual dispersion for 2002-2009 connected-set AKM sample,0.2.0
+akm,germany_chk_2002_2009,firm_size_sd,1,log attraction scale,targeted,fesim_d026,DESIGN D-026,none,stylized carryover; not German-calibrated,0.2.0
+akm,germany_chk_2002_2009,wage_trend,0,log points per year,targeted,fesim_d026,DESIGN D-026,none,stylized carryover; not German-calibrated,0.2.0
+akm,germany_chk_2002_2009,rho_z_alpha,.3,latent correlation,targeted,fesim_d026,DESIGN D-026,none,stylized carryover; not German-calibrated,0.2.0
+akm,germany_chk_2002_2009,rho_q_psi,.5,latent correlation,targeted,fesim_d026,DESIGN D-026,none,stylized carryover; not German-calibrated,0.2.0
+akm,germany_chk_2002_2009,kappa_eu,-2.416230718633671,log annual hazard,targeted,fesim_d026,DESIGN D-026,continuous competing conversion,stylized carryover; EU hazards not German-calibrated,0.2.0
+akm,germany_chk_2002_2009,eu_worker,.1,log hazard coefficient,targeted,fesim_d026,DESIGN D-026,none,stylized carryover; EU hazards not German-calibrated,0.2.0
+akm,germany_chk_2002_2009,eu_firm,-.1,log hazard coefficient,targeted,fesim_d026,DESIGN D-026,none,stylized carryover; EU hazards not German-calibrated,0.2.0
+akm,germany_chk_2002_2009,eu_duration,-.2,log hazard coefficient,targeted,fesim_d026,DESIGN D-026,none,stylized carryover; durations not German-calibrated,0.2.0
+akm,germany_chk_2002_2009,kappa_ee,-2.0107656105255063,log annual hazard,targeted,fesim_d026,DESIGN D-026,continuous competing conversion,stylized carryover; EE hazards not German-calibrated,0.2.0
+akm,germany_chk_2002_2009,ee_worker,.1,log hazard coefficient,targeted,fesim_d026,DESIGN D-026,none,stylized carryover; EE hazards not German-calibrated,0.2.0
+akm,germany_chk_2002_2009,ee_firm,-.1,log hazard coefficient,targeted,fesim_d026,DESIGN D-026,none,stylized carryover; EE hazards not German-calibrated,0.2.0
+akm,germany_chk_2002_2009,ee_duration,-.15,log hazard coefficient,targeted,fesim_d026,DESIGN D-026,none,stylized carryover; durations not German-calibrated,0.2.0
+akm,germany_chk_2002_2009,kappa_ue,-.08742157179075517,log annual hazard,targeted,fesim_d026,DESIGN D-026,continuous single-risk conversion,stylized carryover; UE hazards not German-calibrated,0.2.0
+akm,germany_chk_2002_2009,ue_worker,.15,log hazard coefficient,targeted,fesim_d026,DESIGN D-026,none,stylized carryover; UE hazards not German-calibrated,0.2.0
+akm,germany_chk_2002_2009,ue_duration,-.25,log hazard coefficient,targeted,fesim_d026,DESIGN D-026,none,stylized carryover; durations not German-calibrated,0.2.0
+akm,germany_chk_2002_2009,theta_sort,2.2,destination utility coefficient,targeted,fesim_d033_fit,calibrations/germany_chk_2002_2009_results.csv,five-seed fit plus five disjoint validation seeds,fitted to CHK employment-weighted worker-establishment covariance .0205,0.2.0
+akm,germany_chk_2002_2009,theta_quality,.1,destination utility coefficient,targeted,fesim_d026,DESIGN D-026,none,stylized carryover; not German-calibrated,0.2.0
+akm,germany_chk_2002_2009,theta_up,.2,destination utility coefficient,targeted,fesim_d026,DESIGN D-026,none,stylized carryover; not German-calibrated,0.2.0
+akm,germany_chk_2002_2009,theta_down,-.1,destination utility coefficient,targeted,fesim_d026,DESIGN D-026,none,stylized carryover; not German-calibrated,0.2.0

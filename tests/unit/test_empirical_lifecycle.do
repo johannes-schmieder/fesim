@@ -35,7 +35,17 @@ end
 
 mata:
 assert(fesim_emp_schema_version() == 2)
+assert(fesim_emp_handler_schema_version() == 5)
 assert(fesim_emp_month_years() == 1 / 12)
+
+stylized_targets = fesim_emp_truth_targets(.4, .15, .2, .)
+germany_targets = fesim_emp_truth_targets(.357, .230, .135, .0205)
+assert(rows(stylized_targets) == 9)
+assert(rows(germany_targets) == 10)
+assert(germany_targets[2] == .357)
+assert(germany_targets[5] == .230)
+assert(germany_targets[8] == .135)
+assert(germany_targets[10] == .0205)
 
 population_rng = fesim_rng_init(20260829, 1)
 emp_population = fesim_emp_generate_population(
@@ -251,6 +261,9 @@ assert(isolation_rng_a.component_states[event_index] == ///
 assert(isolation_rng_a.component_states[destination_index] == ///
     isolation_rng_b.component_states[destination_index])
 end
+
+capture mata: fesim_emp_truth_targets(.1, .1, .1, .02)
+assert _rc == 3300
 
 assert `"`c(rng)'"' == `"`caller_rng_before'"'
 assert `"`c(rngstate)'"' == `"`caller_state_before'"'

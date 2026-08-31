@@ -80,7 +80,7 @@ program define fesim__list, rclass
         di as txt "  " %-12s `"`dgp'"' %-19s `"`presets'"' ///
             %-27s `"`aliases'"' `"`r(status)'"'
     }
-    di as txt _newline "The akm/simple and akm/stylized presets are available for simulation."
+    di as txt _newline "The akm/simple, akm/stylized, and akm/germany_chk_2002_2009 presets are available for simulation."
 
     return local command "list"
     return local dgps `"`dgps'"'
@@ -174,7 +174,8 @@ program define fesim__describe, rclass
         return local calibration_class `"`calibration'"'
     }
     if `"`dgp'"' == "akm" & ///
-        inlist(`"`resolved_preset'"', "simple", "stylized") {
+        inlist(`"`resolved_preset'"', "simple", "stylized", ///
+        "germany_chk_2002_2009") {
         di as txt "Simulation is available for this preset."
     }
     else {
@@ -272,7 +273,7 @@ program define fesim__simulate, rclass
         scalar `p_ee' = `resolved_parameters'["p_ee", "value"]
         scalar `p_ue' = `resolved_parameters'["p_ue", "value"]
     }
-    else if `"`resolved_preset'"' == "stylized" {
+    else if `"`resolved_preset'"' != "simple" {
         foreach name in rho_z_alpha rho_q_psi kappa_eu eu_worker ///
             eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration ///
             kappa_ue ue_worker ue_duration theta_sort theta_quality ///
@@ -287,7 +288,8 @@ program define fesim__simulate, rclass
         exit 4
     }
     if `"`resolved_dgp'"' != "akm" | ///
-        !inlist(`"`resolved_preset'"', "simple", "stylized") {
+        !inlist(`"`resolved_preset'"', "simple", "stylized", ///
+        "germany_chk_2002_2009") {
         di as error "simulation is not yet implemented for dgp(`resolved_dgp') preset(`resolved_preset')"
         exit 498
     }
@@ -319,7 +321,7 @@ program define fesim__simulate, rclass
     if `"`resolved_connectivity'"' == "largest" & ///
         `"`resolved_truth'"' == "none" local handler_truth "basic"
 
-    tempname master_seed truth_moments truth_targets bridge_ledger
+    tempname master_seed truth_moments truth_targets bridge_ledger covariance_target
     if `"`resolved_preset'"' == "simple" {
         capture noisily mata: st_numscalar("`master_seed'", ///
             fesim_akm_simulate_to_stata( ///
@@ -343,6 +345,9 @@ program define fesim__simulate, rclass
             "`truth_moments'", "`truth_targets'", "`bridge_ledger'"))
     }
     else {
+        scalar `covariance_target' = .
+        if `"`resolved_preset'"' == "germany_chk_2002_2009" ///
+            scalar `covariance_target' = .0205
         capture noisily mata: st_numscalar("`master_seed'", ///
             fesim_emp_simulate_to_stata( ///
             `resolved_workers', `resolved_firms', `resolved_periods', ///
@@ -378,6 +383,7 @@ program define fesim__simulate, rclass
             st_numscalar("`p_theta_quality'"), ///
             st_numscalar("`p_theta_up'"), ///
             st_numscalar("`p_theta_down'"), ///
+            st_numscalar("`covariance_target'"), ///
             "`truth_moments'", "`truth_targets'", "`bridge_ledger'"))
     }
     local simulation_rc = _rc
@@ -427,7 +433,8 @@ program define fesim__simulate, rclass
     matrix rownames `truth_targets' = alpha_true_mean alpha_true_sd ///
         alpha_true_var psi_true_mean psi_true_sd psi_true_var ///
         epsilon_true_mean epsilon_true_sd epsilon_true_var
-    if `"`resolved_preset'"' == "simple" {
+    if inlist(`"`resolved_preset'"', "simple", ///
+        "germany_chk_2002_2009") {
         matrix rownames `truth_targets' = alpha_true_mean alpha_true_sd ///
             alpha_true_var psi_true_mean psi_true_sd psi_true_var ///
             epsilon_true_mean epsilon_true_sd epsilon_true_var ///
@@ -479,7 +486,7 @@ program define fesim__simulate, rclass
     }
 
     local duration_option ""
-    if `"`resolved_preset'"' == "stylized" {
+    if `"`resolved_preset'"' != "simple" {
         capture quietly _fesim_durations, deltayears(`resolved_delta')
         local duration_rc = _rc
         if `duration_rc' {

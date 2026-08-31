@@ -16,8 +16,11 @@
   unemployment duration, year-valued `r(durations)` distributions, and full
   worker-type/firm-quality truth.
 - Auditable stylized parameter records and a registry-consistency test. The
-  defaults are explicitly uncalibrated; DG-08 remains open for any targeted or
-  Germany-labeled preset.
+  generic `akm/stylized` defaults remain explicitly uncalibrated.
+- Distinct `akm/germany_chk_2002_2009` targeted preset using CHK worker,
+  establishment, and residual dispersions plus worker--establishment covariance;
+  only `theta_sort` is fitted on five calibration seeds and validated on five
+  disjoint seeds. Hazards and durations remain labeled stylized carryovers.
 - Expanded `r(network)` with an undirected observed firm mobility graph:
   distinct firm links, direction-pooled observed move-count weights, active
   firms with no movers, p10/p50/p90/p99 link-weight summaries, articulation
@@ -32,8 +35,8 @@
   Stayer leaf edges are not misclassified as firm-disconnecting matches, and
   the audit does not filter the returned panel or label a separate match sample.
 - Shared `network(random)` destination primitives for attraction-weighted
-  common assignments and current-firm-excluding direct moves. Both public AKM
-  routes preserve their frozen draws and output.
+  common assignments and current-firm-excluding direct moves. All public AKM
+  presets preserve the relevant route's frozen draws and output.
 - Common `network(blocks)` stress designs with balanced independent worker and
   firm communities on isolated RNG stream 109, same-block destination weights,
   exact zero-bonus nesting of the random rule, block truth variables, and

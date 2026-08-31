@@ -1,6 +1,6 @@
 # Block-output implementation
 
-The common output layer implements the early deterministic spike and both public AKM streaming routes.
+The common output layer implements the early deterministic spike and all public AKM streaming presets.
 
 ## Strategy
 

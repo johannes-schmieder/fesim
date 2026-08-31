@@ -27,18 +27,18 @@ help for {cmd:fesim} {right:(Johannes F. Schmieder)}
 {cmd:report} {cmd:noreport} {cmd:clear}]{p_end}
 
 {pstd}
-The {cmd:dgp(akm) preset(simple)} and {cmd:dgp(akm) preset(stylized)} designs are available; {cmd:dgp(akmsimple)} and {cmd:dgp(akmempirical)} are their convenience aliases. Model-specific scalars remain exclusively inside {cmd:parameters()}; named options are common controls only. Other registered designs remain discovery metadata and exit without changing data or random state.
+The {cmd:dgp(akm) preset(simple)}, {cmd:preset(stylized)}, and {cmd:preset(germany_chk_2002_2009)} designs are available; {cmd:dgp(akmsimple)} and {cmd:dgp(akmempirical)} are convenience aliases for the first two. Model-specific scalars remain exclusively inside {cmd:parameters()}; named options are common controls only. Other registered designs remain discovery metadata and exit without changing data or random state.
 
 {title:Description}
 
 {pstd}
-{cmd:fesim} generates worker-period linked employer-employee panels using a common Stata/Mata engine. The package separates the DGP, mobility engine, calibration preset, and observation scheme. The {cmd:akm/simple} defaults are a stylized teaching and testing design. The {cmd:akm/stylized} defaults exercise a monthly empirical-mobility engine but are explicitly uncalibrated; the alias name {cmd:akmempirical} does not imply a paper or country calibration.
+{cmd:fesim} generates worker-period linked employer-employee panels using a common Stata/Mata engine. The package separates the DGP, mobility engine, calibration preset, and observation scheme. The {cmd:akm/simple} defaults are a stylized teaching and testing design. The {cmd:akm/stylized} defaults exercise a monthly empirical-mobility engine but are explicitly uncalibrated; the alias name {cmd:akmempirical} does not imply a paper or country calibration. The distinct {cmd:akm/germany_chk_2002_2009} preset targets selected Card-Heining-Kline 2002--2009 West German AKM wage-dispersion and sorting moments.
 
 {pstd}
 {cmd:fesim list} shows canonical DGP families, presets, aliases, and implementation status. {cmd:fesim presets} lists presets for all families or one requested DGP. {cmd:fesim describe} resolves case-insensitive names to canonical lowercase names. For example, {cmd:akmsimple} resolves to {cmd:dgp(akm) preset(simple)} and reports the same canonical configuration.
 
 {pstd}
-Configuration metadata is implemented for both public presets. Common defaults are {cmd:workers(10000)}, {cmd:firms(500)}, {cmd:periods(10)}, {cmd:frequency(year)}, {cmd:start(2000)}, {cmd:jobrule(end)}, {cmd:truth(basic)}, {cmd:connectivity(keep)}, {cmd:network(random)}, and {cmd:report}. The simple preset uses {cmd:initial(stationary)} and {cmd:burnin(0)}. The stylized empirical-mobility preset uses {cmd:initial(random)} and a five-year monthly burn-in. Omitting {cmd:seed()} records {cmd:current}; configuration resolution itself never changes the RNG state.
+Configuration metadata is implemented for all three public presets. The simple and stylized presets retain their documented defaults. The Germany preset defaults to {cmd:workers(10000)}, {cmd:firms(1000)}, eight annual periods beginning in 2002, {cmd:initial(random)}, and a five-year monthly burn-in. All presets default to {cmd:truth(basic)}, {cmd:connectivity(keep)}, {cmd:network(random)}, and {cmd:report}. Omitting {cmd:seed()} records {cmd:current}; configuration resolution itself never changes the RNG state.
 
 For the simple AKM contract, {cmd:initial(stationary)} uses the exact interval transition matrix over unemployment and firms and initializes job age from the stationary geometric distribution. {cmd:initial(random)} uses employment probability 0.5, attraction-weighted firm assignment, tenure zero, and requires {cmd:burnin()} of at least one period. {cmd:initial(allunemployed)} is a diagnostic start.
 
@@ -47,6 +47,9 @@ The simple model parameters accepted in {cmd:parameters()} are {cmd:mu}, {cmd:sd
 
 {pstd}
 The stylized empirical-mobility preset reuses the wage/size parameters and adds {cmd:rho_z_alpha}, {cmd:rho_q_psi}; annual log-hazard intercepts {cmd:kappa_eu}, {cmd:kappa_ee}, {cmd:kappa_ue}; worker, firm, tenure, and unemployment-duration slopes; and destination coefficients {cmd:theta_sort}, {cmd:theta_quality}, {cmd:theta_up}, and {cmd:theta_down}. Type {cmd:fesim describe akmempirical} for all defaults and bounds. The intercepts anchor zero-covariate intensities to the simple annual probabilities; all remaining coefficients are transparent stress-design choices, not fitted estimates.
+
+{pstd}
+The CHK-targeted preset sets {cmd:sd_worker=.357}, {cmd:sd_firm=.230}, and {cmd:sd_error=.135}, and fits only {cmd:theta_sort=2.2} to the employment-weighted worker--establishment covariance target {cmd:.0205}. It returns these four source moments in {cmd:r(targets)}. The other mobility coefficients, including all transition hazards and duration slopes, remain stylized D-026 carryovers and must not be described as German-calibrated. Its classification is {cmd:targeted}; any model-parameter override changes it to {cmd:targeted_modified}.
 
 {title:Network stress designs}
 
@@ -57,12 +60,12 @@ The stylized empirical-mobility preset reuses the wage/size parameters and adds 
 {cmd:network(bridges)} uses strict ordinary blocks: initialization and UE stay in the worker's home block, and ordinary EE destinations stay in the current firm's block. It then redirects the destination, but not the occurrence or timing, of an exact set of retained-sample EE events. The minimum plan is 1-2, 2-3, ..., {cmd:block_count-1}-{cmd:block_count}; extra bridges cycle over those adjacent pairs. Distinct bridge workers are selected reproducibly by the isolated network-design priority among eligible workers. {cmd:bridge_count} defaults dynamically to {cmd:block_count-1} and may be raised inside {cmd:parameters()}. At least two firms per block are required. The command fails if eligible retained EE events cannot complete the exact plan. {cmd:block_log_bonus} is inapplicable and is rejected when explicitly supplied.
 
 {pstd}
-{cmd:network(ladder)} is a reduced-form EE-destination design. Both public AKM routes rank firms by persistent firm effect {cmd:psi_j} using tied percentile midranks. Candidate firms within {cmd:ladder_band} of the origin rank are lateral; lower and higher candidates outside that band are downward and upward. Defaults are {cmd:ladder_down_share=.10}, {cmd:ladder_lateral_share=.20}, {cmd:ladder_up_share=.70}, and {cmd:ladder_band=.10}. Shares are renormalized over directions with positive ordinary destination mass, while the selected DGP's ordinary weights are retained within direction. The current firm remains excluded. Initialization, UE destinations, event timing, and wages are unchanged, and the existing destination uniform is reused. All four controls remain inside {cmd:parameters()}. This is not a structural Burdett-Mortensen or revealed-preference equilibrium.
+{cmd:network(ladder)} is a reduced-form EE-destination design. All public AKM presets rank firms by persistent firm effect {cmd:psi_j} using tied percentile midranks. Candidate firms within {cmd:ladder_band} of the origin rank are lateral; lower and higher candidates outside that band are downward and upward. Defaults are {cmd:ladder_down_share=.10}, {cmd:ladder_lateral_share=.20}, {cmd:ladder_up_share=.70}, and {cmd:ladder_band=.10}. Shares are renormalized over directions with positive ordinary destination mass, while the selected DGP's ordinary weights are retained within direction. The current firm remains excluded. Initialization, UE destinations, event timing, and wages are unchanged, and the existing destination uniform is reused. All four controls remain inside {cmd:parameters()}. This is not a structural Burdett-Mortensen or revealed-preference equilibrium.
 
 {title:Time and rate units}
 
 {pstd}
-{cmd:frequency()} selects abstract Stata annual, quarterly, or monthly output periods and the corresponding {cmd:%ty}, {cmd:%tq}, or {cmd:%tm} time format. Simple-preset transition inputs are annual probabilities. The stylized preset always advances monthly from annual continuous hazards and samples the requested output snapshots. Quarterly or monthly output never reinterprets annual inputs as per-period values.
+{cmd:frequency()} selects abstract Stata annual, quarterly, or monthly output periods and the corresponding {cmd:%ty}, {cmd:%tq}, or {cmd:%tm} time format. Simple-preset transition inputs are annual probabilities. The stylized and Germany presets always advance monthly from annual continuous hazards and sample the requested output snapshots. Quarterly or monthly output never reinterprets annual inputs as per-period values.
 
 {title:Simulation output}
 
@@ -70,13 +73,13 @@ The stylized empirical-mobility preset reuses the wage/size parameters and adds 
 The returned dataset is sorted by {cmd:workerid time} and satisfies {cmd:isid workerid time}. Required variables are {cmd:workerid}, {cmd:time}, {cmd:firmid}, {cmd:employed}, {cmd:lnwage}, {cmd:spellid}, {cmd:tenure}, {cmd:newjob}, {cmd:from_unemp}, {cmd:to_unemp}, {cmd:jobtojob}, and {cmd:ntransitions}. With {cmd:truth(basic)} or {cmd:truth(full)}, the simple preset also generates {cmd:alpha_true}, {cmd:psi_true}, {cmd:time_true}, {cmd:xb_true}, {cmd:match_true}, {cmd:epsilon_true}, and {cmd:lnwage_true}. {cmd:truth(none)} suppresses those columns without changing any economic draw or common output value.
 
 {pstd}
-The stylized preset additionally reports {cmd:unemp_duration}; it and {cmd:tenure} use output-period units. {cmd:ntransitions} counts all monthly events since the prior snapshot and may exceed one. {cmd:r(durations)} reports counts, means, sample standard deviations, and p10/p50/p90 in years. Under {cmd:truth(full)}, {cmd:worker_type_true} gives the five-point mobility type and {cmd:firm_quality_true} gives current-firm quality on employed rows. Under {cmd:network(blocks)} or {cmd:network(bridges)}, full truth also adds permanent {cmd:worker_block_true} and current-employer {cmd:firm_block_true}; the latter is missing outside employment. {cmd:network(bridges)} adds {cmd:nbridges_imposed} under every truth mode; it counts design-imposed bridges for that worker and output interval.
+The stylized and Germany presets additionally report {cmd:unemp_duration}; it and {cmd:tenure} use output-period units. {cmd:ntransitions} counts all monthly events since the prior snapshot and may exceed one. {cmd:r(durations)} reports counts, means, sample standard deviations, and p10/p50/p90 in years. Under {cmd:truth(full)}, {cmd:worker_type_true} gives the five-point mobility type and {cmd:firm_quality_true} gives current-firm quality on employed rows. Under {cmd:network(blocks)} or {cmd:network(bridges)}, full truth also adds permanent {cmd:worker_block_true} and current-employer {cmd:firm_block_true}; the latter is missing outside employment. {cmd:network(bridges)} adds {cmd:nbridges_imposed} under every truth mode; it counts design-imposed bridges for that worker and output interval.
 
 {pstd}
 {cmd:alpha_true} is the persistent worker effect. {cmd:psi_true} is the persistent current-firm effect and is missing outside employment. {cmd:time_true} is {cmd:wage_trend} times elapsed retained-sample years. {cmd:xb_true} and {cmd:match_true} are zero in the simple preset. {cmd:epsilon_true} is the idiosyncratic wage shock, and {cmd:lnwage_true} equals the observed employed log wage because the simple preset has no measurement error.
 
 {pstd}
-Simulation results are returned through {cmd:r()} scalars for dimensions, realized flows, network diagnostics, and stage runtimes; macros for the resolved DGP, preset, timing, RNG, network design, and version; and matrices {cmd:r(parameters)}, {cmd:r(moments)}, {cmd:r(targets)}, {cmd:r(network)}, and {cmd:r(leaveout)}. {cmd:akm/stylized} also returns {cmd:r(durations)}. {cmd:network(bridges)} returns {cmd:r(bridges_imposed)} and the exact eight-column {cmd:r(bridges)} ledger: bridge ID, worker ID, output period, internal period, source firm, target firm, source block, and target block. Component moments and applicable targets are computed even under {cmd:truth(none)}. Dataset characteristics record the version, canonical DGP and requested alias, preset and calibration class, command, actual master seed and RNG, frequency and internal clock, employer rule, burn-in, connectivity rule, network design, truth mode, and normalization reference.
+Simulation results are returned through {cmd:r()} scalars for dimensions, realized flows, network diagnostics, and stage runtimes; macros for the resolved DGP, preset, timing, RNG, network design, and version; and matrices {cmd:r(parameters)}, {cmd:r(moments)}, {cmd:r(targets)}, {cmd:r(network)}, and {cmd:r(leaveout)}. {cmd:akm/stylized} and {cmd:akm/germany_chk_2002_2009} also return {cmd:r(durations)}. {cmd:network(bridges)} returns {cmd:r(bridges_imposed)} and the exact eight-column {cmd:r(bridges)} ledger: bridge ID, worker ID, output period, internal period, source firm, target firm, source block, and target block. Component moments and applicable targets are computed even under {cmd:truth(none)}. Dataset characteristics record the version, canonical DGP and requested alias, preset and calibration class, command, actual master seed and RNG, frequency and internal clock, employer rule, burn-in, connectivity rule, network design, truth mode, and normalization reference.
 
 {title:Connectivity}
 
@@ -99,7 +102,7 @@ Discovery and configuration resolution do not alter data or Stata's RNG state. T
 {title:Registered designs}
 
 {p2colset 9 24 26 2}{...}
-{p2col:{cmd:akm}}Presets {cmd:simple} and {cmd:stylized} are qualified; aliases are {cmd:akmsimple} and {cmd:akmempirical}.{p_end}
+{p2col:{cmd:akm}}Presets {cmd:simple}, {cmd:stylized}, and {cmd:germany_chk_2002_2009} are qualified; aliases are {cmd:akmsimple} and {cmd:akmempirical}.{p_end}
 {p2col:{cmd:akmpaygap}}Presets {cmd:simple} and planned, unaudited {cmd:cck2016}; planned.{p_end}
 {p2col:{cmd:bm}}Preset {cmd:simple}; alias {cmd:bmsimple}; planned pending an accepted equilibrium derivation.{p_end}
 {p2colreset}{...}
@@ -115,7 +118,7 @@ Discovery and configuration resolution do not alter data or Stata's RNG state. T
 {pstd}{cmd:fesim list} returns:{p_end}
 {synopt:{cmd:r(dgps)}}canonical DGP names{p_end}
 {synopt:{cmd:r(aliases)}}registered aliases{p_end}
-{synopt:{cmd:r(qualified)}}qualified DGP/preset names; currently {cmd:akm/simple akm/stylized}{p_end}
+{synopt:{cmd:r(qualified)}}qualified DGP/preset names; currently {cmd:akm/simple akm/stylized akm/germany_chk_2002_2009}{p_end}
 {synopt:{cmd:r(n_dgps)}}number of canonical registered DGP families{p_end}
 
 {pstd}{cmd:fesim presets} returns {cmd:r(dgps)} when listing all families; with a DGP, it returns {cmd:r(dgp)}, {cmd:r(dgp_alias)}, {cmd:r(presets)}, and {cmd:r(aliases)}.{p_end}
@@ -159,7 +162,7 @@ Discovery and configuration resolution do not alter data or Stata's RNG state. T
 {synopt:{cmd:r(targets)}}target, realized, difference, and relative-difference columns{p_end}
 {synopt:{cmd:r(network)}}generated and returned graph-diagnostic columns{p_end}
 {synopt:{cmd:r(leaveout)}}KSS-aligned worker-set and complete-match vulnerability audit{p_end}
-{synopt:{cmd:r(durations)}}year-valued tenure and unemployment-duration distribution; {cmd:akm/stylized}{p_end}
+{synopt:{cmd:r(durations)}}year-valued tenure and unemployment-duration distribution; empirical AKM presets{p_end}
 {synopt:{cmd:r(bridges)}}exact bridge-event ledger; {cmd:network(bridges)} only{p_end}
 {synopt:{cmd:r(dgp)}, {cmd:r(dgp_alias)}, {cmd:r(preset)}}canonical identity and requested alias{p_end}
 {synopt:{cmd:r(seed)}, {cmd:r(rng)}}actual master seed and component-stream RNG{p_end}
@@ -243,7 +246,7 @@ block through {cmd:fesim_run}, which also restores the caller's data.
 {title:Limitations}
 
 {pstd}
-Version 0.2.0-dev exposes the released {cmd:akm/simple} panel and the uncalibrated {cmd:akm/stylized} empirical-mobility engine. It does not estimate a model or provide a paper or German calibration. {cmd:connectivity(force)} has no accepted scientific design. Other registered families remain discovery-only.
+Version 0.2.0-dev exposes the released {cmd:akm/simple} panel, the uncalibrated {cmd:akm/stylized} empirical-mobility engine, and the narrowly targeted {cmd:akm/germany_chk_2002_2009} preset. The Germany preset targets wage-component dispersions and sorting only; its hazards and durations are not German-calibrated. {cmd:connectivity(force)} has no accepted scientific design. Other registered families remain discovery-only.
 
 {pstd}
 The supported minimum for {cmd:v0.1.0} is Stata 19. Exact-source qualification covers Stata/MP 19 on macOS Apple Silicon and Windows x86-64; no cross-version or cross-platform bitwise claim is made.
@@ -259,6 +262,11 @@ The current {cmd:akm/simple} parameter values are a package-defined stylized
 teaching and testing design, not an empirical or paper calibration.
 The current {cmd:akm/stylized} values are likewise package-defined stress-design
 defaults, not estimates from the cited paper or any country data.
+The {cmd:akm/germany_chk_2002_2009} wage-component and covariance targets follow
+Card, David, Joerg Heining, and Patrick Kline. 2013. "Workplace Heterogeneity and
+the Rise of West German Wage Inequality." {it:Quarterly Journal of Economics}
+128(3): 967--1015. Its remaining mobility coefficients are stylized carryovers.
+{browse "https://doi.org/10.1093/qje/qjt006":doi:10.1093/qje/qjt006}.
 
 {title:License}
 

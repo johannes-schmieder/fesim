@@ -1,0 +1,6 @@
+dgp,preset,moment,value,unit,role,source_key,source_location,transformation,notes
+akm,germany_chk_2002_2009,alpha_true_sd,.357,log-wage standard deviation,runtime_target,chk2013_table4,CHK 2013 Table 4,none,worker-effect dispersion
+akm,germany_chk_2002_2009,psi_true_sd,.230,log-wage standard deviation,runtime_target,chk2013_table4,CHK 2013 Table 4,none,establishment-effect dispersion
+akm,germany_chk_2002_2009,epsilon_true_sd,.135,log-wage standard deviation,runtime_target,chk2013_table4,CHK 2013 Table 4,none,AKM residual dispersion
+akm,germany_chk_2002_2009,cov_alpha_psi_true,.0205,log-wage squared,runtime_target,chk2013_table5,CHK 2013 Table 5,.041 divided by 2,employment-weighted worker-establishment covariance
+akm,germany_chk_2002_2009,corr_alpha_psi_source,.249,correlation,source_crosscheck,chk2013_table5,CHK 2013 Table 5,none,reported correlation; covariance is the runtime sorting target

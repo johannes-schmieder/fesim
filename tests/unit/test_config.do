@@ -110,6 +110,32 @@ assert `"`r(model_overrides)'"' == "eu_duration=-.3 theta_sort=.4"
 assert `"`r(parameter_overrides)'"' == "eu_duration=-.3 theta_sort=.4"
 assert `"`r(internal_clock)'"' == "month"
 
+quietly fesim_config, dgp(akm) preset(germany_chk_2002_2009)
+tempname germany_parameters
+matrix `germany_parameters' = r(parameters)
+assert `"`r(preset)'"' == "germany_chk_2002_2009"
+assert `"`r(config_schema)'"' == "akm_germany_chk_2002_2009_v1"
+assert `"`r(calibration_class)'"' == "targeted"
+assert `"`r(start)'"' == "2002"
+assert `"`r(initial)'"' == "random"
+assert `"`r(internal_clock)'"' == "month"
+assert r(workers) == 10000
+assert r(firms) == 1000
+assert r(periods) == 8
+assert r(burnin) == 5
+assert reldif(`germany_parameters'["sd_worker", "value"], .357) < 1e-12
+assert reldif(`germany_parameters'["sd_firm", "value"], .230) < 1e-12
+assert reldif(`germany_parameters'["sd_error", "value"], .135) < 1e-12
+assert reldif(`germany_parameters'["theta_sort", "value"], 2.2) < 1e-12
+
+quietly fesim_config, dgp(akm) preset(germany_chk_2002_2009) ///
+    frequency(quarter)
+assert `"`r(start)'"' == "2002q1"
+quietly fesim_config, dgp(akm) preset(germany_chk_2002_2009) ///
+    parameters(theta_sort 2.1)
+assert `"`r(calibration_class)'"' == "targeted_modified"
+assert `"`r(model_overrides)'"' == "theta_sort=2.1"
+
 capture noisily fesim_config, dgp(akm) preset(empirical)
 assert _rc == 198
 capture noisily fesim_config, dgp(akmempirical) initial(stationary)
