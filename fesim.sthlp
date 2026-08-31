@@ -113,7 +113,7 @@ Discovery and configuration resolution do not alter data or Stata's RNG state. T
 {p2colset 9 24 26 2}{...}
 {p2col:{cmd:akm}}Presets {cmd:simple}, {cmd:stylized}, and {cmd:germany_chk_2002_2009} are qualified; aliases are {cmd:akmsimple} and {cmd:akmempirical}.{p_end}
 {p2col:{cmd:akmpaygap}}Qualified presets {cmd:simple} and {cmd:cck2016}; no convenience alias.{p_end}
-{p2col:{cmd:bm}}Preset {cmd:simple}; alias {cmd:bmsimple}; planned pending an accepted equilibrium derivation.{p_end}
+{p2col:{cmd:bm}}Preset {cmd:simple}; alias {cmd:bmsimple}; planned; the D-036 equilibrium derivation is accepted, but the solver and simulation route are not implemented.{p_end}
 {p2colreset}{...}
 
 {title:Stored results}
@@ -279,7 +279,7 @@ block through {cmd:fesim_run}, which also restores the caller's data.
 {title:Limitations}
 
 {pstd}
-Version 0.3.0-dev exposes three AKM presets and both pay-gap presets. The Germany preset targets wage-component dispersions and sorting only; its hazards and durations are not German-calibrated. The CCK-inspired preset targets selected group moments and the male-reference firm decomposition under the package's standard-normal surplus normalization; it does not reproduce CCK's empirical normalization or full estimation. {cmd:connectivity(force)} has no accepted scientific design. The BM family remains discovery-only.
+Version 0.3.0-dev exposes three AKM presets and both pay-gap presets. The Germany preset targets wage-component dispersions and sorting only; its hazards and durations are not German-calibrated. The CCK-inspired preset targets selected group moments and the male-reference firm decomposition under the package's standard-normal surplus normalization; it does not reproduce CCK's empirical normalization or full estimation. {cmd:connectivity(force)} has no accepted scientific design. The D-036 BM equilibrium derivation is accepted, but the BM family remains discovery-only until its solver and simulation route are qualified.
 
 {pstd}
 The supported minimum for {cmd:v0.1.0} is Stata 19. Exact-source qualification covers Stata/MP 19 on macOS Apple Silicon and Windows x86-64; no cross-version or cross-platform bitwise claim is made.

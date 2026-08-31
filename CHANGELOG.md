@@ -2,6 +2,15 @@
 
 ## Unreleased — 0.3.0
 
+### Scientific contract accepted; runtime pending
+
+- Fixed D-036 for the planned `bm/simple` route: homogeneous workers and
+  common-productivity firms, permanent wage posting, distinct unemployed and
+  employed offer rates, endogenous reservation wages, and steady-state
+  flow-profit maximization. The exact analytical equilibrium, output-unit
+  mapping, limits, and executable hand check are documented; the solver and
+  simulation route are not yet implemented.
+
 ### Implemented on `main`
 
 - Public `dgp(akmpaygap)` with stylized `simple` and targeted `cck2016`
@@ -95,8 +104,8 @@ design. They are not an empirical or paper calibration.
 
 - The later `akm/stylized` route and `akmempirical` alias.
 - `akmpaygap/simple` and the CCK-inspired `akmpaygap/cck2016` preset.
-- `bm/simple` and the `bmsimple` alias, pending an accepted equilibrium
-  derivation.
+- `bm/simple` and the `bmsimple` alias; D-036 is accepted, but the solver and
+  simulation route remain pending.
 - `connectivity(force)`, pending an accepted scientific generation rule.
 - Cross-platform or cross-version bitwise reproducibility beyond the exact
   environments recorded in `PLAN.md`.
