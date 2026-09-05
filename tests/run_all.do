@@ -69,7 +69,7 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     statistical/akm_moments statistical/akm_exogeneity ///
     statistical/akm_stylized_mobility ///
     statistical/paygap_limits statistical/paygap_cck_moments ///
-    statistical/bm_burnin ///
+    statistical/bm_burnin statistical/bm_moments ///
     docs/run_examples docs/run_help_examples
 local n_tests : word count `tests'
 foreach test of local tests {

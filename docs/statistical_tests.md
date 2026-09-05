@@ -53,3 +53,27 @@ premium-schedule components, and `.01` for male-reference sorting. Every
 reference must add within `1e-10`. These are fixed-seed reduced-form calibration
 tolerances, not sampling-theory confidence intervals or a claim to reproduce
 CCK's empirical estimator.
+
+## Canonical BM theoretical validation
+
+`tests/statistical/bm_moments.do` checks stationary event-driven samples against
+the exact finite-firm distribution, with the continuum approximation assessed
+separately. Independent workers, rather than repeated worker-period rows, are
+the statistical sampling units. Joint unemployment/firm CDF errors use the DKW
+uniform bound `sqrt(log(2/1e-10)/(2*N))`. The employed-stock CDF is compared
+with the finite stationary worker CDF; offers and accepted unemployment entries
+are compared with the finite offer CDF. These distributions are not conflated.
+
+Event counts minus theoretical intensity times exact exposure, unemployed-time
+shares, contact CDFs, and strict upward acceptance residuals are aggregated
+within workers and checked against eight estimated standard errors of the
+independent-worker mean. Three predetermined seeds at 2,000 and 32,000 workers
+verify the corresponding fourfold reduction of the sampling-error envelope;
+no monotonic realized-error assumption is imposed on random samples. Additional
+cases cover random finite firms, equal offer rates, lower unemployed offer
+rates, and a one-firm economy. Deterministic 10/100/1,000/10,000-firm grids
+verify shrinking offer-CDF, worker-CDF and aggregate EE approximation errors.
+Small employed-offer, destruction and discount rates have explicit limiting
+checks. `bm_burnin.do` separately compares 20/40-year starts from unemployment
+and 20-year random-start convergence. Runtime and source qualification are
+recorded in `PLAN.md`; statistical tests do not establish platform portability.

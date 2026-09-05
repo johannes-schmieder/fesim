@@ -121,8 +121,13 @@ real colvector fesim_bm_worker_cdf(
         missing(delta) | delta <= 0) {
         _error(3300, "BM offer CDF or rates are invalid")
     }
-    return(delta :* offer_cdf :/ ///
-        (delta :+ lambda_e :* (1 :- offer_cdf)))
+    /* Preserve exact probability boundaries despite vector division rounding. */
+    real colvector cdf, endpoints
+    cdf = delta :* offer_cdf :/ ///
+        (delta :+ lambda_e :* (1 :- offer_cdf))
+    endpoints = selectindex(offer_cdf :== 1)
+    if (length(endpoints)) cdf[endpoints] = J(length(endpoints), 1, 1)
+    return(cdf)
 }
 
 real colvector fesim_bm_firm_employment(
@@ -261,7 +266,7 @@ void fesim_bm_solution_validate(
         solution.job_to_job_rate <= 0 | ///
         solution.job_to_job_rate >= solution.lambda_e | ///
         solution.equilibrium_profit <= 0) {
-        _error(430, "BM analytical solution failed validation")
+        _error(430, "BM solution violates interior support or rate conditions")
     }
     if (solution.support_grid[1] != solution.reservation_wage | ///
         solution.support_grid[n] != solution.upper_wage | ///
@@ -273,7 +278,7 @@ void fesim_bm_solution_validate(
         max(solution.offer_cdf) > 1 + tolerance | ///
         min(solution.worker_cdf) < -tolerance | ///
         max(solution.worker_cdf) > 1 + tolerance) {
-        _error(430, "BM analytical solution failed validation")
+        _error(430, "BM support grid or CDF failed validation")
     }
     if (any(solution.firm_employment :<= 0) | ///
         any(solution.firm_profit :<= 0) | ///
@@ -283,7 +288,7 @@ void fesim_bm_solution_validate(
         max(abs(solution.firm_profit :- ///
             solution.equilibrium_profit)) / ///
             max((1, abs(solution.equilibrium_profit))) > tolerance) {
-        _error(430, "BM analytical solution failed validation")
+        _error(430, "BM firm profit failed equal-profit validation")
     }
     if (mreldif(solution.offer_cdf, fesim_bm_offer_cdf(
             solution.support_grid, solution.p, ///
@@ -295,7 +300,7 @@ void fesim_bm_solution_validate(
         mreldif(solution.firm_employment, fesim_bm_firm_employment(
             solution.offer_cdf, solution.lambda_u, ///
             solution.lambda_e, solution.delta)) > tolerance) {
-        _error(430, "BM analytical solution failed validation")
+        _error(430, "BM distribution or employment failed recomputation validation")
     }
     if (abs(solution.surplus_coefficient - ///
             fesim_bm_surplus_coefficient(solution.lambda_e, ///
@@ -317,7 +322,7 @@ void fesim_bm_solution_validate(
         solution.equal_profit_scaled_residual > tolerance | ///
         solution.monotonicity_violation > tolerance | ///
         solution.cdf_violation > tolerance) {
-        _error(430, "BM analytical solution failed validation")
+        _error(430, "BM solution residuals exceed tolerance")
     }
 }
 
