@@ -331,3 +331,56 @@ From a clean checkout, reproduce these results with:
 scripts/run_destination_benchmarks.sh /path/to/stata-mp
 INCLUDE_MILLION=1 scripts/run_destination_benchmarks.sh /path/to/stata-mp
 ```
+
+## Canonical BM — Checkpoint 48 (2026-09-05)
+
+Exact source: `38eb5bc4a0bc6ff8d19ec6e76679872e52e3519f` (`0.4.0-dev`, API 33); Stata/MP 19.0, eight cores,
+macOS Apple Silicon. The same source passes the complete 60-file Stata suite.
+Run `scripts/run_bm_benchmarks.sh` for the eight cases. All use 500 firms,
+10 annual years, stationary initialization without burn-in, and seed 20260905.
+Public cases include connectivity and leave-out diagnostics. Times below are
+the public command's internal total, with solve/simulation/output sub-stages;
+process startup is excluded. RSS is the separate process maximum from
+`/usr/bin/time -l`, not just dataset or event-ledger payload.
+
+| Worker-years | Truth | Total seconds | Simulation seconds | Output seconds | Max RSS bytes | Dataset bytes/row |
+|---:|---|---:|---:|---:|---:|---:|
+| 10,000 | full | 0.405 | 0.228 | 0.175 | 54,542,336 | 233 |
+| 10,000 | none | 0.405 | 0.227 | 0.176 | 53,460,992 | 49 |
+| 100,000 | full | 2.074 | 0.637 | 1.435 | 242,286,592 | 233 |
+| 100,000 | none | 1.950 | 0.636 | 1.313 | 140,001,280 | 49 |
+| 1,000,000 | full | 21.526 | 4.723 | 16.801 | 999,260,160 | 233 |
+| 1,000,000 | none | 17.943 | 4.731 | 13.211 | 601,800,704 | 49 |
+
+The million-row cases both generate 749,090 events; the largest retained
+temporary block has 90,900 panel rows and 68,366 events. The full output dataset
+and O(workers + firms) state still scale with the requested economy. Full truth
+uses 233 bytes per output row versus 49 without truth. Output time includes
+aggregation, block writes, sorting, graph/leave-out diagnostics, moments, and
+metadata; it is not just disk or `st_store()` time.
+
+The private unrecorded one-million-worker-year event run takes 2.416 seconds
+and peaks at 45,613,056 bytes RSS, with a zero-byte event ledger. Recording the
+same 749,090 events takes 4.101 seconds and yields a 65,919,920-byte ledger;
+subsequent monolithic aggregation takes 4.823 seconds. That process peaks at
+712,327,168 bytes because it includes the materialized million-row private
+aggregation panel as well as the ledger and validation temporaries. This is a
+private measurement of costs; public simulation uses bounded worker blocks.
+Recorded/unrecorded runs agree on event totals, final employment (83,322), firm
+ID sum (29,067,131), and transitions (458,082), supplementing the exact state
+invariance unit tests. Public none/full runs also agree on event counts at every
+sample size. Solver time is .001–.002 seconds, so solving fresh is preferable to
+introducing cache state at this stage (D-042).
+
+Ignored receipts/logs are under `build/benchmarks/<exact-sha>/`.
+
+| JSON receipt | SHA-256 |
+|---|---|
+| `bm-100000x10-full.json` | `91df4f038a1182632b53dace08e82b393dbac97dbc39fa6d7282b8c229d793d4` |
+| `bm-100000x10-none.json` | `28fb3636b057891ff9bf79cd8e7a80a90e0596de10e11b84dc8a6a1a301a7058` |
+| `bm-10000x10-full.json` | `4358536836405d58bcf2ef748bd3fe293bc0da4f7d3154fa4523a15db4c2c347` |
+| `bm-10000x10-none.json` | `dbffa7ba434784f925f53b7bf66e83f7abb7bb7e1c95d5a9da53b9eb37c79f14` |
+| `bm-1000x10-full.json` | `4f70b0140b467717b2c0271bcc47d2b9d784551c224c7c136e5c94cd68f6ad16` |
+| `bm-1000x10-none.json` | `79ca3340ed6fbb963b1c8610d167dd69109e456ccd459f196556215d69d961f5` |
+| `bm-events-100000x10-record-0.json` | `45e54ea147f6f4fb8a2708d4f1debb514fb54eba46ff48e65895ba8a04d568fc` |
+| `bm-events-100000x10-record-1.json` | `5ff701e064f37f979dd0ce3cb2e78b3fc12bb5f9b3e3e58f2042a8f42ebf6a04` |
