@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.4.0-dev 31aug2026}{...}
+{* *! version 0.4.0-dev 05sep2026}{...}
 {.-}
 help for {cmd:fesim} {right:(Johannes F. Schmieder)}
 {.-}
@@ -127,7 +127,7 @@ Discovery and configuration resolution do not alter data or Stata's RNG state. T
 {pstd}{cmd:fesim list} returns:{p_end}
 {synopt:{cmd:r(dgps)}}canonical DGP names{p_end}
 {synopt:{cmd:r(aliases)}}registered aliases{p_end}
-{synopt:{cmd:r(qualified)}}qualified DGP/preset names; currently {cmd:akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016}{p_end}
+{synopt:{cmd:r(qualified)}}qualified DGP/preset names; currently {cmd:akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016 bm/simple}{p_end}
 {synopt:{cmd:r(n_dgps)}}number of canonical registered DGP families{p_end}
 
 {pstd}{cmd:fesim presets} returns {cmd:r(dgps)} when listing all families; with a DGP, it returns {cmd:r(dgp)}, {cmd:r(dgp_alias)}, {cmd:r(presets)}, and {cmd:r(aliases)}.{p_end}
@@ -185,139 +185,6 @@ Discovery and configuration resolution do not alter data or Stata's RNG state. T
 {synopt:{cmd:r(group_coding)}, {cmd:r(gap_direction)}}pay-gap group and sign conventions{p_end}
 {synopt:{cmd:r(surplus_normalization)}}pay-gap common-surplus normalization{p_end}
 
-{title:Examples}
-
-{pstd}
-Each block is self-contained. The visible {cmd:preserve}/{cmd:restore} lines
-make it safe to copy into a do-file. The clickable link runs the marked inner
-block through {cmd:fesim_run}, which also restores the caller's data.
-
-{space 4}{hline 10} {it:Example 1 - Inspect designs and presets} {hline 22}
-{cmd}{...}
-          preserve
-{* example_start - discovery}{...}
-          fesim version
-          fesim list
-          fesim presets akm
-          fesim describe AKMSIMPLE
-          fesim describe akm, preset(simple)
-          return list
-{* example_end}{...}
-          restore
-{txt}{...}
-{space 4}{hline 78}
-{space 4}{it:({stata fesim_run discovery using fesim.sthlp:click to run})}
-
-{space 4}{hline 10} {it:Example 2 - Generate and inspect a panel} {hline 20}
-{cmd}{...}
-          preserve
-{* example_start - simulate}{...}
-          clear
-          fesim, dgp(akmsimple) workers(500) firms(30) periods(8) ///
-              seed(12345) parameters(sd_worker .45 p_ee .10) ///
-              truth(basic) connectivity(keep) noreport clear
-          matrix fesim_example_moments = r(moments)
-          describe
-          summarize lnwage alpha_true psi_true if employed
-          matrix list fesim_example_moments
-          matrix drop fesim_example_moments
-{* example_end}{...}
-          restore
-{txt}{...}
-{space 4}{hline 78}
-{space 4}{it:({stata fesim_run simulate using fesim.sthlp:click to run})}
-
-{space 4}{hline 10} {it:Example 3 - Simulate and estimate an AKM model} {hline 13}
-{cmd}{...}
-          preserve
-{* example_start - estimate}{...}
-          clear
-          fesim, workers(500) firms(30) periods(6) seed(24680) ///
-              truth(none) connectivity(largest) noreport clear
-          areg lnwage i.workerid i.time if employed, ///
-              absorb(firmid) vce(cluster workerid)
-{* example_end}{...}
-          restore
-{txt}{...}
-{space 4}{hline 78}
-{space 4}{it:({stata fesim_run estimate using fesim.sthlp:click to run})}
-
-{space 4}{hline 10} {it:Example 4 - Generate a block-network stress design} {hline 10}
-{cmd}{...}
-          preserve
-{* example_start - blocks}{...}
-          clear
-          fesim, dgp(akmsimple) network(blocks) workers(300) ///
-              firms(24) periods(6) seed(13579) truth(full) ///
-              parameters(block_count 4 block_log_bonus 2.1972245773362196) ///
-              noreport clear
-          tabulate worker_block_true firm_block_true if employed
-{* example_end}{...}
-          restore
-{txt}{...}
-{space 4}{hline 78}
-{space 4}{it:({stata fesim_run blocks using fesim.sthlp:click to run})}
-
-{space 4}{hline 10} {it:Example 5 - Inspect a pay-gap decomposition} {hline 14}
-{cmd}{...}
-          preserve
-{* example_start - paygap}{...}
-          clear
-          fesim, dgp(akmpaygap) preset(cck2016) workers(500) ///
-              firms(50) periods(8) burnin(5) seed(97531) ///
-              truth(full) noreport clear
-          matrix list r(group_moments)
-          matrix list r(group_targets)
-          matrix list r(decomposition)
-          matrix list r(decomposition_targets)
-{* example_end}{...}
-          restore
-{txt}{...}
-{space 4}{hline 78}
-{space 4}{it:({stata fesim_run paygap using fesim.sthlp:click to run})}
-
-{title:Limitations}
-
-{pstd}
-Version 0.4.0-dev exposes three AKM presets and both pay-gap presets. The Germany preset targets wage-component dispersions and sorting only; its hazards and durations are not German-calibrated. The CCK-inspired preset targets selected group moments and the male-reference firm decomposition under the package's standard-normal surplus normalization; it does not reproduce CCK's empirical normalization or full estimation. {cmd:connectivity(force)} has no accepted scientific design. The D-036 BM derivation and internal continuum solver are implemented, but the BM family remains discovery-only until finite firms and the simulation route are qualified.
-
-{pstd}
-The supported minimum for {cmd:v0.1.0} is Stata 19. Exact-source qualification covers Stata/MP 19 on macOS Apple Silicon and Windows x86-64; no cross-version or cross-platform bitwise claim is made.
-
-{title:Reference}
-
-{pstd}
-The worker--firm terminology and additive effects model follow Abowd, John M.,
-Francis Kramarz, and David N. Margolis. 1999. "High Wage Workers and High Wage
-Firms." {it:Econometrica} 67(2): 251-333.
-{browse "https://doi.org/10.1111/1468-0262.00020":doi:10.1111/1468-0262.00020}.
-The current {cmd:akm/simple} parameter values are a package-defined stylized
-teaching and testing design, not an empirical or paper calibration.
-The current {cmd:akm/stylized} values are likewise package-defined stress-design
-defaults, not estimates from the cited paper or any country data.
-The {cmd:akm/germany_chk_2002_2009} wage-component and covariance targets follow
-Card, David, Joerg Heining, and Patrick Kline. 2013. "Workplace Heterogeneity and
-the Rise of West German Wage Inequality." {it:Quarterly Journal of Economics}
-128(3): 967--1015. Its remaining mobility coefficients are stylized carryovers.
-{browse "https://doi.org/10.1093/qje/qjt006":doi:10.1093/qje/qjt006}.
-The {cmd:akmpaygap/cck2016} group and decomposition targets follow Card, David,
-Ana Rute Cardoso, and Patrick Kline. 2016. "Bargaining, Sorting, and the Gender
-Wage Gap: Quantifying the Impact of Firms on the Relative Pay of Women."
-{it:Quarterly Journal of Economics} 131(2): 633--686. The preset is a targeted
-reduced-form mapping under a different normalization, not a replication.
-{browse "https://doi.org/10.1093/qje/qjv038":doi:10.1093/qje/qjv038}.
-
-{title:License}
-
-{pstd}
-{cmd:fesim} is released under the MIT License. Type {cmd:help fesim_license} for the full license text.
-
-{title:Also see}
-
-{p 0 21}
-Online: {help areg}, {help xtreg}, {help regress}, {help simulate}
-{p_end}
-
 {title:Canonical Burdett-Mortensen model}
 
 {pstd}
@@ -369,16 +236,229 @@ including after largest-component filtering. Runtime diagnostics include
 {cmd:r(bm_block_workers)}. Common parameters, moments, network, leaveout, durations,
 metadata, and solve/simulate/output timings remain available.
 
-{pstd}{stata "fesim_run bm using fesim.sthlp":Run BM example}{p_end}
+{title:Examples}
+
+{pstd}
+Each simulation example creates its own synthetic data and wraps the block in
+{cmd:preserve}/{cmd:restore}, so it can be copied into a do-file without replacing
+the caller's dataset. Every simulation supplies {cmd:seed()}. The clickable link
+runs the entire marked block through {cmd:fesim_run}, which also restores the
+caller's data.
+
+{space 2}{hline 8} {it:Example 1 - Inspect designs and presets} {hline 24}
 {cmd}{...}
+          preserve
+{* example_start - discovery}{...}
+          fesim version
+          fesim list
+          fesim presets akm
+          fesim presets bm
+          fesim describe AKMSIMPLE
+          fesim describe bm, preset(simple)
+          return list
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run discovery using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 2 - Generate and inspect a simple AKM panel} {hline 12}
+{cmd}{...}
+          preserve
+{* example_start - simulate}{...}
+          clear
+          fesim, dgp(akmsimple) workers(500) firms(30) periods(8) ///
+              seed(12345) parameters(sd_worker .45 p_ee .10) ///
+              truth(basic) connectivity(keep) noreport clear
+          matrix fesim_example_moments = r(moments)
+          describe
+          summarize lnwage alpha_true psi_true if employed
+          matrix list fesim_example_moments
+          matrix drop fesim_example_moments
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run simulate using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 3 - Simulate and estimate an AKM model} {hline 15}
+{cmd}{...}
+          preserve
+{* example_start - estimate}{...}
+          clear
+          fesim, workers(500) firms(30) periods(6) seed(24680) ///
+              truth(none) connectivity(largest) noreport clear
+          areg lnwage i.workerid i.time if employed, ///
+              absorb(firmid) vce(cluster workerid)
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run estimate using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 4 - Run the stylized mobility engine} {hline 17}
+{cmd}{...}
+          preserve
+{* example_start - stylized}{...}
+          clear
+          fesim, dgp(akmempirical) workers(400) firms(40) periods(6) ///
+              seed(314159) truth(full) connectivity(keep) noreport clear
+          matrix fesim_example_durations = r(durations)
+          summarize employed lnwage tenure unemp_duration
+          matrix list fesim_example_durations
+          matrix drop fesim_example_durations
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run stylized using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 5 - Inspect the Germany-targeted moments} {hline 13}
+{cmd}{...}
+          preserve
+{* example_start - germany}{...}
+          clear
+          fesim, dgp(akm) preset(germany_chk_2002_2009) ///
+              workers(500) firms(50) periods(8) seed(271828) ///
+              truth(full) noreport clear
+          matrix list r(targets)
+          matrix list r(durations)
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run germany using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 6 - Generate a block-network stress design} {hline 11}
+{cmd}{...}
+          preserve
+{* example_start - blocks}{...}
+          clear
+          fesim, dgp(akmsimple) network(blocks) workers(300) ///
+              firms(24) periods(6) seed(13579) truth(full) ///
+              parameters(block_count 4 block_log_bonus 2.1972245773362196) ///
+              noreport clear
+          tabulate worker_block_true firm_block_true if employed
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run blocks using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 7 - Impose exact bridges across blocks} {hline 17}
+{cmd}{...}
+          preserve
+{* example_start - bridges}{...}
+          clear
+          fesim, dgp(akm) preset(simple) network(bridges) ///
+              workers(400) firms(40) periods(8) seed(246813) ///
+              burnin(4) truth(full) connectivity(keep) ///
+              parameters(block_count 4 p_eu .02 p_ee .60 p_ue .80) ///
+              noreport clear
+          list workerid time firmid worker_block_true firm_block_true ///
+              if nbridges_imposed, noobs abbreviate(20)
+          matrix list r(bridges)
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run bridges using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 8 - Direct employer changes up a firm ladder} {hline 10}
+{cmd}{...}
+          preserve
+{* example_start - ladder}{...}
+          clear
+          fesim, dgp(akmsimple) network(ladder) workers(500) ///
+              firms(50) periods(8) seed(161803) truth(full) ///
+              parameters(p_ee .30) noreport clear
+          sort workerid time
+          by workerid: generate double psi_change = ///
+              psi_true - psi_true[_n-1] if jobtojob
+          summarize psi_change if jobtojob
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run ladder using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 9 - Inspect a pay-gap decomposition} {hline 17}
+{cmd}{...}
+          preserve
+{* example_start - paygap}{...}
+          clear
+          fesim, dgp(akmpaygap) preset(cck2016) workers(500) ///
+              firms(50) periods(8) burnin(5) seed(97531) ///
+              truth(full) noreport clear
+          matrix list r(group_moments)
+          matrix list r(group_targets)
+          matrix list r(decomposition)
+          matrix list r(decomposition_targets)
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run paygap using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 10 - Simulate the canonical BM model} {hline 16}
+{cmd}{...}
+          preserve
 {* example_start - bm}{...}
-          fesim, dgp(bm) workers(2000) firms(100) periods(5) ///
-              seed(12345) truth(full) clear
+          clear
+          fesim, dgp(bm) workers(500) firms(50) periods(5) ///
+              seed(12345) truth(full) ///
+              parameters(b .4 p 1 lambda_u 1 lambda_e .5 delta .2 r .05) ///
+              noreport clear
           matrix list r(solver)
           matrix list r(bm_flows)
           matrix list r(bm_firms)
 {* example_end}{...}
+          restore
 {txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run bm using fesim.sthlp:click to run})}
+
+{title:Limitations}
+
+{pstd}
+Version 0.4.0-dev exposes all six registered presets. The Germany preset targets wage-component dispersions and sorting only; its hazards and durations are not German-calibrated. The CCK-inspired preset targets selected group moments and the male-reference firm decomposition under the package's standard-normal surplus normalization; it does not reproduce CCK's empirical normalization or full estimation. The BM preset implements the homogeneous-worker, common-productivity equilibrium with stylized primitives; worker heterogeneity and heterogeneous firm productivity are outside its scope. {cmd:connectivity(force)} has no accepted scientific design.
+
+{pstd}
+The supported minimum is Stata 19. Current 0.4.0-dev exact-source qualification covers Stata/MP 19 on macOS Apple Silicon. The released v0.1.0 was additionally qualified on Windows x86-64. No cross-version or cross-platform bitwise claim is made.
+
+{title:Reference}
+
+{pstd}
+The worker--firm terminology and additive effects model follow Abowd, John M.,
+Francis Kramarz, and David N. Margolis. 1999. "High Wage Workers and High Wage
+Firms." {it:Econometrica} 67(2): 251-333.
+{browse "https://doi.org/10.1111/1468-0262.00020":doi:10.1111/1468-0262.00020}.
+The current {cmd:akm/simple} parameter values are a package-defined stylized
+teaching and testing design, not an empirical or paper calibration.
+The current {cmd:akm/stylized} values are likewise package-defined stress-design
+defaults, not estimates from the cited paper or any country data.
+The {cmd:akm/germany_chk_2002_2009} wage-component and covariance targets follow
+Card, David, Joerg Heining, and Patrick Kline. 2013. "Workplace Heterogeneity and
+the Rise of West German Wage Inequality." {it:Quarterly Journal of Economics}
+128(3): 967--1015. Its remaining mobility coefficients are stylized carryovers.
+{browse "https://doi.org/10.1093/qje/qjt006":doi:10.1093/qje/qjt006}.
+The {cmd:akmpaygap/cck2016} group and decomposition targets follow Card, David,
+Ana Rute Cardoso, and Patrick Kline. 2016. "Bargaining, Sorting, and the Gender
+Wage Gap: Quantifying the Impact of Firms on the Relative Pay of Women."
+{it:Quarterly Journal of Economics} 131(2): 633--686. The preset is a targeted
+reduced-form mapping under a different normalization, not a replication.
+{browse "https://doi.org/10.1093/qje/qjv038":doi:10.1093/qje/qjv038}.
+
+{title:License}
+
+{pstd}
+{cmd:fesim} is released under the MIT License. Type {cmd:help fesim_license} for the full license text.
+
+{title:Also see}
+
+{p 0 21}
+Online: {help areg}, {help xtreg}, {help regress}, {help simulate}
+{p_end}
 
 {title:Author}
 

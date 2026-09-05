@@ -185,7 +185,18 @@ def check_help_examples() -> None:
         "{right:(Johannes F. Schmieder)}\n{.-}" in help_text,
         "fesim help lacks the shared author header",
     )
-    examples = ("discovery", "simulate", "estimate", "blocks", "paygap", "bm")
+    examples = (
+        "discovery",
+        "simulate",
+        "estimate",
+        "stylized",
+        "germany",
+        "blocks",
+        "bridges",
+        "ladder",
+        "paygap",
+        "bm",
+    )
     for example in examples:
         require(
             help_text.count(f"{{* example_start - {example}}}{{...}}") == 1,
