@@ -29,7 +29,7 @@ real colvector fesim_bm_stationary_exit_rates(
     struct fesim_bm_solution scalar solution,
     struct fesim_bm_firms scalar universe)
 {
-    real scalar firm, firms
+    real scalar firm, firms, last
     real colvector rate
 
     if (solution.validated != 1 | universe.validated != 1) {
@@ -38,9 +38,16 @@ real colvector fesim_bm_stationary_exit_rates(
     firms = universe.firms
     rate = J(firms + 1, 1, .)
     rate[1] = solution.lambda_u
-    for (firm = 1; firm <= firms; firm++) {
-        rate[firm + 1] = solution.delta + solution.lambda_e * ///
-            sum(universe.posted_wage :> universe.posted_wage[firm]) / firms
+    firm = 1
+    while (firm <= firms) {
+        last = firm
+        while (last < firms) {
+            if (universe.posted_wage[last + 1] != universe.posted_wage[firm]) break
+            last = last + 1
+        }
+        rate[(firm + 1)..(last + 1)] = J(last - firm + 1, 1,
+            solution.delta + solution.lambda_e * (firms - last) / firms)
+        firm = last + 1
     }
     if (any(missing(rate)) | any(rate :<= 0)) {
         _error(430, "BM stationary exit rates are invalid")

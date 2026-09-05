@@ -1,4 +1,4 @@
-*! fesim configuration registry 0.3.0-dev 31aug2026
+*! fesim configuration registry 0.4.0-dev 05sep2026
 program define fesim_registry, rclass
     version 16.0
     syntax , ACTION(string) [ DGP(string) PRESet(string) PARAmeter(string) ]
@@ -12,7 +12,7 @@ program define fesim_registry, rclass
         }
         return local dgps "akm akmpaygap bm"
         return local aliases "akmsimple akmempirical bmsimple"
-        return local qualified "akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016"
+        return local qualified "akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016 bm/simple"
         return local status "partial"
         return scalar n_dgps = 3
         exit
@@ -33,7 +33,7 @@ program define fesim_registry, rclass
     local resolved_preset `"`r(preset)'"'
     if !inlist(`"`canonical'/`resolved_preset'"', ///
         "akm/simple", "akm/stylized", "akm/germany_chk_2002_2009", ///
-        "akmpaygap/simple", "akmpaygap/cck2016") {
+        "akmpaygap/simple", "akmpaygap/cck2016", "bm/simple") {
         if `"`action'"' == "parameters" {
             return local common_options ""
             return local scalar_parameters ""
@@ -49,7 +49,13 @@ program define fesim_registry, rclass
 
     if `"`action'"' == "parameters" {
         return local common_options "workers firms periods frequency start seed initial burnin jobrule truth connectivity network report"
-        if `"`canonical'"' == "akmpaygap" {
+        if `"`canonical'"' == "bm" {
+            return local scalar_parameters "workers firms periods burnin b p lambda_u lambda_e delta r random_firms"
+            return local model_parameters "b p lambda_u lambda_e delta r random_firms"
+            return local network_parameters ""
+            return local config_schema "bm_simple_v1"
+        }
+        else if `"`canonical'"' == "akmpaygap" {
             return local scalar_parameters "workers firms periods burnin female_share mu_m mu_f sd_worker_m sd_worker_f premium_intercept_m premium_intercept_f premium_loading_m premium_loading_f premium_deviation_sd_m premium_deviation_sd_f sd_error_m sd_error_f firm_size_sd p_eu_m p_ee_m p_ue_m p_eu_f p_ee_f p_ue_f group_sort_m group_sort_f worker_sort_m worker_sort_f wage_trend_m wage_trend_f block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
             return local model_parameters "female_share mu_m mu_f sd_worker_m sd_worker_f premium_intercept_m premium_intercept_f premium_loading_m premium_loading_f premium_deviation_sd_m premium_deviation_sd_f sd_error_m sd_error_f firm_size_sd p_eu_m p_ee_m p_ue_m p_eu_f p_ee_f p_ue_f group_sort_m group_sort_f worker_sort_m worker_sort_f wage_trend_m wage_trend_f"
             return local network_parameters "block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
@@ -82,7 +88,10 @@ program define fesim_registry, rclass
     }
 
     local common "workers firms periods frequency start seed initial burnin jobrule truth connectivity network report"
-    if `"`canonical'"' == "akmpaygap" {
+    if `"`canonical'"' == "bm" {
+        local model "b p lambda_u lambda_e delta r random_firms"
+    }
+    else if `"`canonical'"' == "akmpaygap" {
         local model "female_share mu_m mu_f sd_worker_m sd_worker_f premium_intercept_m premium_intercept_f premium_loading_m premium_loading_f premium_deviation_sd_m premium_deviation_sd_f sd_error_m sd_error_f firm_size_sd p_eu_m p_ee_m p_ue_m p_eu_f p_ee_f p_ue_f group_sort_m group_sort_f worker_sort_m worker_sort_f wage_trend_m wage_trend_f"
     }
     else if `"`resolved_preset'"' == "simple" {
@@ -92,6 +101,7 @@ program define fesim_registry, rclass
         local model "mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down"
     }
     local network_model "block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
+    if `"`canonical'"' == "bm" local network_model ""
     local all `"`common' `model' `network_model'"'
     if !`: list name in all' {
         di as error "unknown fesim parameter: `name'"
@@ -217,6 +227,35 @@ program define fesim_registry, rclass
         local named_option "yes"
         local parameters_allowed "no"
         local description "Requested simulation seed; current leaves RNG selection to execution"
+    }
+    else if `"`canonical'"' == "bm" {
+        local description "Canonical BM primitive: `name'"
+        local lower "0"
+        local upper "1000"
+        local upper_closed "yes"
+        local unit "annual continuous-time rate"
+        if `"`name'"' == "b" {
+            local default ".4"
+            local lower "."
+            local upper "."
+            local unit "wage level"
+        }
+        else if `"`name'"' == "p" {
+            local default "1"
+            local upper "."
+            local unit "productivity level"
+        }
+        else if `"`name'"' == "lambda_u" local default "1"
+        else if `"`name'"' == "lambda_e" local default ".5"
+        else if `"`name'"' == "delta" local default ".2"
+        else if `"`name'"' == "r" local default ".05"
+        else if `"`name'"' == "random_firms" {
+            local default "0"
+            local type "integer"
+            local unit "0 midpoint quantiles; 1 random quantiles"
+            local lower_closed "yes"
+            local upper "1"
+        }
     }
     else if `"`name'"' == "block_count" {
         local type "integer"
@@ -538,6 +577,18 @@ program define fesim_registry, rclass
         }
     }
 
+    if `"`canonical'"' == "bm" {
+        if `"`name'"' == "workers" local upper "10000000"
+        if `"`name'"' == "firms" local upper "1000000"
+        if `"`name'"' == "burnin" {
+            local type "real"
+            local unit "years"
+            local default "0"
+            local upper "100000"
+        }
+        if `"`name'"' == "initial" local default "stationary"
+    }
+
     return local parameter `"`name'"'
     return local type `"`type'"'
     return local unit `"`unit'"'
@@ -664,7 +715,9 @@ program define fesim_registry__resolve, rclass
             exit 198
         }
         local title "Canonical Burdett-Mortensen wage-posting model"
-        local calibration_class "exact model with stylized calibration; planned"
+        local calibration_class "stylized"
+        local config_schema "bm_simple_v1"
+        local configurable "yes"
     }
 
     return local dgp `"`canonical'"'
@@ -676,7 +729,7 @@ program define fesim_registry__resolve, rclass
     return local calibration_class `"`calibration_class'"'
     if inlist(`"`canonical'/`resolved_preset'"', ///
         "akm/simple", "akm/stylized", "akm/germany_chk_2002_2009", ///
-        "akmpaygap/simple", "akmpaygap/cck2016") {
+        "akmpaygap/simple", "akmpaygap/cck2016", "bm/simple") {
         return local status "qualified"
         return local implemented "yes"
     }

@@ -275,8 +275,12 @@ void fesim_bm_history_validate(
             replay_transitions[worker] = replay_transitions[worker] + 1
         }
         else if (event_kind == 2) {
-            expected_acceptance = fesim_bm_offer_accept(
-                1, current_firm, offered, universe.posted_wage)
+            if (missing(offered) | offered < 1 | offered > universe.firms |
+                offered != floor(offered)) {
+                _error(430, "BM employed offer firm is invalid")
+            }
+            expected_acceptance = universe.posted_wage[offered] > ///
+                universe.posted_wage[current_firm]
             if (accepted != expected_acceptance | ///
                 destination != (accepted ? offered : current_firm)) {
                 _error(430, "BM employed offer event is invalid")
@@ -342,7 +346,17 @@ void fesim_bm_history_validate(
     }
 }
 
-struct fesim_bm_history scalar fesim_bm_simulate_events(
+struct fesim_bm_draw_buffer scalar fesim_bm_draw_buffer_init()
+{
+    struct fesim_bm_draw_buffer scalar draws
+    draws.event_buffer = J(0, 1, .)
+    draws.destination_buffer = J(0, 1, .)
+    draws.event_index = 1
+    draws.destination_index = 1
+    return(draws)
+}
+
+struct fesim_bm_history scalar fesim_bm_events_buffered(
     struct fesim_bm_solution scalar solution,
     struct fesim_bm_firms scalar universe,
     real colvector employed,
@@ -354,16 +368,16 @@ struct fesim_bm_history scalar fesim_bm_simulate_events(
     real scalar record_events,
     real scalar max_events,
     struct fesim_rng_state scalar rng_state,
-    real scalar tolerance)
+    real scalar tolerance,
+    struct fesim_bm_draw_buffer scalar draws)
 {
     struct fesim_bm_history scalar history
     real scalar workers, worker, current_time, rate, waiting, event_kind
     real scalar type_uniform, destination_uniform, offered_firm, accepted
-    real scalar origin_firm, remaining, event_index, destination_index
+    real scalar origin_firm, remaining
     real scalar buffer_size, capacity, new_capacity, event_count
     real scalar current_employed, current_firm, current_spell
     real scalar current_tenure, current_unemployment
-    real colvector event_buffer, destination_buffer
 
     workers = rows(employed)
     if (solution.validated != 1 | universe.validated != 1 | ///
@@ -403,10 +417,6 @@ struct fesim_bm_history scalar fesim_bm_simulate_events(
     history.rejected_offers = 0
     history.total_transitions = 0
     buffer_size = 4096
-    event_buffer = J(0, 1, .)
-    destination_buffer = J(0, 1, .)
-    event_index = 1
-    destination_index = 1
     if (record_events) {
         capacity = min((max_events, buffer_size))
         history.events = J(capacity, 11, .)
@@ -427,14 +437,14 @@ struct fesim_bm_history scalar fesim_bm_simulate_events(
         while (current_time < horizon) {
             rate = current_employed ? ///
                 solution.lambda_e + solution.delta : solution.lambda_u
-            if (event_index > rows(event_buffer)) {
-                event_buffer = fesim_rng_runiform(
+            if (draws.event_index > rows(draws.event_buffer)) {
+                draws.event_buffer = fesim_rng_runiform(
                     rng_state, "mobility_events", buffer_size, 1)
-                event_index = 1
+                draws.event_index = 1
             }
             waiting = fesim_bm_exponential_wait(
-                event_buffer[event_index], rate)
-            event_index = event_index + 1
+                draws.event_buffer[draws.event_index], rate)
+            draws.event_index = draws.event_index + 1
             if (current_time + waiting > horizon) {
                 remaining = horizon - current_time
                 if (current_employed) current_tenure = current_tenure + remaining
@@ -449,13 +459,13 @@ struct fesim_bm_history scalar fesim_bm_simulate_events(
                 _error(430, "BM event simulation exceeded max_events")
             }
             if (current_employed) {
-                if (event_index > rows(event_buffer)) {
-                    event_buffer = fesim_rng_runiform(
+                if (draws.event_index > rows(draws.event_buffer)) {
+                    draws.event_buffer = fesim_rng_runiform(
                         rng_state, "mobility_events", buffer_size, 1)
-                    event_index = 1
+                    draws.event_index = 1
                 }
-                type_uniform = event_buffer[event_index]
-                event_index = event_index + 1
+                type_uniform = draws.event_buffer[draws.event_index]
+                draws.event_index = draws.event_index + 1
             }
             else type_uniform = .5
             event_kind = fesim_bm_event_kind(
@@ -465,18 +475,21 @@ struct fesim_bm_history scalar fesim_bm_simulate_events(
             offered_firm = 0
             accepted = 0
             if (event_kind == 1 | event_kind == 2) {
-                if (destination_index > rows(destination_buffer)) {
-                    destination_buffer = fesim_rng_runiform(
+                if (draws.destination_index > rows(draws.destination_buffer)) {
+                    draws.destination_buffer = fesim_rng_runiform(
                         rng_state, "destination_draws", buffer_size, 1)
-                    destination_index = 1
+                    draws.destination_index = 1
                 }
                 destination_uniform = fesim_bm_open_uniform(
-                    destination_buffer[destination_index])
-                destination_index = destination_index + 1
+                    draws.destination_buffer[draws.destination_index])
+                draws.destination_index = draws.destination_index + 1
                 offered_firm = min((universe.firms, ///
                     1 + floor(destination_uniform * universe.firms)))
-                accepted = fesim_bm_offer_accept(current_employed, ///
-                    current_firm, offered_firm, universe.posted_wage)
+                /* Universe and indices are already validated; no O(J) scan per offer. */
+                accepted = !current_employed
+                if (current_employed) accepted = ///
+                    universe.posted_wage[offered_firm] > ///
+                    universe.posted_wage[current_firm]
             }
             if (event_kind == 1) {
                 history.unemployment_offers = history.unemployment_offers + 1
@@ -542,6 +555,27 @@ struct fesim_bm_history scalar fesim_bm_simulate_events(
     fesim_bm_history_validate(solution, universe, history, tolerance)
     history.validated = 1
     return(history)
+}
+
+struct fesim_bm_history scalar fesim_bm_simulate_events(
+    struct fesim_bm_solution scalar solution,
+    struct fesim_bm_firms scalar universe,
+    real colvector employed,
+    real colvector firm_id,
+    real colvector spell_id,
+    real colvector tenure,
+    real colvector unemployment_duration,
+    real scalar horizon,
+    real scalar record_events,
+    real scalar max_events,
+    struct fesim_rng_state scalar rng_state,
+    real scalar tolerance)
+{
+    struct fesim_bm_draw_buffer scalar draws
+    draws = fesim_bm_draw_buffer_init()
+    return(fesim_bm_events_buffered(solution, universe, employed, firm_id,
+        spell_id, tenure, unemployment_duration, horizon, record_events,
+        max_events, rng_state, tolerance, draws))
 }
 
 end

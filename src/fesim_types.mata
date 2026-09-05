@@ -2,6 +2,13 @@ version 16.0
 
 mata:
 
+struct fesim_bm_draw_buffer {
+    real colvector event_buffer
+    real colvector destination_buffer
+    real scalar event_index
+    real scalar destination_index
+}
+
 struct fesim_config {
     real scalar schema_version
     string scalar dgp
@@ -316,7 +323,7 @@ struct fesim_bm_panel {
 
 real scalar fesim_mata_api_version()
 {
-    return(32)
+    return(33)
 }
 
 real scalar fesim_config_schema_version()

@@ -11,3 +11,13 @@ The common scalar and macro names follow `DESIGN.md` Section 16. Diagnostics not
 The public simple-AKM route measures `r(runtime_simulate)` around population/state generation, transitions, wages, direct Stata writes, and flow finalization. `r(runtime_output)` covers observed graph construction/filtering, retained-sample truth recomputation when applicable, and common moments. `r(runtime_total)` is their sum; `r(runtime_solve)` is zero because this DGP has no solve stage. Configuration, source loading, metadata finalization, and report display are outside these stage timers.
 
 Timing uses two currently unused native Stata/Mata timer slots. The runtime helper scans from slot 100 downward, never claims a slot that has been started, and clears only slots it claimed. If fewer than two slots are free, runtime values safely fall back to zero rather than changing a caller timer. Success and failure tests verify that occupied caller timers survive and claimed slots are released.
+
+## BM-specific results
+
+The public canonical BM route uses the common metadata, parameters, moments,
+durations, graph, leave-out, and stage-timing contract. Its additional named
+matrices are `r(solver)` (22-by-1), `r(bm_flows)` (4-by-4), and `r(bm_firms)`
+(10-by-3 firm means/minima/maxima). Exact definitions and original-economy versus
+returned-sample scopes are in D-042 and the canonical BM help section. No AKM
+truth effects or inappropriate AKM targets are fabricated. Basic/full truth
+changes output columns only; BM diagnostics are available with every truth mode.

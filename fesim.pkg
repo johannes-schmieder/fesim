@@ -1,6 +1,6 @@
 v 3
 d fesim
-d Version: 0.3.0-dev
+d Version: 0.4.0-dev
 d Linked employer-employee panel simulation
 d
 d Distribution-Date: 20260831
@@ -43,3 +43,5 @@ f src/fesim_akm_handler.mata
 f src/fesim_emp_handler.mata
 f src/fesim_paygap_handler.mata
 f src/fesim_dispatch.mata
+f _fesim_bm.ado
+f src/fesim_bm_handler.mata

@@ -107,3 +107,16 @@ Checkpoint 22 preserves the graph contract while replacing nonlinear interpreted
 ## Test isolation
 
 `tests/run_all.do` redirects Stata `PERSONAL` and `PLUS` to ignored scratch directories, rebuilds the Mata library, installs the package from the repository manifest, and then runs source tests with the checkout prepended to the ado-path. This prevents a stale user installation from satisfying the tests.
+
+## Canonical BM public integration (API 33)
+
+`_fesim_bm.ado` provides a transaction around configuration, the pure Mata
+handler, graph/sample diagnostics, and the common finalizer. The handler solves
+once, initializes workers, performs unrecorded burn-in, then generates/replays
+complete worker histories in bounded blocks. Persistent event/destination draw
+buffers preserve the private monolithic history for every block size. The block
+writer allocates the final Stata dataset once; it does not keep a second full
+panel. Temporary interval-event/exposure columns allow common connectivity
+filtering before BM sample rates are computed. All five are dropped on success.
+Errors restore both the caller dataset and caller RNG. No persistent solver cache
+is used; D-042 defines the future cache key and keeps solveonly/solution private.

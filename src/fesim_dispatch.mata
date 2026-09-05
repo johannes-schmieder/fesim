@@ -4,7 +4,7 @@ mata:
 
 string scalar fesim_dispatch_status()
 {
-    return("akm_and_paygap_public")
+    return("akm_paygap_and_bm_public")
 }
 
 void fesim_handler_validate(struct fesim_handler scalar handler)

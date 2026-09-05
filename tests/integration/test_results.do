@@ -83,7 +83,7 @@ assert `"`r(seed)'"' == "none"
 assert `"`r(rng)'"' == "none"
 assert `"`r(command)'"' == ///
     "fesim internal deterministic workers=7 firms=3 periods=5"
-assert `"`r(version)'"' == "0.3.0-dev"
+assert `"`r(version)'"' == "0.4.0-dev"
 assert `"`r(reference)'"' == "none"
 matrix report_parameters = r(parameters)
 matrix report_moments = r(moments)

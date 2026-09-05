@@ -7,7 +7,7 @@ quietly fesim_registry, action(list)
 assert `"`r(dgps)'"' == "akm akmpaygap bm"
 assert `"`r(aliases)'"' == "akmsimple akmempirical bmsimple"
 assert `"`r(qualified)'"' == ///
-    "akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016"
+    "akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016 bm/simple"
 assert `"`r(status)'"' == "partial"
 assert r(n_dgps) == 3
 

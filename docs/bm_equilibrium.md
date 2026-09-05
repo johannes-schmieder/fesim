@@ -15,6 +15,15 @@ before a finite firm universe is constructed. D-037 fixes deterministic
 midpoint quantiles as the finite-firm default and retains isolated-stream
 random quantiles as an opt-in mode.
 
+## Public implementation
+
+`fesim, dgp(bm)` and `fesim, dgp(bmsimple)` expose this model in the development
+source. D-042 in `DESIGN.md` is the current public control, result, and resource
+contract. Historical checkpoint paragraphs below describe how the components
+were qualified; their earlier statements about closed dispatch are historical.
+See `PLAN.md` for the exact source/platform qualification, and
+`examples/bmsimple.do` for a runnable theory-versus-simulation example.
+
 ## Environment and primitives
 
 Normalize the masses of workers and firms to one in the continuum economy.

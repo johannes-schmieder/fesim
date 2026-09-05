@@ -1,13 +1,13 @@
 # fesim
 
-`fesim` is a Stata/Mata package for simulating linked employer–employee panels. Its intended scope includes transparent AKM-style designs, mobility and network experiments, pay-gap decompositions, and later structural search models, all behind a common output contract.
+`fesim` is a Stata/Mata package for simulating linked employer–employee panels. Its intended scope includes transparent AKM-style designs, mobility and network experiments, pay-gap decompositions, and structural search models, all behind a common output contract.
 
 The installed runtime will use only official Stata and Mata. It will not require a compiled plugin, Python, R, Julia, or a user-written Stata dependency.
 
 ## Current implementation status
 
-The latest release is `v0.1.0`. The `main` branch is now `0.3.0-dev`, with
-three public AKM presets and two public pay-gap presets. The pay-gap family
+The latest release is `v0.1.0`. The `main` branch is now `0.4.0-dev`, with
+three public AKM presets, two public pay-gap presets, and canonical BM. The pay-gap family
 includes a transparent stylized design and a CCK-inspired targeted design with
 an exact three-reference decomposition:
 
@@ -22,6 +22,7 @@ fesim describe akmempirical
 fesim describe akm, preset(germany_chk_2002_2009)
 fesim describe akmpaygap, preset(simple)
 fesim describe akmpaygap, preset(cck2016)
+fesim describe bm
 ```
 
 `fesim describe akmsimple` reports the resolved `akm/simple` configuration and scalar-parameter matrix. The same resolver validates named common options and model-specific name-value pairs such as `parameters(mu 3.2 p_ee .10)`, records their sources, and serializes the result deterministically. In the frozen v0.1 contract, all model-specific scalars remain inside `parameters()`; only common controls have named options.
@@ -36,6 +37,7 @@ fesim, dgp(akmempirical) seed(12345) clear
 fesim, dgp(akm) preset(germany_chk_2002_2009) seed(12345) clear
 fesim, dgp(akmpaygap) preset(simple) seed(12345) clear
 fesim, dgp(akmpaygap) preset(cck2016) seed(12345) clear
+fesim, dgp(bm) seed(12345) clear
 ```
 
 The aliases resolve to `dgp(akm) preset(simple)` and `dgp(akm)
@@ -43,6 +45,34 @@ preset(stylized)`, respectively; the Germany and pay-gap presets deliberately
 have no aliases. All public routes generate the required worker-period panel,
 optional truth variables, common moments, metadata, and returned results.
 Retained periods are streamed into the final worker-major Stata dataset.
+
+## Canonical Burdett–Mortensen
+
+```stata
+fesim, dgp(bm) workers(5000) firms(250) periods(10) seed(12345) ///
+    truth(full) parameters(b .4 p 1 lambda_u 1 lambda_e .5 delta .2 r .05) clear
+matrix list r(solver)
+matrix list r(bm_flows)
+matrix list r(bm_firms)
+```
+
+`bmsimple` is an alias for `bm/simple`. The homogeneous wage-posting model is
+exact; its default calibration is stylized. Firms receive permanent midpoint
+quantile wages by default; `parameters(random_firms 1)` draws their quantiles.
+Offers go uniformly to firms and employed workers accept strictly higher wages.
+Stationary starts use exact finite-firm employment masses and backward spell
+ages. `burnin()` is measured in continuous years. Annual, quarterly, and monthly
+snapshots share the same event history at a fixed seed and horizon.
+
+`r(bm_flows)` distinguishes finite-economy theoretical hazards, exact simulated
+event rates, observed transition probabilities, and their descriptive annualized
+values. `r(solver)` also reports continuum quantities and discretization errors.
+`r(bm_firms)` gives firm-level means/minima/maxima; full truth contains accepted
+wages, values, firm quantities, interval event counts, and exposure in years.
+`truth(basic)` supplies log wages, posted wages, and productivity. BM uses
+`network(random)` and supports `connectivity(keep|largest)`. The 10-million-event
+budget for each burn-in/retained stage fails transactionally if exceeded.
+See [the derivation](docs/bm_equilibrium.md) and [example](examples/bmsimple.do).
 
 ## Quick start
 
@@ -202,6 +232,6 @@ For example, `dgp(akmsimple)` and `dgp(akmempirical)` are aliases for the canoni
 
 Read [DESIGN.md](DESIGN.md) before changing public behavior and [PLAN.md](PLAN.md) for the live implementation state. Build and test instructions are in [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/architecture.md](docs/architecture.md).
 
-The qualified component-stream protocol is documented in [docs/rng.md](docs/rng.md), the worker-block output strategy in [docs/output.md](docs/output.md), the common statistical definitions in [docs/moments.md](docs/moments.md), the pay-gap model in [docs/akm_paygap.md](docs/akm_paygap.md), the accepted but not yet implemented BM equilibrium in [docs/bm_equilibrium.md](docs/bm_equilibrium.md), observed graph semantics in [docs/network.md](docs/network.md), frozen tiny-panel scope in [docs/regression.md](docs/regression.md), large-sample test bounds in [docs/statistical_tests.md](docs/statistical_tests.md), and exact-source runtime baselines in [docs/performance.md](docs/performance.md). User-visible release scope is summarized in [CHANGELOG.md](CHANGELOG.md).
+The qualified component-stream protocol is documented in [docs/rng.md](docs/rng.md), the worker-block output strategy in [docs/output.md](docs/output.md), the common statistical definitions in [docs/moments.md](docs/moments.md), the pay-gap model in [docs/akm_paygap.md](docs/akm_paygap.md), the canonical BM equilibrium in [docs/bm_equilibrium.md](docs/bm_equilibrium.md), observed graph semantics in [docs/network.md](docs/network.md), frozen tiny-panel scope in [docs/regression.md](docs/regression.md), large-sample test bounds in [docs/statistical_tests.md](docs/statistical_tests.md), and exact-source runtime baselines in [docs/performance.md](docs/performance.md). User-visible release scope is summarized in [CHANGELOG.md](CHANGELOG.md).
 
 `fesim` is released under the MIT License. See [LICENSE](LICENSE).

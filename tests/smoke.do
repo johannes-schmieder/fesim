@@ -14,7 +14,7 @@ assert _rc == 0
 
 capture noisily fesim version
 assert _rc == 0
-assert `"`r(version)'"' == "0.3.0-dev"
+assert `"`r(version)'"' == "0.4.0-dev"
 assert `"`r(status)'"' == "development"
 assert r(api_level) == 1
 
@@ -49,11 +49,11 @@ assert _rc == 0
 quietly adopath ++ `"`repository_root'/build"'
 mata: mata clear
 mata: mata mlib index
-mata: assert(fesim_mata_api_version() == 32)
+mata: assert(fesim_mata_api_version() == 33)
 mata: assert(fesim_bm_schema_version() == 1)
 mata: assert(fesim_config_schema_version() == 2)
 mata: assert(fesim_moment_schema_version() == 1)
 mata: assert(fesim_akm_simple_schema_version() == 4)
-mata: assert(fesim_dispatch_status() == "akm_and_paygap_public")
+mata: assert(fesim_dispatch_status() == "akm_paygap_and_bm_public")
 
 di as result "FESIM SOURCE SMOKE PASS"

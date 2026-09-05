@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.3.0-dev 31aug2026}{...}
+{* *! version 0.4.0-dev 31aug2026}{...}
 {.-}
 help for {cmd:fesim} {right:(Johannes F. Schmieder)}
 {.-}
@@ -8,7 +8,7 @@ help for {cmd:fesim} {right:(Johannes F. Schmieder)}
 
 {p 4 8}{cmd:fesim} {hline 2} linked employer-employee panel simulation{p_end}
 
-{title:Syntax available in 0.3.0-dev}
+{title:Syntax available in 0.4.0-dev}
 
 {p 8 12}{cmd:fesim version}{p_end}
 {p 8 12}{cmd:fesim list}{p_end}
@@ -27,7 +27,7 @@ help for {cmd:fesim} {right:(Johannes F. Schmieder)}
 {cmd:report} {cmd:noreport} {cmd:clear}]{p_end}
 
 {pstd}
-The {cmd:dgp(akm)} presets {cmd:simple}, {cmd:stylized}, and {cmd:germany_chk_2002_2009}, plus the {cmd:dgp(akmpaygap)} presets {cmd:simple} and {cmd:cck2016}, are available. {cmd:dgp(akmsimple)} and {cmd:dgp(akmempirical)} are convenience aliases for the first two AKM designs. Model-specific scalars remain exclusively inside {cmd:parameters()}; named options are common controls only. Other registered designs remain discovery metadata and exit without changing data or random state.
+The {cmd:dgp(akm)} presets {cmd:simple}, {cmd:stylized}, and {cmd:germany_chk_2002_2009}, plus the {cmd:dgp(akmpaygap)} presets {cmd:simple} and {cmd:cck2016}, are available. {cmd:dgp(akmsimple)} and {cmd:dgp(akmempirical)} are convenience aliases for the first two AKM designs. Model-specific scalars remain exclusively inside {cmd:parameters()}; named options are common controls only. Canonical {cmd:dgp(bm) preset(simple)} is also available, with alias {cmd:dgp(bmsimple)}.
 
 {title:Description}
 
@@ -38,7 +38,7 @@ The {cmd:dgp(akm)} presets {cmd:simple}, {cmd:stylized}, and {cmd:germany_chk_20
 {cmd:fesim list} shows canonical DGP families, presets, aliases, and implementation status. {cmd:fesim presets} lists presets for all families or one requested DGP. {cmd:fesim describe} resolves case-insensitive names to canonical lowercase names. For example, {cmd:akmsimple} resolves to {cmd:dgp(akm) preset(simple)} and reports the same canonical configuration.
 
 {pstd}
-Configuration metadata is implemented for all three public presets. The simple and stylized presets retain their documented defaults. The Germany preset defaults to {cmd:workers(10000)}, {cmd:firms(1000)}, eight annual periods beginning in 2002, {cmd:initial(random)}, and a five-year monthly burn-in. All presets default to {cmd:truth(basic)}, {cmd:connectivity(keep)}, {cmd:network(random)}, and {cmd:report}. Omitting {cmd:seed()} records {cmd:current}; configuration resolution itself never changes the RNG state.
+Configuration metadata is implemented for all six public presets. The simple and stylized presets retain their documented defaults. The Germany preset defaults to {cmd:workers(10000)}, {cmd:firms(1000)}, eight annual periods beginning in 2002, {cmd:initial(random)}, and a five-year monthly burn-in. All presets default to {cmd:truth(basic)}, {cmd:connectivity(keep)}, {cmd:network(random)}, and {cmd:report}. Omitting {cmd:seed()} records {cmd:current}; configuration resolution itself never changes the RNG state.
 
 For the simple AKM contract, {cmd:initial(stationary)} uses the exact interval transition matrix over unemployment and firms and initializes job age from the stationary geometric distribution. {cmd:initial(random)} uses employment probability 0.5, attraction-weighted firm assignment, tenure zero, and requires {cmd:burnin()} of at least one period. {cmd:initial(allunemployed)} is a diagnostic start.
 
@@ -113,7 +113,7 @@ Discovery and configuration resolution do not alter data or Stata's RNG state. T
 {p2colset 9 24 26 2}{...}
 {p2col:{cmd:akm}}Presets {cmd:simple}, {cmd:stylized}, and {cmd:germany_chk_2002_2009} are qualified; aliases are {cmd:akmsimple} and {cmd:akmempirical}.{p_end}
 {p2col:{cmd:akmpaygap}}Qualified presets {cmd:simple} and {cmd:cck2016}; no convenience alias.{p_end}
-{p2col:{cmd:bm}}Preset {cmd:simple}; alias {cmd:bmsimple}; planned; the D-036 equilibrium derivation and internal continuum solver are implemented, but finite firms and the simulation route are not qualified.{p_end}
+{p2col:{cmd:bm}}Preset {cmd:simple}; alias {cmd:bmsimple}; canonical homogeneous wage-posting model with a stylized calibration.{p_end}
 {p2colreset}{...}
 
 {title:Stored results}
@@ -279,7 +279,7 @@ block through {cmd:fesim_run}, which also restores the caller's data.
 {title:Limitations}
 
 {pstd}
-Version 0.3.0-dev exposes three AKM presets and both pay-gap presets. The Germany preset targets wage-component dispersions and sorting only; its hazards and durations are not German-calibrated. The CCK-inspired preset targets selected group moments and the male-reference firm decomposition under the package's standard-normal surplus normalization; it does not reproduce CCK's empirical normalization or full estimation. {cmd:connectivity(force)} has no accepted scientific design. The D-036 BM derivation and internal continuum solver are implemented, but the BM family remains discovery-only until finite firms and the simulation route are qualified.
+Version 0.4.0-dev exposes three AKM presets and both pay-gap presets. The Germany preset targets wage-component dispersions and sorting only; its hazards and durations are not German-calibrated. The CCK-inspired preset targets selected group moments and the male-reference firm decomposition under the package's standard-normal surplus normalization; it does not reproduce CCK's empirical normalization or full estimation. {cmd:connectivity(force)} has no accepted scientific design. The D-036 BM derivation and internal continuum solver are implemented, but the BM family remains discovery-only until finite firms and the simulation route are qualified.
 
 {pstd}
 The supported minimum for {cmd:v0.1.0} is Stata 19. Exact-source qualification covers Stata/MP 19 on macOS Apple Silicon and Windows x86-64; no cross-version or cross-platform bitwise claim is made.
@@ -317,6 +317,65 @@ reduced-form mapping under a different normalization, not a replication.
 {p 0 21}
 Online: {help areg}, {help xtreg}, {help regress}, {help simulate}
 {p_end}
+
+{title:Canonical Burdett-Mortensen model}
+
+{pstd}
+{cmd:dgp(bm)} (alias {cmd:bmsimple}) solves the homogeneous-worker,
+common-productivity wage-posting equilibrium. The model is exact; defaults are
+stylized and do not claim empirical calibration. The six primitive defaults in
+{cmd:parameters()} are {cmd:b .4 p 1 lambda_u 1 lambda_e .5 delta .2 r .05}.
+{cmd:b} is the unemployment flow payoff; {cmd:p} is productivity. The four rates
+are continuous annual rates, strictly positive and at most 1000. Require
+{cmd:p>b} and a positive solved reservation wage. Unresolved numerical support or
+residuals fail explicitly. Firm wages use deterministic midpoint offer quantiles;
+{cmd:parameters(random_firms 1)} requests random quantiles. This flag is 0 or 1.
+
+{pstd}
+Defaults are 10000 workers, 500 firms, 10 annual periods, {cmd:initial(stationary)},
+and {cmd:burnin(0)}. BM burn-in is in continuous years and may be fractional;
+{cmd:initial(random)} requires positive burn-in. {cmd:initial(allunemployed)} is
+also available. Firm offers are uniform; employed workers accept only strictly
+higher wages. Use {cmd:network(random)}, {cmd:jobrule(end)}, and
+{cmd:connectivity(keep)} or {cmd:connectivity(largest)}. Maximum worker and firm
+counts are 10 million and one million. Each horizon is at most 100000 years and
+each burn-in/retained stage has a hard 10-million-event budget. Exceeding a guard
+restores caller data and RNG. There is no public raw-event output or solve-only
+interface. Output blocks preserve random draws and retain no full-population
+event ledger.
+
+{pstd}
+{cmd:truth(basic)} adds {cmd:lnwage_true}, {cmd:posted_wage_true}, and
+{cmd:productivity_true}; they are missing while unemployed. Full truth adds
+reservation and worker values, finite and continuum firm quantities, all
+interval event/acceptance/rejection counts, and employment/unemployment exposure
+in years. Wages in the common panel are logs; posted wages and productivity are
+levels. Public tenure and unemployment duration use output-period units. The
+first interval's exact counts appear in full truth while common backward flows
+remain missing at the first observation. BM has no artificial AKM worker effects.
+
+{pstd}
+{cmd:r(solver)} is the 22-row named primitive/equilibrium/residual table.
+{cmd:r(bm_flows)} has rows {cmd:unemployment_share ue eu ee} and columns
+{cmd:theory event observed observed_per_year}. Theory uses the original finite
+economy (the continuum EE hazard is separately in {cmd:r(solver)}). Event rates
+divide counts by exact at-risk years; observed rates use adjacent endpoints.
+{cmd:observed_per_year} divides probability by interval years; it is not a hazard
+estimate. {cmd:r(bm_firms)} gives unweighted mean, minimum, and maximum of each
+named firm diagnostic. Firm summaries/theory describe the original economy;
+realized rates, common moments, and durations describe the returned worker panel,
+including after largest-component filtering. Runtime diagnostics include
+{cmd:r(bm_events)}, {cmd:r(bm_peak_block_events)}, {cmd:r(bm_peak_block_rows)}, and
+{cmd:r(bm_block_workers)}. Common parameters, moments, network, leaveout, durations,
+metadata, and solve/simulate/output timings remain available.
+
+{pstd}{stata "fesim_run bm using fesim.sthlp":Run BM example}{p_end}
+{* example_start - bm}{...}
+{com}. fesim, dgp(bm) workers(2000) firms(100) periods(5) seed(12345) truth(full) clear{txt}
+{com}. matrix list r(solver){txt}
+{com}. matrix list r(bm_flows){txt}
+{com}. matrix list r(bm_firms){txt}
+{* example_end}{...}
 
 {title:Author}
 

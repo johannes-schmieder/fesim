@@ -41,6 +41,7 @@ quietly do `"`repository_root'/src/fesim_paygap.mata"'
 quietly do `"`repository_root'/src/fesim_akm_handler.mata"'
 quietly do `"`repository_root'/src/fesim_emp_handler.mata"'
 quietly do `"`repository_root'/src/fesim_paygap_handler.mata"'
+quietly do `"`repository_root'/src/fesim_bm_handler.mata"'
 quietly do `"`repository_root'/src/fesim_dispatch.mata"'
 
 mata: mata mlib create lfesim, dir(`"`output_dir'"') replace
@@ -49,7 +50,7 @@ mata: mata mlib add lfesim fesim_*(), dir(`"`output_dir'"') complete
 quietly adopath ++ `"`output_dir'"'
 mata: mata clear
 mata: mata mlib index
-mata: assert(fesim_mata_api_version() == 32)
+mata: assert(fesim_mata_api_version() == 33)
 mata: assert(fesim_config_schema_version() == 2)
 mata: assert(fesim_rng_schema_version() == 2)
 mata: assert(cols(fesim_rng_component_names()) == 9)
@@ -80,7 +81,7 @@ mata: assert(fesim_paygap_handler_version() == 1)
 mata: assert(fesim_state_schema_version() == 5)
 mata: assert(fesim_results_schema_version() == 2)
 mata: assert(fesim_handler_schema_version() == 1)
-mata: assert(fesim_dispatch_status() == "akm_and_paygap_public")
+mata: assert(fesim_dispatch_status() == "akm_paygap_and_bm_public")
 mata: assert(fesim_dispatch_toy_smoke() == 1)
 
 capture confirm file `"`output_dir'/lfesim.mlib"'

@@ -64,7 +64,7 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     integration/test_network_blocks ///
     integration/test_network_bridges integration/test_network_ladder ///
     integration/test_output_blocks integration/test_panel_contract ///
-    integration/test_results integration/bm_frequency integration/bm_output ///
+    integration/test_results integration/bm_frequency integration/bm_output integration/bm_public integration/bm_streaming ///
     regression/akm_tiny ///
     statistical/akm_moments statistical/akm_exogeneity ///
     statistical/akm_stylized_mobility ///

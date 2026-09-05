@@ -1,4 +1,4 @@
-*! fesim common configuration resolver 0.3.0-dev 31aug2026
+*! fesim common configuration resolver 0.4.0-dev 05sep2026
 program define fesim_config, rclass
     version 16.0
     syntax [ , DGP(string) PRESet(string) WORKers(string) FIRMs(string) ///
@@ -113,8 +113,8 @@ program define fesim_config, rclass
         di as error "network() must be random, blocks, bridges, or ladder"
         exit 198
     }
-    if `"`canonical'"' == "akmpaygap" & `"`network'"' != "random" {
-        di as error "akmpaygap currently requires network(random)"
+    if inlist(`"`canonical'"', "akmpaygap", "bm") & `"`network'"' != "random" {
+        di as error "`canonical' currently requires network(random)"
         exit 198
     }
     if `"`network'"' == "bridges" & `"`source_bridge_count'"' != "parameters" {
@@ -161,7 +161,13 @@ program define fesim_config, rclass
         local value_`name' = strtrim(`"`formatted'"')
     }
 
-    if `"`canonical'"' == "akmpaygap" {
+    if `"`canonical'"' == "bm" {
+        if real(`"`value_p'"') <= real(`"`value_b'"') {
+            di as error "BM productivity p must exceed b"
+            exit 198
+        }
+    }
+    else if `"`canonical'"' == "akmpaygap" {
         if real(`"`value_firms'"') < 2 {
             di as error "firms() must be at least 2 for akmpaygap/`resolved_preset'"
             exit 198
@@ -203,7 +209,7 @@ program define fesim_config, rclass
             exit 198
         }
     }
-    if abs(real(`"`value_ladder_down_share'"') + ///
+    if `"`canonical'"' != "bm" & abs(real(`"`value_ladder_down_share'"') + ///
         real(`"`value_ladder_lateral_share'"') + ///
         real(`"`value_ladder_up_share'"') - 1) > 1e-12 {
         di as error "ladder direction shares must sum to one"
@@ -281,12 +287,19 @@ program define fesim_config, rclass
     local time_format `"`r(format)'"'
     local interval_unit `"`r(interval_unit)'"'
     local internal_clock `"`r(internal_clock)'"'
-    if `"`canonical'"' == "akmpaygap" local internal_clock "output_period"
+    if `"`canonical'"' == "bm" local internal_clock "continuous_time"
+    else if `"`canonical'"' == "akmpaygap" local internal_clock "output_period"
     else if `"`resolved_preset'"' != "simple" local internal_clock "month"
     local start_value = r(start_value)
     local end_value = r(end_value)
     local periods_per_year = r(periods_per_year)
     local delta_years = r(delta_years)
+
+    if `"`canonical'"' == "bm" & ///
+        real(`"`value_periods'"') * `delta_years' > 100000 {
+        di as error "BM retained horizon may not exceed 100000 years"
+        exit 198
+    }
 
     local seed = lower(strtrim(`"`seed'"'))
     local source_seed "option"
@@ -328,7 +341,13 @@ program define fesim_config, rclass
         di as error "initial(stationary) is unavailable for `canonical'/`resolved_preset'"
         exit 198
     }
-    if `"`initial'"' == "random" & real(`"`value_burnin'"') < 1 {
+    if `"`canonical'"' == "bm" & `"`initial'"' == "random" & ///
+        real(`"`value_burnin'"') <= 0 {
+        di as error "BM initial(random) requires positive burnin() in years"
+        exit 198
+    }
+    if `"`canonical'"' != "bm" & ///
+        `"`initial'"' == "random" & real(`"`value_burnin'"') < 1 {
         if `"`canonical'"' == "akmpaygap" | ///
             `"`resolved_preset'"' != "simple" {
             di as error "initial(random) requires burnin() of at least one year for `canonical'/`resolved_preset'"

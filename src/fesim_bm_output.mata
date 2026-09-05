@@ -135,12 +135,14 @@ real scalar fesim_bm_output_panel(
     struct fesim_bm_panel scalar panel,
     real scalar start_value,
     string scalar time_format,
-    string scalar truth)
+    string scalar truth,
+    | real scalar worker_offset, real scalar total_workers)
 {
     real scalar N, unemployment_value
+    real colvector output_rows
     real rowvector variable_indices
     real colvector employed_rows, firm_id, spell_id, lnwage
-    real colvector posted_wage, productivity, employment_value
+    real colvector posted_wage, productivity, employment_value, firm_value
     real colvector offer_quantile, expected_mass, expected_share
     real colvector continuum_employment, finite_scaled_employment
     real colvector continuum_profit, finite_scaled_profit, ntransitions
@@ -155,10 +157,26 @@ real scalar fesim_bm_output_panel(
             time_format != "%tm")) {
         _error(3300, "BM output controls are invalid")
     }
-    if (st_nobs() != 0 | st_nvar() != 0) {
+    if (args() == 6) {
+        worker_offset = 0
+        total_workers = panel.workers
+    }
+    if (missing(worker_offset) | worker_offset < 0 |
+        worker_offset != floor(worker_offset) | missing(total_workers) |
+        total_workers < worker_offset + panel.workers |
+        total_workers != floor(total_workers)) {
+        _error(3300, "BM output block dimensions are invalid")
+    }
+    if (worker_offset == 0 & (st_nobs() != 0 | st_nvar() != 0)) {
         _error(3300, "BM output writer requires an empty Stata dataset")
     }
+    if (worker_offset > 0 &
+        st_nobs() != total_workers * panel.periods) {
+        _error(3300, "BM output block does not match allocated data")
+    }
     N = fesim_output_checked_rows(panel.workers, panel.periods)
+    output_rows = (worker_offset * panel.periods + 1):: ///
+        (worker_offset * panel.periods + N)
     if (rows(panel.worker_id) != N) {
         _error(3300, "BM panel does not match its declared dimensions")
     }
@@ -169,37 +187,41 @@ real scalar fesim_bm_output_panel(
     lnwage = J(N, 1, .)
     posted_wage = J(N, 1, .)
     productivity = J(N, 1, .)
-    employment_value = J(N, 1, .)
-    offer_quantile = J(N, 1, .)
-    expected_mass = J(N, 1, .)
-    expected_share = J(N, 1, .)
-    continuum_employment = J(N, 1, .)
-    finite_scaled_employment = J(N, 1, .)
-    continuum_profit = J(N, 1, .)
-    finite_scaled_profit = J(N, 1, .)
+    if (truth == "full") {
+        employment_value = J(N, 1, .)
+        offer_quantile = J(N, 1, .)
+        expected_mass = J(N, 1, .)
+        expected_share = J(N, 1, .)
+        continuum_employment = J(N, 1, .)
+        finite_scaled_employment = J(N, 1, .)
+        continuum_profit = J(N, 1, .)
+        finite_scaled_profit = J(N, 1, .)
+        firm_value = fesim_bm_employment_value(solution, universe.posted_wage)
+    }
     employed_rows = selectindex(panel.employed :== 1)
     if (length(employed_rows)) {
         posted_wage[employed_rows] = ///
-            universe.posted_wage[firm_id[employed_rows]]
+            universe.posted_wage[firm_id[employed_rows], 1]
         productivity[employed_rows] = ///
-            universe.firm_productivity[firm_id[employed_rows]]
+            universe.firm_productivity[firm_id[employed_rows], 1]
         lnwage[employed_rows] = ln(posted_wage[employed_rows])
-        employment_value[employed_rows] = fesim_bm_employment_value(
-            solution, posted_wage[employed_rows])
-        offer_quantile[employed_rows] = ///
-            universe.offer_quantile[firm_id[employed_rows]]
-        expected_mass[employed_rows] = ///
-            universe.expected_employment_mass[firm_id[employed_rows]]
-        expected_share[employed_rows] = ///
-            universe.expected_employment_share[firm_id[employed_rows]]
-        continuum_employment[employed_rows] = ///
-            universe.continuum_employment[firm_id[employed_rows]]
-        finite_scaled_employment[employed_rows] = ///
-            universe.finite_scaled_employment[firm_id[employed_rows]]
-        continuum_profit[employed_rows] = ///
-            universe.continuum_profit[firm_id[employed_rows]]
-        finite_scaled_profit[employed_rows] = ///
-            universe.finite_scaled_profit[firm_id[employed_rows]]
+        if (truth == "full") {
+            employment_value[employed_rows] = firm_value[firm_id[employed_rows], 1]
+            offer_quantile[employed_rows] = ///
+                universe.offer_quantile[firm_id[employed_rows], 1]
+            expected_mass[employed_rows] = ///
+                universe.expected_employment_mass[firm_id[employed_rows], 1]
+            expected_share[employed_rows] = ///
+                universe.expected_employment_share[firm_id[employed_rows], 1]
+            continuum_employment[employed_rows] = ///
+                universe.continuum_employment[firm_id[employed_rows], 1]
+            finite_scaled_employment[employed_rows] = ///
+                universe.finite_scaled_employment[firm_id[employed_rows], 1]
+            continuum_profit[employed_rows] = ///
+                universe.continuum_profit[firm_id[employed_rows], 1]
+            finite_scaled_profit[employed_rows] = ///
+                universe.finite_scaled_profit[firm_id[employed_rows], 1]
+        }
     }
     if (any(panel.employed :== 0)) {
         firm_id[selectindex(panel.employed :== 0)] = ///
@@ -224,75 +246,76 @@ real scalar fesim_bm_output_panel(
         _error(430, "BM output arrays are invalid")
     }
 
-    st_addobs(N)
-    variable_indices = st_addvar(("long", "long", "long", "byte", ///
-        "double", "long", "double", "double", "byte", "byte", ///
-        "byte", "byte", "long"), ("workerid", "time", "firmid", ///
-        "employed", "lnwage", "spellid", "tenure", ///
-        "unemp_duration", "newjob", "from_unemp", "to_unemp", ///
-        "jobtojob", "ntransitions"))
+    if (worker_offset == 0) {
+        st_addobs(fesim_output_checked_rows(total_workers, panel.periods))
+        variable_indices = st_addvar(("long", "long", "long", "byte", ///
+            "double", "long", "double", "double", "byte", "byte", ///
+            "byte", "byte", "long"), ("workerid", "time", "firmid", ///
+            "employed", "lnwage", "spellid", "tenure", ///
+            "unemp_duration", "newjob", "from_unemp", "to_unemp", ///
+            "jobtojob", "ntransitions"))
+        if (truth != "none") {
+            variable_indices = st_addvar(J(1, 3, "double"), ///
+                ("lnwage_true", "posted_wage_true", "productivity_true"))
+        }
+        if (truth == "full") {
+            variable_indices = st_addvar(J(1, 18, "double"), ///
+                ("reservation_wage_true", "unemployment_value_true", ///
+                "employment_value_true", "offer_quantile_true", ///
+                "expected_firm_mass_true", "expected_firm_share_true", ///
+                "continuum_employment_true", ///
+                "finite_scaled_employment_true", "continuum_profit_true", ///
+                "finite_scaled_profit_true", "n_eu_true", "n_ee_true", ///
+                "n_ue_true", "n_unemployment_offers_true", ///
+                "n_employed_offers_true", "n_rejected_offers_true", ///
+                "n_events_true", "ntransitions_true"))
+            variable_indices = st_addvar(J(1, 2, "double"), ///
+                ("employment_exposure_true", "unemployment_exposure_true"))
+        }
+    }
+    st_store(output_rows, "workerid", panel.worker_id :+ worker_offset)
+    st_store(output_rows, "time", time_value)
+    st_store(output_rows, "firmid", firm_id)
+    st_store(output_rows, "employed", panel.employed)
+    st_store(output_rows, "lnwage", lnwage)
+    st_store(output_rows, "spellid", spell_id)
+    st_store(output_rows, "tenure", tenure)
+    st_store(output_rows, "unemp_duration", unemployment_duration)
+    st_store(output_rows, "newjob", panel.newjob)
+    st_store(output_rows, "from_unemp", panel.from_unemp)
+    st_store(output_rows, "to_unemp", panel.to_unemp)
+    st_store(output_rows, "jobtojob", panel.jobtojob)
+    st_store(output_rows, "ntransitions", ntransitions)
     if (truth != "none") {
-        variable_indices = st_addvar(J(1, 3, "double"), ///
-            ("lnwage_true", "posted_wage_true", "productivity_true"))
+        st_store(output_rows, "lnwage_true", lnwage)
+        st_store(output_rows, "posted_wage_true", posted_wage)
+        st_store(output_rows, "productivity_true", productivity)
     }
     if (truth == "full") {
-        variable_indices = st_addvar(J(1, 18, "double"), ///
-            ("reservation_wage_true", "unemployment_value_true", ///
-            "employment_value_true", "offer_quantile_true", ///
-            "expected_firm_mass_true", "expected_firm_share_true", ///
-            "continuum_employment_true", ///
-            "finite_scaled_employment_true", "continuum_profit_true", ///
-            "finite_scaled_profit_true", "n_eu_true", "n_ee_true", ///
-            "n_ue_true", "n_unemployment_offers_true", ///
-            "n_employed_offers_true", "n_rejected_offers_true", ///
-            "n_events_true", "ntransitions_true"))
-        variable_indices = st_addvar(J(1, 2, "double"), ///
-            ("employment_exposure_true", "unemployment_exposure_true"))
-    }
-
-    st_store(., "workerid", panel.worker_id)
-    st_store(., "time", time_value)
-    st_store(., "firmid", firm_id)
-    st_store(., "employed", panel.employed)
-    st_store(., "lnwage", lnwage)
-    st_store(., "spellid", spell_id)
-    st_store(., "tenure", tenure)
-    st_store(., "unemp_duration", unemployment_duration)
-    st_store(., "newjob", panel.newjob)
-    st_store(., "from_unemp", panel.from_unemp)
-    st_store(., "to_unemp", panel.to_unemp)
-    st_store(., "jobtojob", panel.jobtojob)
-    st_store(., "ntransitions", ntransitions)
-    if (truth != "none") {
-        st_store(., "lnwage_true", lnwage)
-        st_store(., "posted_wage_true", posted_wage)
-        st_store(., "productivity_true", productivity)
-    }
-    if (truth == "full") {
-        st_store(., "reservation_wage_true", ///
+        st_store(output_rows, "reservation_wage_true", ///
             J(N, 1, solution.reservation_wage))
-        st_store(., "unemployment_value_true", ///
+        st_store(output_rows, "unemployment_value_true", ///
             J(N, 1, unemployment_value))
-        st_store(., "employment_value_true", employment_value)
-        st_store(., "offer_quantile_true", offer_quantile)
-        st_store(., "expected_firm_mass_true", expected_mass)
-        st_store(., "expected_firm_share_true", expected_share)
-        st_store(., "continuum_employment_true", continuum_employment)
-        st_store(., "finite_scaled_employment_true", ///
+        st_store(output_rows, "employment_value_true", employment_value)
+        st_store(output_rows, "offer_quantile_true", offer_quantile)
+        st_store(output_rows, "expected_firm_mass_true", expected_mass)
+        st_store(output_rows, "expected_firm_share_true", expected_share)
+        st_store(output_rows, "continuum_employment_true", continuum_employment)
+        st_store(output_rows, "finite_scaled_employment_true", ///
             finite_scaled_employment)
-        st_store(., "continuum_profit_true", continuum_profit)
-        st_store(., "finite_scaled_profit_true", finite_scaled_profit)
-        st_store(., "n_eu_true", panel.n_eu)
-        st_store(., "n_ee_true", panel.n_ee)
-        st_store(., "n_ue_true", panel.n_ue)
-        st_store(., "n_unemployment_offers_true", ///
+        st_store(output_rows, "continuum_profit_true", continuum_profit)
+        st_store(output_rows, "finite_scaled_profit_true", finite_scaled_profit)
+        st_store(output_rows, "n_eu_true", panel.n_eu)
+        st_store(output_rows, "n_ee_true", panel.n_ee)
+        st_store(output_rows, "n_ue_true", panel.n_ue)
+        st_store(output_rows, "n_unemployment_offers_true", ///
             panel.n_unemployment_offers)
-        st_store(., "n_employed_offers_true", panel.n_employed_offers)
-        st_store(., "n_rejected_offers_true", panel.n_rejected_offers)
-        st_store(., "n_events_true", panel.n_events)
-        st_store(., "ntransitions_true", panel.ntransitions)
-        st_store(., "employment_exposure_true", panel.employment_exposure)
-        st_store(., "unemployment_exposure_true", ///
+        st_store(output_rows, "n_employed_offers_true", panel.n_employed_offers)
+        st_store(output_rows, "n_rejected_offers_true", panel.n_rejected_offers)
+        st_store(output_rows, "n_events_true", panel.n_events)
+        st_store(output_rows, "ntransitions_true", panel.ntransitions)
+        st_store(output_rows, "employment_exposure_true", panel.employment_exposure)
+        st_store(output_rows, "unemployment_exposure_true", ///
             panel.unemployment_exposure)
     }
 
@@ -370,8 +393,10 @@ real scalar fesim_bm_output_panel(
     st_global("_dta[fesim_bm_productivity]", ///
         strofreal(solution.p, "%21.17g"))
     st_global("_dta[fesim_bm_firm_mode]", universe.mode)
-    stata("sort workerid time", 1)
-    stata("isid workerid time", 1)
+    if (worker_offset + panel.workers == total_workers) {
+        stata("sort workerid time", 1)
+        stata("isid workerid time", 1)
+    }
     return(N)
 }
 

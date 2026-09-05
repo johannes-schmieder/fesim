@@ -1,11 +1,11 @@
-*! fesim common metadata/result finalizer 0.3.0-dev 31aug2026
+*! fesim common metadata/result finalizer 0.4.0-dev 05sep2026
 program define _fesim_finalize, rclass
     version 16.0
     syntax , DGP(string) DGPALIAS(string) PRESET(string) ///
         CALIBRATIONCLASS(string) COMMAND(string) SEED(string) ///
         RNG(string) RNGMETHOD(string) FREQUENCY(string) ///
         INTERNALCLOCK(string) JOBRULE(string) TRUTH(string) ///
-        BURNIN(integer) CONNECTIVITY(string) NETWORKDESIGN(string) ///
+        BURNIN(real) CONNECTIVITY(string) NETWORKDESIGN(string) ///
         REFERENCE(string) ///
         WORKERS(integer) FIRMS(integer) PERIODS(integer) ///
         PARAMETERS(name) MOMENTS(name) ///

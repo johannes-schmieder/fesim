@@ -55,7 +55,7 @@ assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
 capture noisily fesim version
 assert _rc == 0
-assert `"`r(version)'"' == "0.3.0-dev"
+assert `"`r(version)'"' == "0.4.0-dev"
 
 capture noisily fesim list
 assert _rc == 0
@@ -106,7 +106,12 @@ confirm variable group
 matrix installed_paygap = r(decomposition)
 assert rowsof(installed_paygap) == 9
 assert abs(installed_paygap["adding_up_error", "symmetric"]) < 1e-10
-mata: assert(fesim_mata_api_version() == 32)
+quietly fesim, dgp(bm) workers(100) firms(20) periods(3) seed(23456) truth(full) noreport clear
+assert _N == 300
+assert rowsof(r(solver)) == 22
+assert rowsof(r(bm_flows)) == 4
+
+mata: assert(fesim_mata_api_version() == 33)
 mata: assert(fesim_bm_schema_version() == 1)
 mata: assert(fesim_bm_history_schema_version() == 1)
 mata: mata clear

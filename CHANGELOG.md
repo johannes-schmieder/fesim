@@ -1,6 +1,22 @@
 # Changelog
 
-## Unreleased — 0.3.0
+## Unreleased — 0.4.0 candidate
+
+- Public canonical `bm/simple` and `bmsimple`: analytical equilibrium, finite
+  firms, exact continuous-time events, stationary/random/all-unemployed starts,
+  continuous burn-in, annual/quarterly/monthly panels, structural truth, and
+  separate theoretical/event/observed moments.
+- Buffered worker blocks preserve monolithic seeded histories while bounding
+  retained event/panel memory. Removed per-offer firm scans and quadratic
+  stationary exit-rate work. Added transaction-safe public failures, compact
+  firm diagnostics, connectivity-conditioned sample rates, examples, and tests.
+- Theoretical validation includes worker-clustered sampling bounds, acceptance
+  compensators, finite-grid convergence, burn-in stability, and limiting cases.
+  Tiny-destruction CDF endpoints and singleton-firm output indexing are robust.
+- Exact source/platform and performance evidence are recorded in `PLAN.md` and
+  `docs/performance.md`. No new release tag is implied by development status.
+
+## Earlier 0.3.0 development checkpoints
 
 ### Scientific contract and internal solver; public runtime pending
 

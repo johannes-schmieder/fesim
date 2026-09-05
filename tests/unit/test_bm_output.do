@@ -21,7 +21,7 @@ void fesim_test_bm_output_truth()
     real colvector wage, employment_value, solver
     real matrix firms
 
-    assert(fesim_mata_api_version() == 32)
+    assert(fesim_mata_api_version() == 33)
     assert(fesim_bm_output_schema_version() == 1)
     assert(cols(fesim_bm_solver_diagnostic_names()) == 22)
     assert(cols(fesim_bm_firm_diagnostic_names()) == 10)

@@ -33,4 +33,11 @@ assert rowsof(r(group_moments)) == 17
 assert rowsof(r(decomposition)) == 9
 isid workerid time
 
+capture noisily do `"`repository_root'/examples/bmsimple.do"'
+assert _rc == 0
+assert _N == 10000
+assert rowsof(r(solver)) == 22
+assert rowsof(r(bm_flows)) == 4
+isid workerid time
+
 di as result "FESIM DOCUMENTED EXAMPLES PASS"
