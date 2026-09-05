@@ -1,0 +1,2 @@
+# Documentation PDFs are binary assets, including Stata exports without NUL bytes.
+*.pdf binary
