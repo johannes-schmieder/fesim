@@ -1,0 +1,1289 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage{amsmath,amssymb,booktabs,longtable,array}
+\usepackage{graphicx,xcolor,listings,enumitem,placeins}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage[colorlinks=true,linkcolor=blue!45!black,urlcolor=blue!45!black,
+  citecolor=blue!45!black]{hyperref}
+\usepackage{fancyhdr}
+\definecolor{ink}{RGB}{28,48,66}
+\definecolor{codebg}{RGB}{246,248,250}
+\lstdefinestyle{stata}{basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{codebg},frame=single,rulecolor=\color{black!15},
+  breaklines=true,columns=fullflexible,keepspaces=true,
+  showstringspaces=false,upquote=true,aboveskip=10pt,belowskip=10pt}
+\lstset{style=stata}
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\Cov}{\operatorname{Cov}}
+\setlength{\emergencystretch}{2em}
+\setlength{\parskip}{5pt}
+\setlength{\parindent}{0pt}
+\setlist{itemsep=2pt,topsep=4pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{ink}\textsf{fesim: User and Technical Manual}}
+\fancyhead[R]{\small\textsf{0.4.0-dev}}
+\fancyfoot[C]{\thepage}
+\setlength{\headheight}{14pt}
+\hypersetup{pdftitle={fesim: User and Technical Manual},
+ pdfauthor={Johannes F. Schmieder},
+ pdfsubject={Linked employer-employee simulation in Stata and Mata}}
+\begin{document}
+\hypersetup{pageanchor=false}
+\begin{titlepage}
+\vspace*{0.8in}
+{\color{ink}\Huge\bfseries fesim\par}
+\vspace{0.3in}
+{\LARGE User and Technical Manual\par}
+\vspace{0.15in}
+{\large Linked employer--employee panel simulation in Stata\par}
+\vspace{0.5in}
+Johannes F. Schmieder\\
+Boston University
+\vspace{0.35in}
+
+Development version 0.4.0-dev \quad $\cdot$ \quad Mata API 33\\
+September 5, 2026
+\vspace{0.5in}
+
+\begin{minipage}{0.91\textwidth}
+This manual explains the public command, all six available presets, and the
+data and diagnostics they return. Reproducible examples illustrate wage
+dispersion, sorting, pay gaps, and search dynamics. The technical appendix
+documents the implemented random processes and derives the canonical
+Burdett--Mortensen equilibrium, its finite-firm approximation, and the exact
+continuous-time worker simulation.
+
+The documentation describes development source following Checkpoint 49,
+repository revision \code{c299ce3}. The preceding full test qualification is
+\code{0c33a52}. The stable \code{v0.1.0} release contains only the earlier
+simple-AKM command.
+\end{minipage}
+\vfill
+\url{https://github.com/johannes-schmieder/fesim}\\
+\url{https://johannes-schmieder.com/}\\
+MIT License
+\end{titlepage}
+\pagenumbering{roman}
+\hypersetup{pageanchor=true}
+\tableofcontents
+\clearpage
+\pagenumbering{arabic}
+
+\section{What the command produces}
+\code{fesim} creates synthetic linked employer--employee data. Each row is a
+worker observed in a retained output period, including periods of
+nonemployment. Worker identifiers stay fixed; employers can change; wages
+are observed only when employed. The command separates the economic DGP,
+its numerical preset, the destination network, and the observation frequency.
+It supports teaching, Monte Carlo experiments, and evaluation of estimators
+whose behavior depends on mobility and worker--firm sorting.
+
+The installed engine uses official Stata and Mata only. Stata 19 is the
+supported minimum. The current development source has been qualified on
+Stata/MP 19 on macOS Apple Silicon; Windows qualification of the older
+\code{v0.1.0} release does not qualify the later BM implementation.
+Reproducibility claims refer to a fixed package source, seed, command, and
+qualified Stata environment.
+
+\subsection{Choose a DGP}
+\begin{longtable}{@{}P{0.24\textwidth}P{0.22\textwidth}P{0.47\textwidth}@{}}
+\toprule
+Family / preset & Short name & Purpose and interpretation\\
+\midrule
+\endhead
+\code{akm / simple} & \code{akmsimple} &
+Additive worker and firm effects, independent attraction weights, and
+discrete interval mobility. Stylized teaching and testing baseline.\\[4pt]
+\code{akm / stylized} & \code{akmempirical} &
+Monthly mobility with latent worker types, firm quality, duration dependence,
+and sorting. All defaults are stylized; the alias names the mechanism.\\[4pt]
+\code{akm /}\newline{\footnotesize\code{germany_chk_2002_2009}} & None &
+The monthly engine with selected West German wage-dispersion and
+sorting targets from Card, Heining, and Kline (CHK).\\[4pt]
+\code{akmpaygap / simple} & None &
+Two groups with different worker distributions, premium schedules,
+mobility probabilities, and sorting. Stylized.\\[4pt]
+\code{akmpaygap / cck2016} & None &
+Targets selected Card, Cardoso, and Kline (CCK) group moments and
+male-reference firm decomposition under the package normalization.\\[4pt]
+\code{bm / simple} & \code{bmsimple} &
+Homogeneous-worker, common-productivity wage posting with unemployed and
+on-the-job search. Exact continuum model; stylized primitives.\\
+\bottomrule
+\end{longtable}
+
+There are three canonical family names and six family/preset combinations.
+The three aliases resolve to designated presets. Omitting \code{dgp()}
+and \code{preset()} selects \code{akm/simple}.
+AKM terminology follows Abowd, Kramarz, and Margolis \cite{akm}.
+The search model follows Burdett and Mortensen's wage-posting framework
+\cite{bm}; its specific discounted-worker reservation condition and
+implementation are derived in Appendix~\ref{app:bm}.
+
+\subsection{Install and begin}
+To use all designs in this manual, install the development package from the
+repository root in Stata. A checkout also permits source-based use:
+\begin{lstlisting}
+* Change this path to your local checkout.
+cd "/path/to/fesim"
+adopath ++ "."
+help fesim
+fesim version
+fesim list
+fesim presets akm
+fesim describe bm, preset(simple)
+\end{lstlisting}
+The installed help contains numbered \emph{click to run} links. Each invokes
+\code{fesim_run}, runs a whole example, and restores the caller's dataset.
+The source-only loader can compile packaged Mata sources when a compatible
+library is absent. The README gives development and immutable stable-tag
+installation instructions.
+
+\section{Syntax and options}\label{sec:syntax}
+\begin{lstlisting}
+fesim [, dgp(name) preset(name)
+    workers(#) firms(#) periods(#)
+    frequency(year|quarter|month) start(date) seed(#)
+    initial(stationary|random|allunemployed) burnin(#)
+    jobrule(end) truth(none|basic|full)
+    connectivity(keep|largest) network(random|blocks|bridges|ladder)
+    parameters(name value [name value ...]) report noreport clear]
+
+fesim version
+fesim list
+fesim presets [dgp]
+fesim describe dgp [, preset(name)]
+\end{lstlisting}
+The display lists alternatives: \code{report} and \code{noreport} are
+mutually exclusive, and not every initial state or network is available
+for every family. Use full option spellings in reproducible scripts.
+\code{fesim} generates a population; it does not accept a variable list
+or use the current dataset as an economic input.
+
+\subsection{Common controls}
+\begin{longtable}{@{}P{0.25\textwidth}P{0.68\textwidth}@{}}
+\toprule
+Option & Meaning\\
+\midrule
+\endhead
+\code{dgp(name)}, \code{preset(name)} &
+Resolve a family/alias and a preset. Names are case-insensitive.
+\code{fesim describe} reports defaults, bounds, and provenance.\\[4pt]
+\code{workers(n)}, \code{firms(n)} &
+Generated workers and firm universe. Inactive firms need not appear.
+Filtering may reduce returned workers without changing requested parameters.\\[4pt]
+\code{periods(n)} &
+Retained snapshots per worker. Monthly \code{periods(60)} covers five years.
+Workers times periods cannot exceed 2,147,483,647; memory or edition limits
+may bind sooner.\\[4pt]
+\code{frequency(...)} &
+Output interval: year (default), quarter, or month.
+Changing frequency does not reinterpret annual input rates.\\[4pt]
+\code{start(date)} &
+First retained snapshot label: \code{2000}, \code{2000q1}, or
+\code{2000m1}, for example. Default is the first period of 2000,
+except Germany and CCK presets, which use 2002.\\[4pt]
+\code{seed(n)} &
+Integer from 0 to 2,147,483,647. Explicit seeds preserve caller RNG
+state. If omitted, one caller RNG draw supplies the master seed.\\[4pt]
+\code{initial(...)}, \code{burnin(n)} &
+Initial state and discarded pre-sample time. Availability and units
+are model-specific; see Table~\ref{tab:defaults}.\\[4pt]
+\code{jobrule(end)} &
+Employer at the output endpoint. Dominant- and longest-employer rules
+are not public interfaces.\\[4pt]
+\code{truth(...)} &
+\code{none} suppresses latent columns; \code{basic} (default) adds wage
+components; \code{full} adds model-specific quantities.
+Economic draws are invariant to this choice.\\[4pt]
+\code{connectivity(...)} &
+\code{keep} (default) returns all workers. \code{largest} retains complete
+histories in the selected observed component. \code{force} is unavailable.\\[4pt]
+\code{network(...)} &
+Destination rule. \code{random} is the default and the only allowed
+design for pay-gap and BM. All four designs are available for AKM.\\[4pt]
+\code{parameters(...)} &
+Whitespace-separated scalar name/value pairs. Model and network controls
+belong here. Unknown, duplicate, irrelevant, conflicting, or inadmissible
+inputs fail validation.\\[4pt]
+\code{report}, \code{noreport} &
+Show (default) or suppress the report without changing data.\\[4pt]
+\code{clear} &
+Authorize replacement of loaded data. Without it, the command rejects
+a run that would replace the caller's dataset.\\
+\bottomrule
+\end{longtable}
+
+\setcounter{table}{0}
+\begin{table}[htbp]
+\centering\small
+\caption{Population, timing, and initialization defaults}\label{tab:defaults}
+\begin{tabular}{@{}lrrrll@{}}
+\toprule
+Preset & Workers & Firms & Periods & Initial & Burn-in\\
+\midrule
+AKM simple & 10,000 & 500 & 10 & stationary & 0 intervals\\
+AKM stylized & 10,000 & 500 & 10 & random & 5 years\\
+AKM Germany & 10,000 & 1,000 & 8 & random & 5 years\\
+Pay-gap simple & 10,000 & 500 & 10 & random & 5 years\\
+Pay-gap CCK & 10,000 & 1,000 & 8 & random & 5 years\\
+BM simple & 10,000 & 500 & 10 & stationary & 0 years\\
+\bottomrule
+\end{tabular}
+\end{table}
+All presets support \code{initial(allunemployed)}. Exact stationary starts
+are available only for simple AKM and BM. Random starts require at least one
+burn-in output interval for simple AKM and at least one year for monthly
+AKM and pay-gap. Those non-BM burn-in inputs are integers. BM burn-in is
+continuous years and can be fractional. Pay-gap uses output-clock steps
+within its year-valued burn-in.
+
+\subsection{Changing model parameters}
+\begin{lstlisting}
+preserve
+fesim, dgp(akm) preset(simple) workers(1000) firms(50) ///
+    periods(8) seed(12345) ///
+    parameters(sd_worker .45 sd_firm .20 p_ee .25) clear
+matrix list r(parameters)
+restore
+\end{lstlisting}
+The matrix has \code{value}, \code{default}, \code{lower}, and \code{upper}
+columns; cross-parameter restrictions also apply. Common scalar dimensions
+use named options. Model overrides change \code{stylized} to
+\code{stylized_modified}, or \code{targeted} to \code{targeted_modified}.
+Inspect \code{r(calibration_class)} and dataset characteristics when
+documenting an experiment.
+
+\section{DGP parameter reference}\label{sec:parameters}
+\subsection{Simple AKM}
+Employed log wages satisfy
+\begin{equation}
+y_{it}=\mu+\alpha_i+\psi_{J_{it}}+\gamma\,t_{\rm years}+\epsilon_{it}.
+\label{eq:akm}
+\end{equation}
+Worker effects, firm effects, attraction, and wage errors use separate
+primitives. Default random destinations do not condition on ability or pay.
+\begin{center}\small
+\begin{tabular}{@{}llr@{}}
+\toprule
+Parameter & Meaning & Default\\
+\midrule
+\code{mu} & Mean log-wage intercept & 3\\
+\code{sd_worker} & Worker-effect SD & .40\\
+\code{sd_firm} & Firm-effect SD & .15\\
+\code{sd_error} & Idiosyncratic log-wage SD & .20\\
+\code{firm_size_sd} & Log attraction scale & 1\\
+\code{p_eu}, \code{p_ee}, \code{p_ue} & Annual probabilities & .08, .12, .60\\
+\code{wage_trend} & Log points per retained-sample year & 0\\
+\bottomrule
+\end{tabular}\end{center}
+SDs are nonnegative. EU and EE probabilities are nonnegative and sum to
+less than one; UE lies in $[0,1]$. Positive EE requires at least two firms.
+Stationary initialization is undefined when both EU and UE are zero.
+
+\subsection{Monthly AKM: stylized and Germany}
+The stylized preset retains the wage and attraction defaults above but
+replaces interval probabilities by monthly transitions from annual hazards.
+\begin{longtable}{@{}P{0.44\textwidth}P{0.21\textwidth}P{0.28\textwidth}@{}}
+\toprule
+Parameter & Stylized default & Role\\
+\midrule
+\endhead
+\code{rho_z_alpha}, \code{rho_q_psi} & .30, .50 & Latent correlations\\
+\code{kappa_eu} & $-2.416230719$ & EU log-hazard intercept\\
+\code{eu_worker}, \code{eu_firm}, \code{eu_duration} & .10, $-.10$, $-.20$ &
+EU type, quality, duration slopes\\
+\code{kappa_ee} & $-2.010765611$ & EE log-hazard intercept\\
+\code{ee_worker}, \code{ee_firm}, \code{ee_duration} & .10, $-.10$, $-.15$ &
+EE type, quality, duration slopes\\
+\code{kappa_ue} & $-.087421572$ & UE log-hazard intercept\\
+\code{ue_worker}, \code{ue_duration} & .15, $-.25$ & UE slopes\\
+\code{theta_sort}, \code{theta_quality} & .25, .10 & Sorting / quality preference\\
+\code{theta_up}, \code{theta_down} & .20, $-.10$ & Asymmetric EE distances\\
+\bottomrule
+\end{longtable}
+Exact intercepts are the logs of $-\log(1-.08-.12)$ split in .08/.12
+proportions and of $-\log(1-.60)$ for UE. Monthly presets do not accept
+\code{p_eu}, \code{p_ee}, or \code{p_ue}. Correlations lie in $[-1,1]$;
+a zero wage-effect SD requires its corresponding latent correlation to be
+zero. Other numerical bounds are available through \code{fesim describe}.
+
+The Germany preset changes \code{sd_worker} to .357, \code{sd_firm} to
+.230, \code{sd_error} to .135, and \code{theta_sort} to 2.2. The first
+three values are CHK component targets; sorting targets employed-observation
+covariance .0205, half the reported $2\Cov=.041$ \cite{chk}.
+Hazards and durations remain stylized. This is a targeted wage-dispersion
+and sorting design, not a reconstruction of German employment histories.
+
+\subsection{Pay-gap presets}
+Men are \code{group=0}, women \code{group=1}; gaps are men minus women.
+Each firm has surplus $s_j\sim N(0,1)$ and group premium
+\[
+\psi_{gj}=a_g+b_gs_j+\tau_g\eta_{gj},\qquad
+y_{it}=\mu_g+\alpha_i+\psi_{gJ_{it}}+\gamma_g t_{\rm years}+\epsilon_{it}.
+\]
+Surplus is not restandardized in the finite sample. Both schedules exist at
+each firm, even when only one group is observed there.
+\begin{longtable}{@{}P{0.47\textwidth}rr@{}}
+\toprule
+Parameter (men, women where paired) & Simple & CCK\\
+\midrule
+\endhead
+\code{female_share} & .50 & .46\\
+\code{mu_m}, \code{mu_f} & 3, 2.9 & 3, 2.815\\
+\code{sd_worker_m}, \code{sd_worker_f} & .40, .40 & .420, .400\\
+\code{premium_intercept_m}, \code{premium_intercept_f} & .05, .03 & .113, .099\\
+\code{premium_loading_m}, \code{premium_loading_f} & .15, .12 & .247, .12567\\
+\code{premium_deviation_sd_m}, \code{premium_deviation_sd_f} &
+0, .09 & 0, .1719768912\\
+\code{sd_error_m}, \code{sd_error_f} & .20, .20 & .143, .125\\
+\code{firm_size_sd} & 1 & 1\\
+\code{p_eu_m}, \code{p_eu_f} & .08, .08 & .08, .08\\
+\code{p_ee_m}, \code{p_ee_f} & .12, .12 & .12, .12\\
+\code{p_ue_m}, \code{p_ue_f} & .60, .60 & .60, .60\\
+\code{group_sort_m}, \code{group_sort_f} & .30, 0 & .142, 0\\
+\code{worker_sort_m}, \code{worker_sort_f} & .30, .30 & .18, .273\\
+\code{wage_trend_m}, \code{wage_trend_f} & 0, 0 & .05, .05\\
+\bottomrule
+\end{longtable}
+Groupwise competing-probability restrictions are the same as in simple AKM;
+at least two firms are required. \code{female_share} lies in $[0,1]$.
+Group moments are undefined when the relevant group/sample is empty.
+The CCK preset targets selected group wage/effect moments and a male-reference
+decomposition \cite{cck}. Its standard-normal-surplus normalization differs
+from CCK's low-surplus-firm normalization. Targets are not constraints forcing
+each realized sample to reproduce published moments.
+
+\subsection{Burdett--Mortensen}
+\begin{center}\small
+\begin{tabular}{@{}llrl@{}}
+\toprule
+Parameter & Economic meaning & Default & Unit\\
+\midrule
+\code{b} & Unemployment flow payoff & .4 & Wage level\\
+\code{p} & Common productivity & 1 & Wage level\\
+\code{lambda_u} & Unemployed offer rate & 1 & Annual rate\\
+\code{lambda_e} & Employed offer rate & .5 & Annual rate\\
+\code{delta} & Job destruction rate & .2 & Annual rate\\
+\code{r} & Worker discount rate & .05 & Annual rate\\
+\code{random_firms} & 0 midpoint / 1 random quantiles & 0 & Indicator\\
+\bottomrule
+\end{tabular}\end{center}
+Rates must be positive and at most 1,000. Productivity must exceed $b$,
+and solved wage support must be positive because output wages are logs.
+Support and residual checks can reject numerically unresolved inputs.
+There is no public control for measurement error, heterogeneous productivity,
+bargaining, or firm attraction.
+
+The continuum equilibrium is solved first. Finite posted wages discretize
+its offer distribution. Workers contact finite firms uniformly and accept
+only strictly higher wages while employed. The exact finite stationary
+allocation differs from the continuum worker distribution; a finite
+wage-posting game is not solved anew (Appendix~\ref{app:bm}).
+
+\section{Network designs and connectedness}\label{sec:network}
+\code{network(random)} means the selected DGP's baseline destination
+mechanism; empirical-AKM and pay-gap sorting can still be nonzero.
+In BM it means uniform contacts with structural acceptance.
+\begin{description}
+\item[\code{blocks}.] Independently assign workers and firms to balanced
+communities. Entry/initialization refer to the worker's home block;
+EE moves refer to the current firm's block. Same-block destination mass is
+multiplied by $\exp(\code{block_log_bonus})$. Defaults:
+\code{block_count=4} and \code{block_log_bonus=ln(9)}. Zero bonus exactly
+nests random destinations.
+\item[\code{bridges}.] Ordinary moves stay strictly within blocks.
+Redirect an exact number of eligible retained EE destinations across adjacent
+blocks: $1\to2,2\to3,\ldots,B-1\to B$, then repeat. Distinct workers are
+used. \code{bridge_count} defaults to $B-1$. Insufficient eligible events
+cause failure; at least two firms per block are required.
+\code{block_log_bonus} is inapplicable.
+\item[\code{ladder}.] Rank firms by persistent wage effects using tied
+percentile midranks. Candidates within \code{ladder_band=.10} of the origin
+are lateral; lower/higher candidates outside the band are downward/upward.
+Defaults \code{ladder_down_share=.10}, \code{ladder_lateral_share=.20},
+and \code{ladder_up_share=.70} are renormalized over feasible directions.
+Shares sum to one; ordinary destination weights apply within direction.
+\end{description}
+These stress designs apply only to AKM. The ladder is a reduced-form
+experiment, not a structural search equilibrium. Network scalars belong
+inside \code{parameters()}.
+
+The observed bipartite graph has ever-employed workers and active firms
+as nodes, and one edge per unique observed match. \code{connectivity(largest)}
+selects by employed observations, then workers, firms, and smallest component
+ID. Complete selected worker histories, including unemployment, are retained.
+Never-employed workers are excluded; IDs are not renumbered.
+
+\code{r(network)} has 21 rows and \code{generated}/\code{returned}
+columns. It includes an undirected firm-mobility graph based on adjacent
+observed direct moves. Firm links, edge-weight percentiles, articulation
+firms, and graph bridges are descriptive diagnostics.
+
+\code{r(leaveout)} separately audits the largest observed bipartite component.
+Worker deletion removes complete histories. The audit repeatedly removes
+articulation workers and selects the largest survivor until a robust set or
+emptiness. This extends the worker-set logic in leave-out estimation
+\cite{kss}. A match is vulnerable only if deletion separates firms; isolating
+a stayer alone does not count. This audit does not further filter public data.
+
+\section{Reading the panel and results}\label{sec:output}
+\subsection{Observed variables}
+\begin{longtable}{@{}P{0.27\textwidth}P{0.66\textwidth}@{}}
+\toprule
+Variable & Interpretation\\
+\midrule
+\endhead
+\code{workerid}, \code{time} & Unique worker-period key, sorted and
+balanced within returned workers. Time is Stata annual, quarterly, or monthly.\\
+\code{firmid}, \code{employed} & Current firm and 0/1 employment.
+Firm ID is missing in nonemployment.\\
+\code{lnwage} & Log wage, missing when unemployed.
+BM posted wages are levels before the logarithm.\\
+\code{spellid}, \code{tenure} & Employment spell and elapsed tenure
+in output-period units; missing when unemployed.\\
+\code{newjob} & Changed spell from preceding snapshot; first-row missing.
+Same-firm re-entry can start a new spell.\\
+\code{from_unemp} & Employment after preceding-snapshot nonemployment;
+first-row missing.\\
+\code{to_unemp} & Employment followed by next-snapshot nonemployment;
+last-row missing. This indicator is forward-looking.\\
+\code{jobtojob} & Employment at different firms in adjacent snapshots;
+first-row missing. It need not identify one latent EE event.\\
+\code{ntransitions} & Latent state transitions in the interval;
+first-row missing under the common reporting convention.\\
+\code{unemp_duration} & Added by monthly AKM and BM: elapsed
+unemployment duration in output units; missing when employed.\\
+\code{group} & Pay-gap group: 0 Men, 1 Women.\\
+\code{nbridges_imposed} & Imposed bridge events in an interval;
+present for bridges under every truth mode.\\
+\bottomrule
+\end{longtable}
+Divide durations by 1, 4, or 12 to convert output units to years.
+\code{r(durations)} already uses years. BM full truth retains exact
+first-interval counts even though common backward flags are first-row missing.
+
+\subsection{Truth variables}
+AKM and pay-gap basic truth includes \code{alpha_true}, \code{psi_true},
+\code{time_true}, \code{xb_true}, \code{match_true}, \code{epsilon_true},
+and \code{lnwage_true}. Covariate and match components are zero in current
+models. Pay-gap \code{psi_true} is the observed group's premium.
+
+Full monthly-AKM truth adds \code{worker_type_true} and
+\code{firm_quality_true}; blocks/bridges add \code{worker_block_true}
+and \code{firm_block_true}. Full pay-gap adds \code{firm_surplus_true},
+\code{psi_male_true}, and \code{psi_female_true}.
+Job-specific truth is missing when unemployed.
+
+BM basic truth is \code{lnwage_true}, \code{posted_wage_true}, and
+\code{productivity_true}; it does not fabricate AKM worker effects.
+Appendix~\ref{app:bmtruth} lists full structural truth.
+
+\subsection{Returned results}
+\begingroup\small
+\begin{longtable}{@{}P{0.31\textwidth}P{0.62\textwidth}@{}}
+\toprule
+Result & Use\\
+\midrule
+\endhead
+\code{r(N)}, \code{r(N_workers)}, \code{r(N_firms)}, \code{r(N_firms_active)} &
+Returned rows/workers, requested firms, and active firms.\\
+\code{r(employment_rate)}, \code{r(p_eu_realized)}, \code{r(p_ue_realized)},
+\code{r(p_ee_realized)} & Observed employment and endpoint probabilities
+using appropriate origin-state denominators.\\
+\code{r(parameters)} & Resolved scalar values, defaults, bounds.\\
+\code{r(moments)}, \code{r(targets)} & Realized moments, applicable targets,
+realized-minus-target differences, and relative differences.\\
+\code{r(network)}, \code{r(leaveout)} & Graph and leave-out diagnostics.\\
+\code{r(durations)} & Year-valued distributions for monthly AKM and BM:
+count, mean, sample SD, p10, p50, p90.\\
+\code{r(bridges)} & Eight-column imposed-event ledger.\\
+\code{r(group_moments)}, \code{r(group_targets)} & Pay-gap 17-by-2 matrices.\\
+\code{r(decomposition)}, \code{r(decomposition_targets)} &
+Nine-by-three male, female, symmetric reference decompositions.\\
+\code{r(solver)}, \code{r(bm_flows)}, \code{r(bm_firms)} &
+BM solution/residuals, theory/event/endpoint flows, firm summaries.\\
+\code{r(runtime_total)}, \code{r(runtime_solve)},
+\code{r(runtime_simulate)}, \code{r(runtime_output)} &
+Total and stage timings in seconds.\\
+\code{r(dgp)}, \code{r(preset)}, \code{r(dgp_alias)}, \code{r(seed)},
+\code{r(version)}, \code{r(command)} & Identity, alias, actual master seed,
+version, serialized scientific configuration.\\
+\bottomrule
+\end{longtable}
+\endgroup
+\code{r()} is transient. Copy a matrix before running another r-class
+command. For example, execute \code{matrix saved_moments = r(moments)}
+before \code{summarize lnwage}.
+
+\clearpage
+\section{Reproducible examples and figures}\label{sec:examples}
+Each numbered figure example is read directly from its runnable
+\code{docs/manual_examples/} do-file, so printed and executed code share
+one source. Examples require \code{fesim} on the adopath and create their
+own data. \code{preserve}/\code{restore} protects caller data; graphs remain
+available. These illustrative samples are not calibration or estimator tests.
+
+\subsection{Simple AKM: wages and realized sorting}
+\lstinputlisting{manual_examples/01_akm.do}
+\begin{figure}[!htbp]\centering
+\includegraphics[width=\textwidth]{manual_figures/01_akm.pdf}
+\caption{Simple AKM: 3,000 workers, 100 firms, eight years, seed 20260901.
+Left: employed log wages. Right: mean worker effect versus firm effect;
+marker area reflects employed-observation count. Attraction creates size
+heterogeneity. The random design does not impose positive population
+sorting, but finite-sample means vary.}
+\end{figure}
+\FloatBarrier
+
+\clearpage
+\subsection{Monthly mobility and Germany-targeted sorting}
+\lstinputlisting{manual_examples/02_mobility.do}
+\begin{figure}[!htbp]\centering
+\includegraphics[width=\textwidth]{manual_figures/02_mobility.pdf}
+\caption{Two simulations. Left: latent monthly transitions per annual
+interval in the stylized engine (3,000 workers, 100 firms, eight years,
+seed 20260902), excluding first observations. Right: Germany-targeted
+sorting (5,000 workers, 500 firms, eight years, seed 20260903).
+Marker area reflects employed observations. Default five-year burn-in
+applies to both. The right panel illustrates sorting rather than testing
+calibration accuracy in this smaller sample.}
+\end{figure}
+\FloatBarrier
+
+\clearpage
+\subsection{Pay gaps and counterfactual firm schedules}
+\lstinputlisting{manual_examples/03_paygap.do}
+\begin{figure}[!htbp]\centering
+\includegraphics[width=\textwidth]{manual_figures/03_paygap.pdf}
+\caption{CCK-inspired data: 5,000 workers, 200 firms, eight annual
+observations, five-year burn-in, seed 20260904. Left: smoothed employed
+log-wage distributions. Right: one observation per active firm showing both
+premium schedules against the same surplus index. The female schedule has
+a firm-specific deviation as well as a common-surplus loading. Premiums
+use the package normalization.}
+\end{figure}
+\FloatBarrier
+
+\clearpage
+\subsection{BM wage distributions and firm size}
+\lstinputlisting[basicstyle=\ttfamily\scriptsize]{manual_examples/04_bm.do}
+\enlargethispage{2\baselineskip}
+\begin{figure}[!htbp]\centering
+\includegraphics[width=.90\textwidth]{manual_figures/04_bm.pdf}
+\caption{Default BM primitives: 10,000 workers, 100 midpoint firms,
+five annual observations, stationary start, seed 20260905. Both panels
+use the last snapshot. All 100 firms are active in this draw (checked in
+code). Lines connect CDF values at finite wage points. Workers concentrate
+at higher wages than firm offers, and sizes fluctuate around exact finite
+stationary expectations. The continuum worker CDF is a separate benchmark.}
+\end{figure}
+\FloatBarrier
+
+\clearpage
+\subsection{BM worker histories}
+\lstinputlisting{manual_examples/05_bm_paths.do}
+\begin{figure}[!htbp]\centering
+\includegraphics[width=.94\textwidth]{manual_figures/05_bm_paths.pdf}
+\caption{First four worker IDs: 300 workers, 100 firms, 60 monthly
+snapshots, stationary start, seed 20260906. Zero denotes unemployment only
+in the plot; nonemployment wages remain missing in the data. Connected
+points are monthly observations, not exact event times. A worker can
+separate and re-enter at a lower wage between snapshots even though every
+accepted latent EE move is upward.}
+\end{figure}
+\FloatBarrier
+
+\clearpage
+\subsection{BM events versus endpoint probabilities}
+\lstinputlisting[basicstyle=\ttfamily\scriptsize]{manual_examples/06_bm_flows.do}
+\begin{figure}[!htbp]\centering
+\includegraphics[width=.95\textwidth]{manual_figures/06_bm_flows.pdf}
+\caption{BM: 4,000 workers, 100 firms, five years, stationary start,
+seed 20260907. Annual and monthly runs use the same continuous history.
+Event rates divide accepted transitions by years at risk and agree across
+frequencies (asserted). Endpoint probabilities measure different objects.
+Multiplying monthly probabilities by 12 is descriptive annualization,
+not recovery of a continuous hazard. Observed firm changes can include
+intervening unemployment.}\label{fig:flows}
+\end{figure}
+\FloatBarrier
+
+\clearpage
+\subsection{A small estimation exercise}
+The simulator does not estimate AKM effects. Official Stata \code{areg}
+can fit a small connected example:
+\begin{lstlisting}
+preserve
+fesim, dgp(akmsimple) workers(500) firms(30) periods(6) ///
+    seed(24680) truth(none) connectivity(largest) noreport clear
+areg lnwage i.workerid i.time if employed, ///
+    absorb(firmid) vce(cluster workerid)
+restore
+\end{lstlisting}
+This dummy-variable fit is deliberately small. Estimation normalization is
+distinct from the latent-effect normalization. Connectedness alone does
+not remove limited-mobility bias in estimated variance components or
+establish the assumptions of a particular correction.
+
+\subsection{Three network experiments}
+\begin{lstlisting}
+preserve
+fesim, dgp(akmsimple) network(blocks) workers(400) firms(40) ///
+    periods(8) seed(13579) truth(full) ///
+    parameters(block_count 4 block_log_bonus 2.1972245773362196) clear
+tabulate worker_block_true firm_block_true if employed
+
+fesim, dgp(akmsimple) network(bridges) workers(400) firms(40) ///
+    periods(8) seed(246813) burnin(4) truth(full) ///
+    parameters(block_count 4 p_eu .02 p_ee .60 p_ue .80) clear
+matrix list r(bridges)
+
+fesim, dgp(akmsimple) network(ladder) workers(500) firms(50) ///
+    periods(8) seed(161803) truth(full) parameters(p_ee .30) clear
+matrix list r(network)
+matrix list r(leaveout)
+restore
+\end{lstlisting}
+
+\clearpage
+\appendix
+\section{Shared architecture and reproducibility}\label{app:shared}
+The ado layer resolves registry and options, validates support and dimensions,
+protects caller data/RNG, and dispatches to a Mata handler. The pipeline is:
+build population, initialize, discard burn-in, generate retained states,
+write the Stata panel, finalize flows, compute diagnostics, attach metadata.
+
+\begin{itemize}
+\item \code{fesim_registry.ado} defines parameter names, defaults, bounds,
+and provenance.
+\item \code{fesim_config.ado} adds cross-parameter restrictions and
+canonical serialization.
+\item \code{fesim_time.ado} validates dates and interval lengths.
+\item Numerical preset records live under \code{calibrations/}.
+\end{itemize}
+These implementation sources take precedence over historical roadmap
+descriptions of future options.
+
+\subsection{Independent random streams}
+\code{src/fesim_rng.mata} uses Stata's \code{mt64s} with streams:
+101 workers, 102 firms, 103 initial states, 104 mobility events,
+105 destinations, 106 wage shocks, 107 observation error,
+108 solver/calibration randomization, 109 network design.
+It stores full component states in Mata, restores the component before
+drawing, and restores the caller's generator and state afterward.
+Reserved streams do not imply that every associated feature is public.
+
+An explicit seed preserves the caller sequence. Without a seed, one caller
+draw selects a master seed in $[0,2^{31}-1]$. Reporting, truth selection,
+and deterministic output do not change economic paths. Invalid
+configurations fail before clearing or drawing; later errors restore
+the prior dataset and RNG.
+
+\subsection{Time and probability conversion}\label{app:rates}
+Let $\Delta$ be output-interval years. Simple AKM and pay-gap convert
+annual probabilities to interval probabilities:
+\begin{align}
+P_{UE}(\Delta)&=1-(1-p_{UE})^\Delta,\\
+A(\Delta)&=1-(1-p_{EU}-p_{EE})^\Delta,\\
+P_{EU}(\Delta)&=\frac{p_{EU}}{p_{EU}+p_{EE}}A(\Delta),&
+P_{EE}(\Delta)&=\frac{p_{EE}}{p_{EU}+p_{EE}}A(\Delta).
+\end{align}
+When the denominator is zero, both competing probabilities are zero.
+At most one transition occurs per interval. This preserves the annual
+competing-risk interpretation but does not turn the discrete process into
+an exact continuous-time chain allowing repeated within-interval transitions.
+
+Monthly AKM uses $d=1/12$ and annual current-state hazards:
+\begin{align}
+P_{EU}(d)&=\frac{h_{EU}}{h_{EU}+h_{EE}}
+ [1-\exp\{-(h_{EU}+h_{EE})d\}],\\
+P_{EE}(d)&=\frac{h_{EE}}{h_{EU}+h_{EE}}
+ [1-\exp\{-(h_{EU}+h_{EE})d\}],\\
+P_{UE}(d)&=1-\exp(-h_{UE}d).
+\end{align}
+At most one event occurs per month; hazards update at the next monthly
+step. BM instead draws exact continuous waiting times.
+
+\subsection{Output and graph calculation}
+AKM handlers retain worker-length state and write period values directly
+into worker-major Stata rows without a duplicate full Mata panel.
+Complete-worker blocks finalize adjacent-snapshot flows.
+BM uses bounded history blocks (Appendix~\ref{app:bmblocks}).
+The finalizer computes moments, constructs unique observed matches,
+filters if requested, and recomputes moments and diagnostics on retained
+workers. Truth moments can exist when latent output columns are suppressed.
+
+Weighting matters: primitive firm distributions weight each firm equally,
+whereas many wage/component moments weight employed worker-periods.
+Firm-size distributions use active firm-periods. Finite-sample reported
+moments therefore need not equal primitive parameters.
+
+\section{Simple AKM implementation}\label{app:akm}
+\subsection{Population and wages}
+\code{src/fesim_akm_simple.mata} draws independent standard normals
+$a_i,z_j,v_j$ and sets
+\[
+\alpha_i=\sigma_\alpha a_i,\qquad
+\psi_j=\sigma_\psi z_j,\qquad
+q_j=\frac{\exp(\sigma_qv_j)}{\sum_k\exp(\sigma_qv_k)}.
+\]
+Weights use max-shifted logs floored at $-700$ to avoid numerical zero
+mass. Zero attraction scale gives exact uniform weights. Wage errors
+are independent $\epsilon_{it}=\sigma_\epsilon e_{it}$ in \eqref{eq:akm}.
+One error draw per worker-period is consumed even if unemployed, preventing
+employment counts from shifting wage-stream positions. The wage trend
+starts at zero at the first retained observation.
+
+\subsection{Transition matrix and initial state}
+Write $a=P_{EU}(\Delta)$, $b_e=P_{EE}(\Delta)$, and $c=P_{UE}(\Delta)$.
+For random-network states $0,1,\ldots,J$, with 0 unemployed:
+\[
+P_{00}=1-c,\quad P_{0j}=cq_j,\quad P_{j0}=a,\quad
+P_{jj}=1-a-b_e,\quad P_{jk}=b_e\frac{q_k}{1-q_j}\ (k\ne j).
+\]
+The stationary initializer solves the actual interval transition rule
+(the random case uses a QR-based linear solve and a stationary-residual
+check). It does not assign employed workers simply in proportion to $q_j$
+when direct moves exclude the current firm. Positive job exits imply a
+stationary geometric backward age; if exits are zero, tenure is set to
+zero. Network-specific assignment restrictions enter their corresponding
+initial-state routines.
+
+Random starts use one-half employment, attraction-weighted firms, and zero
+age. All-unemployed starts are draw-free. Burn-in repeats the interval
+rule. Simple AKM observes the initialized/burned-in state at the first
+retained row; subsequent rows advance one output step.
+
+\subsection{Sampling and spells}
+Each step draws one event uniform and one destination uniform per worker.
+UE samples entry weights; EE conditions on excluding the origin firm.
+EU preserves the completed internal spell count; UE and EE increment it
+and reset tenure. Stayers age by one interval. The output finalizer
+distinguishes changed spells from changed firm IDs.
+
+\section{Monthly AKM and network implementation}\label{app:empirical}
+\subsection{Latent heterogeneity}
+Let $a_i,v_i,z_j,\xi_j$ be independent standard normals before mixing.
+The worker mobility index is
+$m_i=\rho_{z\alpha}a_i+\sqrt{1-\rho_{z\alpha}^2}v_i$, with wage effect
+$\sigma_\alpha a_i$. Standard-normal quintile cutoffs map $m_i$ to
+$z_i\in\{-2,-1,0,1,2\}/\sqrt2$. Population probabilities are equal;
+realized type counts are not forced to match.
+
+Firm quality is the centered, sample-SD-standardized index
+$\rho_{q\psi}z_j+\sqrt{1-\rho_{q\psi}^2}\xi_j$, with wage effect
+$\sigma_\psi z_j$. Correlation inputs govern latent normals, not exact
+realized correlations between discretized types and observed wages.
+
+\subsection{Hazards}
+For current firm quality $Q_j$, tenure $\tau$ in years, and unemployment
+duration $d_u$ in years:
+\begin{align}
+\log h_{EU}&=\kappa_{EU}+\beta^w_{EU}z_i+\beta^f_{EU}Q_j+
+ \beta^d_{EU}\log(1+\tau),\\
+\log h_{EE}&=\kappa_{EE}+\beta^w_{EE}z_i+\beta^f_{EE}Q_j+
+ \beta^d_{EE}\log(1+\tau),\\
+\log h_{UE}&=\kappa_{UE}+\beta^w_{UE}z_i+
+ \beta^d_{UE}\log(1+d_u).
+\end{align}
+Slopes map to the \code{eu_*}, \code{ee_*}, and \code{ue_*} controls.
+Log-sum-exp stabilizes competing probabilities; small-exposure series
+avoid cancellation in $1-e^{-x}$. State and durations update monthly.
+
+\subsection{Destination kernels and tables}
+For type $z$ set $B_z=\theta_{\rm sort}z+\theta_{\rm quality}$.
+UE weights are $q_k\exp(B_zQ_k)$. EE weights from $j$ to $k\ne j$ are
+\begin{equation}
+q_k\exp\{B_zQ_k+\theta_{\rm up}\max(Q_k-Q_j,0)
+                 +\theta_{\rm down}\max(Q_j-Q_k,0)\}.
+\end{equation}
+A negative \code{theta_down} penalizes downward quality distances.
+The code sorts firms by quality and constructs stabilized cumulative
+tables by five types, rather than worker-by-firm matrices. Lower/upper
+ranges factor into origin terms and destination slopes
+$B_z-\theta_{\rm down}$ and $B_z+\theta_{\rm up}$.
+Binary searches and range sampling handle origin dependence and exclusion.
+Annual/quarterly/monthly snapshots advance 12/3/1 monthly steps, sum latent
+transitions, and convert year-valued durations to output units.
+
+\subsection{Calibration and stress designs}
+Germany fixes hazard/duration parameters at stylized values and fits only
+\code{theta_sort=2.2} after setting three dispersions. The recorded fit
+uses five calibration and five disjoint validation seeds, 100,000 workers,
+10,000 firms, eight years, and five-year burn-in. Mean covariance is
+.0206703882 in calibration and .0200683908 in validation, against .0205
+with absolute tolerance .0015. Interactive defaults use a smaller population.
+
+Blocks multiply ordinary destination weights by a same-block factor.
+Bridge planning replays strict-block mobility on copied post-burn-in
+state and RNG records and chooses distinct eligible workers by independent
+network priorities. Economic simulation restarts from original records.
+An imposed bridge reuses its EE event's destination uniform and conditions
+the kernel on the target block. Later empirical hazards can respond to
+that employer: destination-only intervention does not imply invariance
+of all future events.
+
+Ladder directions use tied wage-effect percentile ranks and a band.
+Direction shares are renormalized over positive ordinary destination
+mass, with ordinary weights within direction and the same destination
+uniform reused. Initial assignment, UE rules, wages, and the event rule
+are not independently redefined by the ladder option.
+
+\section{Pay-gap implementation and decomposition}\label{app:paygap}
+\code{src/fesim_paygap.mata} draws groups, group-scaled worker normals,
+common firm surplus, independent premium deviations, and separate attraction.
+The standardized worker wage primitive determines one of five quintile types.
+Conditional on group $g$ and type $z$, destination weights are
+\[
+\omega_{gj}(z)\propto q_j\exp\{(c_g+d_gz)s_j\},
+\]
+where $c_g$ and $d_g$ denote \code{group_sort_g} and
+\code{worker_sort_g}.
+EE excludes the current firm. Group annual probabilities follow
+Appendix~\ref{app:rates}. Random starts use one-half employment and
+group/type assignment weights before burn-in.
+
+Let $\E_m$ and $\E_f$ average employed male and female observations:
+\begin{align}
+D&=(\mu_m-\mu_f)+(\E_m\alpha-\E_f\alpha)+F+T+E,\\
+F&=\E_m\psi_m-\E_f\psi_f,\quad
+T=\E_m(\gamma_m t)-\E_f(\gamma_f t),\quad
+E=\E_m\epsilon-\E_f\epsilon.
+\end{align}
+Here $\gamma_g$ denotes the group-specific wage trend.
+Male-reference sorting and schedule terms are
+\[
+S_m=\E_m\psi_m-\E_f\psi_m,\qquad B_m=\E_f(\psi_m-\psi_f).
+\]
+Female-reference terms are
+\[
+S_f=\E_m\psi_f-\E_f\psi_f,\qquad B_f=\E_m(\psi_m-\psi_f).
+\]
+Both satisfy $F=S_g+B_g$. Symmetric terms are their averages.
+The nine returned rows comprise total, intercept, worker composition,
+firm total, sorting, premium schedule, time, residual, and adding-up error.
+Firm total is a subtotal; do not add it again to sorting and schedule.
+
+CCK targets include male/female log-wage SDs .554/.513, worker SDs
+.420/.400, mean premiums .148/.099, premium SDs .247/.213, residual
+SDs .143/.125, and worker-premium correlations .167/.152. Targets for
+total gap, firm total, sorting, and schedule are .234, .049, .035, .015.
+Rounded sorting and schedule targets sum to .050, not .049;
+simulated decompositions obey their own exact identity.
+Female loading .12567 equals $.590\times.213$, and its deviation SD is
+$\sqrt{.213^2-.12567^2}$. The mapping targets selected moments under the
+package normalization, not the full CCK estimation procedure.
+
+\section{Canonical Burdett--Mortensen implementation}\label{app:bm}
+\subsection{Environment}
+Continuum workers and firms each have mass one. Firms have common flow
+productivity $p$ and post a permanent wage $w$. Workers receive $b$ while
+unemployed and discount at rate $r$. Unemployed/employed offers arrive
+at annual Poisson rates $\lambda_u$ and $\lambda_e$, respectively;
+jobs are destroyed at rate
+$\delta$. Offers sample firms uniformly. Firms maximize steady-state
+flow profit, without bargaining, counteroffers, endogenous wage revision,
+capacity constraints, or productivity heterogeneity. Unemployed workers
+accept wages weakly above reservation wage $R$; employed workers accept
+only strictly higher wages.
+
+\subsection{Worker values and reservation}
+Let $U$ be unemployment value, $W(w)$ job value, and $F$ the offer CDF
+on $[R,\bar w]$. Bellman equations are
+\begin{align}
+rU&=b+\lambda_u\int_R^{\bar w}[W(x)-U]\,dF(x),\label{eq:U}\\
+rW(w)&=w+\delta[U-W(w)]
+ +\lambda_e\int_w^{\bar w}[W(x)-W(w)]\,dF(x).\label{eq:W}
+\end{align}
+Reservation requires $W(R)=U$. Differentiating \eqref{eq:W} gives
+\[
+W'(w)=\frac{1}{r+\delta+\lambda_e[1-F(w)]}.
+\]
+Evaluating \eqref{eq:W} at $R$, subtracting \eqref{eq:U}, and
+changing integration order yields
+\begin{equation}
+R=b+(\lambda_u-\lambda_e)S,\qquad
+S=\int_R^{\bar w}\frac{1-F(x)}
+ {r+\delta+\lambda_e[1-F(x)]}\,dx.\label{eq:reservation}
+\end{equation}
+Thus $R=b$ when $\lambda_u=\lambda_e$. Imposing that equality
+with unequal rates generally violates the worker equations.
+
+\subsection{Stationary workers and firm labor supply}
+All support offers are acceptable in unemployment, so
+\[
+u=\frac{\delta}{\delta+\lambda_u},\qquad e=1-u.
+\]
+For employed-worker CDF $G$, inflows to jobs below $w$ are
+$\lambda_u uF(w)$ and outflows are
+$eG(w)\{\delta+\lambda_e[1-F(w)]\}$. Hence
+\begin{equation}
+G(w)=\frac{\delta F(w)}{\delta+\lambda_e[1-F(w)]}.\label{eq:G}
+\end{equation}
+Since $G(w)\le F(w)$, workers concentrate at higher wages than offers.
+Employment per unit firm mass is
+\begin{equation}
+\ell(w)=e\frac{dG}{dF}
+=\frac{\delta\lambda_u(\delta+\lambda_e)}
+ {(\delta+\lambda_u)\{\delta+\lambda_e[1-F(w)]\}^2}.\label{eq:l}
+\end{equation}
+Profit is $\pi(w)=(p-w)\ell(w)$. Continuum labor supply is not a
+simulated integer headcount.
+
+\subsection{Equal-profit equilibrium}
+Equating profit at $w$ to profit at the lower support, where $F(R)=0$,
+gives
+\begin{align}
+F(w)&=\frac{\delta+\lambda_e}{\lambda_e}
+ \left(1-\sqrt{\frac{p-w}{p-R}}\right),\label{eq:F}\\
+\bar w&=p-(p-R)\left(\frac{\delta}{\delta+\lambda_e}\right)^2,\\
+w(q)=F^{-1}(q)&=p-(p-R)
+ \left(1-\frac{\lambda_e}{\delta+\lambda_e}q\right)^2,\quad 0\le q\le1,
+ \label{eq:inverse}\\
+\bar\pi&=\frac{\delta\lambda_u}
+ {(\delta+\lambda_u)(\delta+\lambda_e)}(p-R).
+\end{align}
+Profit is constant on support. Wages below $R$ recruit nobody;
+wages above $\bar w$ raise wage cost without adding recruitment or
+retention advantages over the top support wage.
+
+\subsection{Analytical reservation solution}
+Substitution of \eqref{eq:F} into \eqref{eq:reservation} gives
+$S=C(p-R)$:
+\begin{align}
+C&=\frac{2\lambda_e}{(\delta+\lambda_e)^2}
+\left[\frac12-\frac{r}{\lambda_e}
+ +\frac{r(r+\delta)}{\lambda_e^2}
+ \log\left(1+\frac{\lambda_e}{r+\delta}\right)\right],\label{eq:C}\\
+R&=\frac{b+(\lambda_u-\lambda_e)Cp}
+        {1+(\lambda_u-\lambda_e)C}.\label{eq:R}
+\end{align}
+This analytical expression is the primary solver. Denominator and
+support must satisfy interior and finite-precision checks.
+At public defaults, $C\simeq.92842983$, $R\simeq.59022409$,
+$\bar w\simeq.96654891$, $u=1/6$, and $\bar\pi\simeq.09756569$.
+The continuum accepted EE hazard is
+\begin{equation}
+h_{EE}^{\infty}
+=\lambda_e\int_R^{\bar w}[1-F(w)]\,dG(w)
+=\delta\left[\frac{\delta+\lambda_e}{\lambda_e}
+ \log\left(1+\frac{\lambda_e}{\delta}\right)-1\right],\label{eq:ee}
+\end{equation}
+approximately .15077363 at the defaults.
+
+\subsection{Worker values in full truth}
+For $q=F(w)$, the implemented values are
+\begin{align}
+U&=\frac{b+\lambda_u C(p-R)}{r},\\
+W(w)&=U+\frac{2(p-R)\lambda_e}{(\delta+\lambda_e)^2}
+\left[q+\frac{r}{\lambda_e}
+\log\left(1-\frac{\lambda_e q}{r+\delta+\lambda_e}\right)\right].
+\label{eq:value}
+\end{align}
+These are \emph{continuum} values evaluated at discretized wages, not
+newly solved Bellman values for the finite offer lottery. The simulation
+uses continuum support and strict wage comparisons; finite stationary
+employment is computed separately. See \code{src/fesim_bm_output.mata}.
+
+\subsection{Stability and residual checks}
+\code{src/fesim_bm.mata} solves afresh on each call. Public numerical
+controls are fixed: 1,001 wage-grid points, 4,000 even Simpson intervals,
+tolerance $10^{-9}$. There are no public grid options or persistent caches.
+
+For $x=\lambda_e/(r+\delta)<.1$, direct evaluation of the bracket in
+\eqref{eq:C} subtracts large nearly equal terms. With $\rho=r/(r+\delta)$
+the code uses
+\[
+\frac{1-\rho}{2}+
+\rho\sum_{n=1}^{30}\frac{(-1)^{n+1}x^n}{n+2}.
+\]
+Otherwise it uses $1/2+\rho\{\log(1+x)/x^2-1/x\}$.
+The logarithm helper uses a 40-term alternating series for $|x|<.1$.
+For $z=\lambda_e/\delta<.1$, the EE rate uses
+\[
+h_{EE}^{\infty}
+=\delta\sum_{n=1}^{30}\frac{(-1)^{n+1}z^n}{n(n+1)}.
+\]
+Employment values use the stable logarithm helper. Exact CDF endpoints
+are explicitly preserved against division roundoff.
+
+Independent Simpson quadrature over wages checks the reservation equation,
+scaling its residual by $\max(1,|b|,|p|,|R|)$. Equal-profit residuals
+are scaled by $\max(1,|\bar\pi|)$. Checks require finite support, strict
+$0<R<\bar w<p$, positive employment/profit, ordered support, monotone
+CDFs in $[0,1]$, and recomputed distribution/labor identities.
+Mathematically interior but numerically unresolved inputs can fail explicitly.
+
+\subsection{Finite firms and stationary masses}\label{app:finite}
+Default quantiles are $q_j=(j-\tfrac12)/J$ in \eqref{eq:inverse}.
+\code{random_firms=1} draws independent uniforms on stream 102 and sorts
+them. IDs increase with wage; original draw order breaks quantile ties.
+Each firm has contact probability $1/J$.
+
+Let $L_j$ be firm $j$'s share of \emph{all workers}, $L_{<j}$ mass at
+strictly lower wages, and $H_j=\#\{k:w_k>w_j\}$. Exact finite flow balance is
+\begin{equation}
+L_j=\frac{\lambda_u u/J+\lambda_e L_{<j}/J}
+          {\delta+\lambda_e H_j/J}.\label{eq:finite}
+\end{equation}
+The code processes equal-wage groups from low to high, using the same
+lower mass and higher-firm count within each group, then updating lower
+mass. Tied firms have equal masses and tied offers never induce EE moves.
+This linear pass avoids a dense transition matrix.
+
+Masses sum to $e$ and pass stationary-flow residual checks. Expected
+headcount is $NL_j$, conditional employed share $L_j/e$, and accepted
+finite EE hazard
+\[
+h_{EE}^J=\lambda_e\frac{\sum_jL_jH_j/J}{e}.
+\]
+Continuum-scale finite employment/profit are $JL_j$ and $(p-w_j)JL_j$.
+They differ from $NL_j$ and from continuum $\ell(w_j)$ and $\bar\pi$.
+Finite-scaled profits need not be exactly equal: wages discretize a
+continuum equilibrium rather than solve a finite strategic game.
+
+For distinct midpoint wages, offer-CDF discrepancy is $1/(2J)$.
+Reported worker-CDF discrepancy compares finite cumulative conditional
+masses to \eqref{eq:G} at grid points; it is not Monte Carlo error.
+More workers reduce sampling noise, whereas more firms refine discretization.
+
+\subsection{Initial states and burn-in}
+Stationary starts draw from $(u,L_1,\ldots,L_J)$. Backward unemployment
+age is exponential at rate $\lambda_u$; backward tenure conditional on
+firm $j$ is exponential at rate $\delta+\lambda_e H_j/J$.
+Rejected offers do not reset tenure and do not enter this accepted-exit
+rate. One state and one age uniform per worker use stream 103.
+
+Random starts put one-half probability on unemployment and one-half
+uniformly across firms, with zero ages. They require positive burn-in.
+All-unemployed starts have zero durations/spells and consume no draws.
+Burn-in runs the exact event engine without retaining the ledger, carries
+final states/ages forward, and resets retained counters.
+Exponential memorylessness permits a fresh wait at the burn-in boundary.
+See \code{src/fesim_bm_initial.mata}.
+
+\subsection{Exact event simulation}
+For each worker, \code{src/fesim_bm_events.mata} implements:
+\begin{enumerate}
+\item Set $h=\lambda_u$ if unemployed, or $\lambda_e+\delta$ if employed.
+Draw wait $-\log(U)/h$, mapping machine endpoint uniforms into the open
+interval so waits are strictly positive.
+\item If arrival exceeds the horizon, age the state to the horizon and
+stop. Include an event exactly at the right boundary.
+\item For an employed event, choose destruction with probability
+$\delta/(\lambda_e+\delta)$, otherwise an offer. Equality at the
+event-type threshold is an offer.
+\item Contact a firm uniformly on any offer. Accept every support offer
+while unemployed, and only a strictly higher wage while employed.
+Current-firm, lower, and tied offers are recorded rejections.
+\item Destruction resets unemployment age. Accepted UE/EE increments
+the worker-local spell and resets tenure. Continue from the new state.
+\end{enumerate}
+Wait/type draws use stream 104; contacts use 105. The combined clock is
+equivalent to racing independent Poisson clocks. Workers do not compete
+for capacity, so worker-major generation is equivalent to calendar ordering
+across workers. Retaining the private ledger cannot alter paths or draws.
+
+\subsection{Observation aggregation}
+BM snapshots occur at $\Delta,2\Delta,\ldots,T\Delta$ after the
+initialization/burn-in boundary. The zero-time state is not returned.
+Intervals are right-closed: $((k-1)\Delta,k\Delta]$. An event at $k\Delta$
+affects snapshot $k$ and counts in interval $k$.
+
+\code{src/fesim_bm_aggregate.mata} replays histories without draws, splits
+exposure at output boundaries, and counts unemployment/employed offers,
+rejections, destructions, accepted UE/EE, all events, and accepted state
+transitions. Employment plus unemployment exposure is $\Delta$ per row
+up to floating-point tolerance.
+
+Endpoint flags are not event counts. Same-firm re-entry after destruction
+changes the spell but not firm ID. Re-entry elsewhere can yield observed
+\code{jobtojob=1} despite intervening unemployment. Forward-looking
+\code{to_unemp} places a separation flag on the origin row.
+For fixed seed, firms, initialization, and total horizon, nested frequencies
+preserve final states, events, and exposure. Endpoint probabilities may
+differ, as Figure~\ref{fig:flows} illustrates.
+
+\subsection{Bounded blocks and resource guards}\label{app:bmblocks}
+\code{src/fesim_bm_handler.mata} initializes the population, simulates
+complete worker histories in blocks, aggregates them, and writes directly
+into final Stata rows. Persistent event/destination buffers survive block
+boundaries and preserve the monolithic worker-major seeded path.
+The default block worker count is
+\[
+\min\left\{10{,}000,\
+\max\!\left(1,\left\lfloor\frac{100{,}000}{T}\right\rfloor\right),\
+\max\!\left(1,\left\lfloor
+\frac{100{,}000}{1+H\max(\lambda_u,\lambda_e+\delta)}
+\right\rfloor\right)\right\},
+\]
+where $T$ is periods and $H=T\Delta$ years. It targets roughly 100,000
+rows/events per block; one long worker history can exceed the target.
+This is internal, not a public option.
+
+Limits are 10 million workers, one million firms, 100,000 years per
+burn-in/retained horizon, and the common observation cap. Each burn-in
+and retained stage has a hard 10-million-event budget. Exceeding it causes
+rollback rather than truncation. No duplicate full Mata panel or retained
+full-population event ledger is stored. Initialization uses $O(N+J)$
+storage and $O(N\log J+J)$ work; tie-aware exit rates are linear and
+offer acceptance is constant-time after validation.
+
+\subsection{Full truth and diagnostics}\label{app:bmtruth}
+Basic truth stores log wage, accepted wage level, and productivity.
+No measurement error is added. Full truth adds:
+\begin{longtable}{@{}P{0.50\textwidth}P{0.43\textwidth}@{}}
+\toprule
+Variables & Meaning\\
+\midrule
+\endhead
+\code{reservation_wage_true}, \code{unemployment_value_true} &
+Continuum $R,U$, repeated on all rows.\\
+\code{employment_value_true}, \code{offer_quantile_true} &
+Continuum $W(w_j)$ and accepted-firm offer quantile.\\
+\code{expected_firm_mass_true}, \code{expected_firm_share_true} &
+Finite $L_j$, $L_j/e$.\\
+\code{continuum_employment_true}, \code{finite_scaled_employment_true} &
+$\ell(w_j)$, $JL_j$.\\
+\code{continuum_profit_true}, \code{finite_scaled_profit_true} &
+$(p-w_j)\ell(w_j)$, $(p-w_j)JL_j$.\\
+\code{n_eu_true}, \code{n_ee_true}, \code{n_ue_true} &
+Accepted counts including the first interval.\\
+\code{n_unemployment_offers_true}, \code{n_employed_offers_true},
+\code{n_rejected_offers_true} & Primitive offer/rejection counts.\\
+\code{n_events_true}, \code{ntransitions_true} &
+All events and accepted state transitions.\\
+\code{employment_exposure_true}, \code{unemployment_exposure_true} &
+Exact years at risk in the interval.\\
+\bottomrule
+\end{longtable}
+Job/firm quantities are missing when unemployed. Counts and exposures
+describe intervals regardless of endpoint employment. Internal spell counts
+survive unemployment; observed employment-spell IDs follow common missingness.
+
+\code{r(solver)} has 22 rows: six primitives (using \code{discount} for $r$),
+surplus coefficient, reservation/upper wages, unemployment/employment,
+continuum/finite EE rates, equilibrium profit, unemployment value,
+raw/scaled reservation residuals, scaled equal-profit residual,
+finite stationary residual, offer/worker CDF errors, finite aggregate
+employment error. Its single column is \code{value}.
+
+\code{r(bm_firms)} is 10-by-3 with \code{mean}, \code{min}, \code{max}
+across all firms, unweighted. Rows: firm ID, offer quantile, posted wage,
+expected mass, expected workers, expected share, continuum employment,
+finite-scaled employment, continuum profit, finite-scaled profit.
+It is a summary, not a $J$-row dataset.
+
+\code{r(bm_flows)} has rows \code{unemployment_share}, \code{ue},
+\code{eu}, \code{ee}, and four columns:
+\begin{description}
+\item[\code{theory}] $u,\lambda_u,\delta,h_{EE}^J$ in the original finite economy.
+\item[\code{event}] Unemployment-time share; UE count over unemployment
+years; destruction/EE counts over employed years.
+\item[\code{observed}] Endpoint unemployment share and adjacent-endpoint
+transition probabilities.
+\item[\code{observed_per_year}] Probabilities divided by $\Delta$; the
+unemployment-share row is missing. These annualizations are not hazards.
+\end{description}
+Absent at-risk exposure implies missing event rates.
+After \code{connectivity(largest)}, theory/firm summaries still describe
+the original unconditioned economy. Realized moments, durations, event
+rates, and endpoint probabilities use retained complete-worker histories.
+Five temporary count/exposure columns enable this in every truth mode
+and are removed before return.
+
+\subsection{Validation scope}
+Tests cover equilibrium residuals, equal profit, Bellman identities,
+finite masses, ties, singleton firms, deterministic/random grids, replay,
+strict acceptance, burn-in convergence, truth/frequency/block invariance,
+rollback, and source-only installation. Statistical checks use fixed
+seeds and declared tolerances. The preceding accepted full suite passed
+60 Stata files on Stata/MP 19 macOS Apple Silicon at \code{0c33a52}.
+
+Limit tests approach equal offer rates, small employed offers, rare
+destruction, and small positive discounting. Public rates remain positive.
+A finite one-firm economy has no accepted EE events even though its
+parent continuum has positive EE mobility. Larger $N$ cannot remove
+discretization error from fixed small $J$.
+
+Historical benchmark source \code{38eb5bc} reports 100,000 workers over
+ten years in 17.943 seconds without truth and 21.526 seconds with full
+truth, with peak process RSS about 0.602 and 0.999 GB on that host.
+These environment-specific measurements are not guarantees.
+Public solve-only/saved-solution interfaces and heterogeneous BM remain
+outside the current command.
+
+\section{Source map and rebuilding the manual}
+\begin{longtable}{@{}P{0.49\textwidth}P{0.44\textwidth}@{}}
+\toprule
+Source & Responsibility\\
+\midrule
+\endhead
+\code{fesim.ado}, \code{fesim_config.ado}, \code{fesim_registry.ado} &
+Syntax, configuration, registry, metadata.\\
+\code{src/fesim_akm_simple.mata}, \code{src/fesim_akm_handler.mata} &
+Simple-AKM primitives, transitions, wages, streaming.\\
+\code{src/fesim_empirical.mata}, \code{src/fesim_hazards.mata},
+\code{src/fesim_destinations.mata}, \code{src/fesim_emp_handler.mata} &
+Types, monthly hazards, destination tables, streaming.\\
+\code{src/fesim_paygap.mata}, \code{src/fesim_paygap_handler.mata} &
+Group primitives, schedules, mobility, decomposition.\\
+\code{src/fesim_network_design.mata}, \code{src/fesim_network.mata} &
+Stress designs and observed graph/audit.\\
+\code{src/fesim_bm.mata} & Continuum solution and finite firms.\\
+\code{src/fesim_bm_initial.mata}, \code{src/fesim_bm_events.mata} &
+Initial states, burn-in, exact events.\\
+\code{src/fesim_bm_aggregate.mata}, \code{src/fesim_bm_output.mata},
+\code{src/fesim_bm_handler.mata} & BM aggregation, truth, blocks, diagnostics.\\
+\code{src/fesim_rng.mata}, \code{src/fesim_flows.mata},
+\code{_fesim_finalize.ado} & RNG, common flows, result finalization.\\
+\bottomrule
+\end{longtable}
+From the repository root, regenerate figures in Stata:
+\begin{lstlisting}
+do docs/manual_figures.do
+\end{lstlisting}
+The driver runs six examples and exports vector PDFs to
+\code{docs/manual_figures/}. Each example also runs independently.
+Fixed-seed public simulations supply plotted data; analytical comparisons
+use the formulas in this manual. Raw simulated data are not needed to
+compile the document. From a shell at the repository root:
+\begin{lstlisting}
+bash docs/build_manual.sh
+\end{lstlisting}
+This requires \code{latexmk} and \code{pdflatex}. Auxiliary files go to
+\code{build/manual/}; the finished PDF is \code{docs/fesim_manual.pdf}.
+TeX is a documentation dependency, not a simulation dependency.
+
+\clearpage
+\begin{thebibliography}{99}
+\addcontentsline{toc}{section}{References}
+\bibitem{akm} Abowd, John M., Francis Kramarz, and David N. Margolis (1999).
+High Wage Workers and High Wage Firms. \emph{Econometrica}, 67(2), 251--333.
+\url{https://doi.org/10.1111/1468-0262.00020}.
+\bibitem{bm} Burdett, Kenneth, and Dale T. Mortensen (1998).
+Wage Differentials, Employer Size, and Unemployment.
+\emph{International Economic Review}, 39(2), 257--273.
+\url{https://doi.org/10.2307/2527292}.
+\bibitem{chk} Card, David, J\"org Heining, and Patrick Kline (2013).
+Workplace Heterogeneity and the Rise of West German Wage Inequality.
+\emph{Quarterly Journal of Economics}, 128(3), 967--1015.
+\url{https://doi.org/10.1093/qje/qjt006}.
+\bibitem{cck} Card, David, Ana Rute Cardoso, and Patrick Kline (2016).
+Bargaining, Sorting, and the Gender Wage Gap: Quantifying the Impact of
+Firms on the Relative Pay of Women.
+\emph{Quarterly Journal of Economics}, 131(2), 633--686.
+\url{https://doi.org/10.1093/qje/qjv038}.
+\bibitem{kss} Kline, Patrick, Raffaele Saggio, and Mikkel S{\o}lvsten (2020).
+Leave-Out Estimation of Variance Components.
+\emph{Econometrica}, 88(5), 1859--1898.
+\url{https://doi.org/10.3982/ECTA16410}.
+\end{thebibliography}
+\end{document}

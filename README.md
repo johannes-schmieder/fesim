@@ -6,6 +6,14 @@ The installed runtime will use only official Stata and Mata. It will not require
 
 ## Current implementation status
 
+The [user and technical manual](docs/fesim_manual.pdf) covers syntax, all six
+DGP presets, parameter defaults, returned data, and six illustrated examples.
+Its appendices document the DGP implementations and derive the BM equilibrium,
+finite-firm stationary allocation, and exact continuous-time simulation.
+[LaTeX source](docs/fesim_manual.tex) and [runnable figure examples](docs/manual_examples/README.md)
+are included. Rebuild from the repository root with `bash docs/build_manual.sh`;
+regenerate figures in Stata with `do docs/manual_figures.do`.
+
 The latest release is `v0.1.0`. The `main` branch is now `0.4.0-dev`, with
 three public AKM presets, two public pay-gap presets, and canonical BM. The pay-gap family
 includes a transparent stylized design and a CCK-inspired targeted design with
