@@ -28,7 +28,8 @@ file write `handle' `"  "worker_years": `N',"' _n
 file write `handle' `"  "dataset_width": `width',"' _n
 foreach name in runtime_total runtime_solve runtime_simulate runtime_output ///
     bm_events bm_peak_block_events bm_peak_block_rows {
-    file write `handle' `"  "`name'": ``name'',"' _n
+    local numeric = strtrim(string(``name'', "%21.15f"))
+    file write `handle' `"  "`name'": `numeric',"' _n
 }
 file write `handle' `"  "bm_block_workers": `bm_block_workers'"' _n
 file write `handle' "}" _n

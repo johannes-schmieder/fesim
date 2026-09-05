@@ -50,7 +50,8 @@ file write `handle' `"  "record_events": `record',"' _n
 local column 0
 foreach name in simulation_seconds aggregation_seconds events ledger_bytes final_employed final_firm_sum {
     local ++column
-    file write `handle' `"  "`name'": `=benchmark[1,`column']',"' _n
+    local numeric = strtrim(string(benchmark[1,`column'], "%21.15f"))
+    file write `handle' `"  "`name'": `numeric',"' _n
 }
 file write `handle' `"  "transitions": `=benchmark[1,7]'"' _n
 file write `handle' "}" _n
