@@ -23,7 +23,6 @@ for workers in 1000 10000 100000; do
             /usr/bin/time -l "$stata_binary" -q -b do \
                 "$repository_root/tests/performance/benchmark_bm.do" \
                 "$repository_root" "$source_sha" "$workers" "$truth" "$result"
-            mv benchmark_bm.log "$stem.log"
         ) >"$output_dir/$stem.stdout.txt" 2>"$output_dir/$stem.time.txt"
         python3 - "$result" "$source_sha" <<'PY'
 import json, sys

@@ -22,7 +22,7 @@ capture noisily fesim list
 assert _rc == 0
 assert `"`r(dgps)'"' == "akm akmpaygap bm"
 assert `"`r(qualified)'"' == ///
-    "akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016"
+    "akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016 bm/simple"
 
 capture noisily fesim presets akm
 assert _rc == 0

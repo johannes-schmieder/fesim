@@ -3,6 +3,8 @@ clear all
 set more off
 set varabbrev off
 args root sha workers truth result
+capture log close _all
+log using `"`result'.stata.log"', text replace
 quietly adopath ++ `"`root'"'
 capture noisily fesim, dgp(bm) workers(`workers') firms(500) periods(10) ///
     seed(20260905) truth(`truth') connectivity(keep) noreport clear
