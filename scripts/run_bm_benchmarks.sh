@@ -34,6 +34,24 @@ print(f"FESIM BM BENCHMARK ACCEPTED: {sys.argv[1]}")
 PY
     done
 done
+for record in 0 1; do
+    stem="bm-events-100000x10-record-${record}"
+    result="$output_dir/$stem.json"
+    rm -f "$result"
+    (
+        cd "$output_dir"
+        /usr/bin/time -l "$stata_binary" -q -b do \
+            "$repository_root/tests/performance/benchmark_bm_events.do" \
+            "$repository_root" "$source_sha" 100000 "$record" "$result"
+    ) >"$output_dir/$stem.stdout.txt" 2>"$output_dir/$stem.time.txt"
+    python3 - "$result" "$source_sha" <<'PYVERIFY'
+import json, sys
+from pathlib import Path
+receipt = json.loads(Path(sys.argv[1]).read_text())
+assert receipt['sha'] == sys.argv[2] and receipt['status'] == 'passed'
+print(f"FESIM BM EVENT BENCHMARK ACCEPTED: {sys.argv[1]}")
+PYVERIFY
+done
 if [[ "$(git -C "$repository_root" rev-parse HEAD)" != "$source_sha" || -n "$(git -C "$repository_root" status --porcelain --untracked-files=all)" ]]; then
     echo "Source changed during BM performance measurement." >&2
     exit 2

@@ -52,3 +52,13 @@ scripts/run_block_benchmarks.sh /path/to/stata-mp
 scripts/run_bridge_benchmarks.sh /path/to/stata-mp
 scripts/run_ladder_benchmarks.sh /path/to/stata-mp
 ```
+
+## Canonical BM
+
+Run `scripts/run_bm_benchmarks.sh` with a licensed Stata executable from a clean
+checkout. Six public cases cover 10,000/100,000/1,000,000 worker-years under
+none/full truth with 500 firms. Two private cases measure unrecorded versus
+recorded events at 100,000 workers over 10 years; recorded history is also
+aggregated separately. JSON, Stata logs, and macOS process-resource receipts
+are saved under the exact source SHA in ignored `build/benchmarks/`. Runtime
+receipts carry the clean SHA; the wrapper rejects changes during measurement.

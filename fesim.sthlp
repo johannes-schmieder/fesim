@@ -370,12 +370,15 @@ including after largest-component filtering. Runtime diagnostics include
 metadata, and solve/simulate/output timings remain available.
 
 {pstd}{stata "fesim_run bm using fesim.sthlp":Run BM example}{p_end}
+{cmd}{...}
 {* example_start - bm}{...}
-{com}. fesim, dgp(bm) workers(2000) firms(100) periods(5) seed(12345) truth(full) clear{txt}
-{com}. matrix list r(solver){txt}
-{com}. matrix list r(bm_flows){txt}
-{com}. matrix list r(bm_firms){txt}
+          fesim, dgp(bm) workers(2000) firms(100) periods(5) ///
+              seed(12345) truth(full) clear
+          matrix list r(solver)
+          matrix list r(bm_flows)
+          matrix list r(bm_firms)
 {* example_end}{...}
+{txt}{...}
 
 {title:Author}
 
