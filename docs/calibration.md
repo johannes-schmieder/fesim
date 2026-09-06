@@ -31,8 +31,8 @@ burn-in. Model scalars belong in `parameters(name value ...)`; numeric common
 controls also retain that legacy input route, without duplicate specification.
 The registry is the authoritative default/bounds/unit table. Overrides are
 validated before data replacement. Changing a model parameter away from its
-preset value reclassifies the run as `stylized_modified`; layout changes alone
-do not. Inspect `r(config)`, `r(config_sources)`, `r(parameters)`, and the saved
+preset value reclassifies targeted presets as `targeted_modified` and stylized
+presets as `stylized_modified`; layout changes alone do not. Inspect `r(config)`, `r(config_sources)`, `r(parameters)`, and the saved
 `fesim_*` dataset characteristics to reproduce the actual configuration.
 The printed command and explicit seed should accompany reported results.
 

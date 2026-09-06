@@ -116,7 +116,8 @@ forvalues route=1/6 {
     if "`family'"=="bm" local override "lambda_e .7"
     quietly fesim, dgp(`family') preset(`preset') workers(80) firms(8) ///
         periods(4) parameters(`override') seed(777) noreport clear
-    assert "`r(calibration_class)'"=="stylized_modified"
+    local expected_class = cond(inlist("`preset'","germany_chk_2002_2009","cck2016"),"targeted_modified","stylized_modified")
+    assert "`r(calibration_class)'"=="`expected_class'"
     * An unseeded command consumes exactly one caller master-seed draw.
     local before_unseeded "`c(rngstate)'"
     mata: unused_master = runiformint(1,1,0,2147483647)
