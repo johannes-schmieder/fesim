@@ -1,4 +1,4 @@
-*! fesim discovery output schema 1.1.0-dev 06sep2026
+*! fesim discovery output schema 1.1.0-rc.1 06sep2026
 program define _fesim_schema, rclass
     version 16.0
     syntax , DGP(string) PRESet(string)

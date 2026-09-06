@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.1.0-dev 05sep2026}{...}
+{* *! version 1.1.0-rc.1 06sep2026}{...}
 {.-}
 help for {cmd:fesim} {right:(Johannes F. Schmieder)}
 {.-}
@@ -8,7 +8,7 @@ help for {cmd:fesim} {right:(Johannes F. Schmieder)}
 
 {p 4 8}{cmd:fesim} {hline 2} linked employer-employee panel simulation{p_end}
 
-{title:Syntax available in 1.1.0-dev}
+{title:Syntax available in 1.1.0-rc.1}
 
 {p 8 12}{cmd:fesim version}{p_end}
 {p 8 12}{cmd:fesim list}{p_end}
@@ -27,7 +27,7 @@ help for {cmd:fesim} {right:(Johannes F. Schmieder)}
 {cmd:report} {cmd:noreport} {cmd:clear}]{p_end}
 
 {pstd}
-The {cmd:dgp(akm)} presets {cmd:simple}, {cmd:stylized}, and {cmd:germany_chk_2002_2009}, plus the {cmd:dgp(akmpaygap)} presets {cmd:simple} and {cmd:cck2016}, are available. {cmd:dgp(akmsimple)} and {cmd:dgp(akmempirical)} are convenience aliases for the first two AKM designs. Model-specific scalars remain exclusively inside {cmd:parameters()}; named options are common controls only. Canonical {cmd:dgp(bm) preset(simple)} is also available, with alias {cmd:dgp(bmsimple)}.
+The {cmd:dgp(akm)} presets {cmd:simple}, {cmd:stylized}, and {cmd:germany_chk_2002_2009}, plus the {cmd:dgp(akmpaygap)} presets {cmd:simple} and {cmd:cck2016}, are available. {cmd:dgp(akmsimple)} and {cmd:dgp(akmempirical)} are convenience aliases for the first two AKM designs. Model-specific scalars remain exclusively inside {cmd:parameters()}; named options are common controls only. Canonical {cmd:dgp(bm) preset(simple)} is also available, with alias {cmd:dgp(bmsimple)}. The CPV family adds {cmd:simple} and {cmd:heterogeneous} presets.
 
 {title:Description}
 
@@ -38,7 +38,7 @@ The {cmd:dgp(akm)} presets {cmd:simple}, {cmd:stylized}, and {cmd:germany_chk_20
 {cmd:fesim list} shows canonical DGP families, presets, aliases, and implementation status. {cmd:fesim presets} lists presets for all families or one requested DGP. {cmd:fesim describe} resolves case-insensitive names to canonical lowercase names. For example, {cmd:akmsimple} resolves to {cmd:dgp(akm) preset(simple)} and reports the same canonical configuration.
 
 {pstd}
-Configuration metadata is implemented for all six public presets. The simple and stylized presets retain their documented defaults. The Germany preset defaults to {cmd:workers(10000)}, {cmd:firms(1000)}, eight annual periods beginning in 2002, {cmd:initial(random)}, and a five-year monthly burn-in. All presets default to {cmd:truth(basic)}, {cmd:connectivity(keep)}, {cmd:network(random)}, and {cmd:report}. Omitting {cmd:seed()} records {cmd:current}; configuration resolution itself never changes the RNG state.
+Configuration metadata is implemented for all eight public presets. The simple and stylized presets retain their documented defaults. The Germany preset defaults to {cmd:workers(10000)}, {cmd:firms(1000)}, eight annual periods beginning in 2002, {cmd:initial(random)}, and a five-year monthly burn-in. All presets default to {cmd:truth(basic)}, {cmd:connectivity(keep)}, {cmd:network(random)}, and {cmd:report}. Omitting {cmd:seed()} records {cmd:current}; configuration resolution itself never changes the RNG state.
 
 For the simple AKM contract, {cmd:initial(stationary)} uses the exact interval transition matrix over unemployment and firms and initializes job age from the stationary geometric distribution. {cmd:initial(random)} uses employment probability 0.5, attraction-weighted firm assignment, tenure zero, and requires {cmd:burnin()} of at least one period. {cmd:initial(allunemployed)} is a diagnostic start.
 
@@ -253,6 +253,64 @@ including after largest-component filtering. Runtime diagnostics include
 {cmd:r(bm_block_workers)}. Common parameters, moments, network, leaveout, durations,
 metadata, and solve/simulate/output timings remain available.
 
+{title:Cahuc-Postel-Vinay-Robin bargaining}
+
+{pstd}
+{cmd:dgp(cpv)} has {cmd:preset(simple)} (homogeneous workers) and
+{cmd:preset(heterogeneous)} (mean-one lognormal worker ability). Both have
+heterogeneous firm productivity and the original CPV sequential bargaining
+protocol. These are stylized designs, not an empirical replication.
+
+{pstd}
+Defaults inside {cmd:parameters()} are {cmd:b 1 p_min 1.5 p_max 2 lambda_u .5
+lambda_e .3 delta .2 r .05 beta .5 sd_worker 0 random_firms 0}.
+The heterogeneous preset changes {cmd:sd_worker} to .4. Firm productivity
+is uniform over the specified positive support; equal endpoints are allowed.
+Quantiles are midpoint values, or sorted independent uniforms with
+{cmd:random_firms 1}. Worker ability scales all wages, values and production.
+Common rates imply no ability sorting. {cmd:beta} lies in [0,1];
+{cmd:lambda_e} may be zero. Other rates and {cmd:b} are positive.
+All rates are at most 1000. Every finite-firm surplus and entry wage must
+be positive; invalid economies fail transactionally without clipping.
+
+{pstd}
+Both presets default to 10000 workers, 500 firms, ten annual periods,
+{cmd:initial(stationary)} and {cmd:burnin(0)}. Stationary starts draw the joint
+employer, bargaining reference and tenure distribution. Random starts use
+half employment, uniform firms, entry contracts and zero ages, and require
+positive burn-in in continuous years. All-unemployed starts have zero age.
+Only {cmd:network(random)}, {cmd:jobrule(end)}, and
+{cmd:connectivity(keep|largest)} are supported. Resource limits are 10 million
+workers, 1 million firms, 2147483647 rows, and 100000 years per horizon;
+initialization, burn-in and retained simulation each have a 10-million-event guard.
+
+{pstd}
+A more productive rival induces a direct move. A lower or equal rival can
+raise the incumbent contract; self contacts are null. Raises do not reset
+tenure or count as transitions. A direct upward move can cut today's wage.
+At {cmd:beta 1}, wages equal match productivity and incumbent raises vanish.
+At {cmd:beta 0}, the protocol reduces to sequential auctions.
+
+{pstd}
+Basic truth contains {cmd:lnwage_true contract_wage_true worker_ability_true
+firm_productivity_true match_productivity_true}. Full truth adds reference
+firm/surplus/value, unemployment/employment/full-productivity values, exact
+EU/EE/UE, offers, rejected offers, renegotiations, events, transitions and
+E/U exposure in years. Reference firm zero denotes unemployment. Worker
+ability remains defined while unemployed; job attributes are missing then.
+Productivity and contract wages are structural objects, not AKM firm effects.
+
+{pstd}
+{cmd:r(solver)} is a 17-row CPV value/residual diagnostic;
+{cmd:r(cpv_firms)} gives eight firm objects summarized by mean/min/max.
+{cmd:r(cpv_flows)} separates finite theoretical hazards, exact event/exposure
+rates, endpoint probabilities and descriptive endpoint probabilities per year.
+Its fifth row is renegotiation, with missing endpoint columns. Theory and
+{cmd:r(cpv_events)} describe the generated economy; realized diagnostics
+are recomputed after largest-component filtering. All diagnostics are
+available with {cmd:truth(none)}. Type {cmd:fesim describe cpv} for the exact
+variable inventory. The LaTeX manual derives the finite solver and histories.
+
 {title:Examples}
 
 {pstd}
@@ -435,13 +493,204 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run bm using fesim.sthlp:click to run})}
 
+{space 2}{hline 8} {it:Example 11 - Simulate CPV bargaining} {hline 8}
+{cmd}{...}
+          preserve
+{* example_start - cpv}{...}
+          clear
+          fesim, dgp(cpv) workers(1000) firms(100) periods(5) seed(12345) truth(full) noreport clear
+          matrix list r(solver)
+          matrix list r(cpv_flows)
+          matrix list r(cpv_firms)
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run cpv using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 12 - Add heterogeneous workers} {hline 8}
+{cmd}{...}
+          preserve
+{* example_start - cpv_heterogeneous}{...}
+          clear
+          fesim, dgp(cpv) preset(heterogeneous) workers(1000) firms(100) periods(5) seed(12345) truth(full) noreport clear
+          summarize worker_ability_true firm_productivity_true contract_wage_true
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run cpv_heterogeneous using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 13 - Inspect incumbent raises and wage cuts} {hline 8}
+{cmd}{...}
+          preserve
+{* example_start - cpv_paths}{...}
+          fesim, dgp(cpv) workers(1000) firms(100) periods(120) ///
+              frequency(month) seed(20260908) truth(full) ///
+              parameters(beta .15) noreport clear
+          generate double year=(time-tm(2000m1)+1)/12
+          by workerid: generate byte cut=jobtojob==1 & n_ee_true==1 & ///
+              n_eu_true==0 & n_ue_true==0 & lnwage<lnwage[_n-1]
+          by workerid: generate byte raise=_n>1 & employed & ///
+              spellid==spellid[_n-1] & lnwage>lnwage[_n-1]+1e-12
+          by workerid: egen byte has_cut=max(cut)
+          by workerid: egen byte has_raise=max(raise)
+          quietly levelsof workerid if has_cut & has_raise, local(candidates)
+          local first : word 1 of `candidates'
+          local second : word 2 of `candidates'
+          assert "`second'"!=""
+          generate double wage=cond(employed,contract_wage_true,0)
+          local panel=0
+          foreach id in `first' `second' {
+              local ++panel
+              quietly levelsof year if workerid==`id' & newjob==1, local(boundaries)
+              twoway (connected wage year if workerid==`id', ///
+                  msize(vtiny) lcolor(navy) mcolor(navy)) ///
+                  (scatter wage year if workerid==`id' & raise, ///
+                  msymbol(T) mcolor(orange)) ///
+                  (scatter wage year if workerid==`id' & cut, ///
+                  msymbol(D) mcolor(maroon)), ///
+                  xline(`boundaries', lcolor(gs12) lpattern(dot)) ///
+                  title("Worker `id'") xtitle("Years") ytitle("Contract wage") ///
+                  legend(order(1 "Monthly wage" 2 "Within-job raise" ///
+                  3 "Wage cut on direct move") cols(1) size(small)) ///
+                  name(fesim_cpv_path`panel', replace)
+          }
+          graph combine fesim_cpv_path1 fesim_cpv_path2, cols(2) ///
+              note("Dotted lines mark observed new jobs. Zero denotes unemployment.") ///
+              xsize(10) ysize(5) name(fesim_cpv_paths, replace)
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run cpv_paths using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 14 - Plot within-firm wage dispersion} {hline 8}
+{cmd}{...}
+          preserve
+{* example_start - cpv_dispersion}{...}
+          fesim, dgp(cpv) preset(heterogeneous) workers(6000) firms(100) ///
+              periods(3) seed(20260909) truth(full) noreport clear
+          keep if employed & time==2002
+          graph box contract_wage_true if mod(firmid,10)==0, ///
+              over(firmid, label(labsize(small))) nooutsides ///
+              title("A. Wage dispersion within selected firms") ///
+              ytitle("Contract wage") name(fesim_cpv_box, replace)
+          generate double efficiency_wage=contract_wage_true/worker_ability_true
+          twoway scatter efficiency_wage firm_productivity_true, ///
+              msymbol(Oh) msize(vtiny) mcolor(navy%25) ///
+              title("B. Dispersion after removing worker ability") ///
+              xtitle("Firm productivity per efficiency unit") ///
+              ytitle("Wage / worker ability") name(fesim_cpv_normalized, replace)
+          graph combine fesim_cpv_box fesim_cpv_normalized, cols(2) ///
+              xsize(10) ysize(4.5) name(fesim_cpv_dispersion, replace)
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run cpv_dispersion using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 15 - Compare bargaining power} {hline 8}
+{cmd}{...}
+          preserve
+{* example_start - cpv_bargaining}{...}
+          tempfile comparisons
+          foreach beta in 0 .5 1 {
+              fesim, dgp(cpv) workers(4000) firms(100) periods(5) ///
+                  seed(20260910) truth(full) parameters(beta `beta') noreport clear
+              matrix list r(cpv_flows)
+              keep if employed & time==2004
+              generate double bargaining=`beta'
+              keep bargaining firmid firm_productivity_true contract_wage_true
+              if `beta'!=0 append using `comparisons'
+              save `comparisons', replace
+          }
+          twoway (kdensity contract_wage_true if bargaining==0, lcolor(maroon)) ///
+              (kdensity contract_wage_true if bargaining==.5, lcolor(navy)) ///
+              (kdensity contract_wage_true if bargaining==1, lcolor(teal)), ///
+              legend(order(1 "Beta = 0" 2 "Beta = 0.5" 3 "Beta = 1") cols(1)) ///
+              title("A. Worker wage distributions") xtitle("Contract wage") ///
+              ytitle("Kernel density") name(fesim_cpv_density, replace)
+          collapse (mean) contract_wage_true (first) firm_productivity_true, ///
+              by(bargaining firmid)
+          twoway (line contract_wage_true firm_productivity_true if bargaining==0, ///
+              sort lcolor(maroon)) (line contract_wage_true firm_productivity_true ///
+              if bargaining==.5, sort lcolor(navy)) ///
+              (line contract_wage_true firm_productivity_true if bargaining==1, ///
+              sort lcolor(teal)), legend(order(1 "Beta = 0" 2 "Beta = 0.5" ///
+              3 "Beta = 1") cols(1)) title("B. Mean wages at each firm") ///
+              xtitle("Firm productivity") ytitle("Mean contract wage") ///
+              name(fesim_cpv_mean, replace)
+          graph combine fesim_cpv_density fesim_cpv_mean, cols(2) ///
+              xsize(10) ysize(4.5) name(fesim_cpv_bargaining, replace)
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run cpv_bargaining using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 16 - Fit an AKM-style wage projection} {hline 8}
+{cmd}{...}
+          preserve
+{* example_start - cpv_akm}{...}
+          clear
+          fesim, dgp(cpv) preset(heterogeneous) workers(1000) firms(50) periods(6) seed(12345) connectivity(largest) truth(full) noreport clear
+          areg lnwage i.firmid i.time if employed, absorb(workerid)
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run cpv_akm using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 17 - Plot a descriptive mover event study} {hline 8}
+{cmd}{...}
+          preserve
+{* example_start - cpv_movers}{...}
+          fesim, dgp(cpv) preset(heterogeneous) workers(5000) firms(100) ///
+              periods(10) seed(20260911) truth(full) noreport clear
+          * Official Stata AKM-style projection; not structural productivity recovery.
+          areg lnwage i.firmid i.time if employed, absorb(workerid)
+          * Select the first observed interval with exactly one direct EE and no EU/UE.
+          generate double move_time=time if jobtojob==1 & n_ee_true==1 & ///
+              n_eu_true==0 & n_ue_true==0
+          by workerid: egen double first_move=min(move_time)
+          generate double event_time=time-first_move
+          by workerid: egen byte destination=max(cond(event_time==0, ///
+              ceil(4*firmid/100),.))
+          keep if inrange(event_time,-2,2) & employed
+          by workerid: keep if _N==5
+          assert _N>0
+          collapse (mean) lnwage (count) workers=workerid, by(event_time destination)
+          list event_time destination workers, noobs sepby(destination)
+          twoway (connected lnwage event_time if destination==1, lcolor(gs7)) ///
+              (connected lnwage event_time if destination==2, lcolor(teal)) ///
+              (connected lnwage event_time if destination==3, lcolor(navy)) ///
+              (connected lnwage event_time if destination==4, lcolor(maroon)), ///
+              xline(-.5, lpattern(dash) lcolor(gs10)) xlabel(-2(1)2) ///
+              legend(order(1 "Destination Q1" 2 "Destination Q2" ///
+              3 "Destination Q3" 4 "Destination Q4") cols(2) size(small)) ///
+              xtitle("Years relative to first selected direct move") ///
+              ytitle("Mean log wage") ///
+              note("Balanced employed windows; descriptive selected-mover averages.") ///
+              xsize(9) ysize(5) name(fesim_cpv_movers, replace)
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run cpv_movers using fesim.sthlp:click to run})}
+
 {title:Limitations}
 
 {pstd}
-Version 1.1.0-dev exposes all six registered presets. The Germany preset targets wage-component dispersions and sorting only; its hazards and durations are not German-calibrated. The CCK-inspired preset targets selected group moments and the male-reference firm decomposition under the package's standard-normal surplus normalization; it does not reproduce CCK's empirical normalization or full estimation. The BM preset implements the homogeneous-worker, common-productivity equilibrium with stylized primitives; worker heterogeneity and heterogeneous firm productivity are outside its scope. {cmd:connectivity(force)} has no accepted scientific design.
+Version 1.1.0-rc.1 exposes all eight registered presets. The Germany preset targets wage-component dispersions and sorting only; its hazards and durations are not German-calibrated. The CCK-inspired preset targets selected group moments and the male-reference firm decomposition under the package's standard-normal surplus normalization; it does not reproduce CCK's empirical normalization or full estimation. The BM preset implements the homogeneous-worker, common-productivity equilibrium with stylized primitives; worker heterogeneity and heterogeneous firm productivity are outside its scope. {cmd:connectivity(force)} has no accepted scientific design.
 
 {pstd}
-The supported minimum is Stata 19. Current 1.1.0-dev exact-source qualification covers Stata/MP 19 on macOS Apple Silicon. The released v0.1.0 was additionally qualified on Windows x86-64. No cross-version or cross-platform bitwise claim is made.
+The supported minimum is Stata 19. Current 1.1.0-rc.1 exact-source qualification covers Stata/MP 19 on macOS Apple Silicon. The released v0.1.0 was additionally qualified on Windows x86-64. No cross-version or cross-platform bitwise claim is made.
+
+{pstd}
+CPV does not implement minimum wages, free entry, amenities, shocks, endogenous
+ability sorting, empirical skill/sector calibration, or a population AKM
+projection API.
 
 {title:Reference}
 
@@ -465,6 +714,13 @@ Wage Gap: Quantifying the Impact of Firms on the Relative Pay of Women."
 {it:Quarterly Journal of Economics} 131(2): 633--686. The preset is a targeted
 reduced-form mapping under a different normalization, not a replication.
 {browse "https://doi.org/10.1093/qje/qjv038":doi:10.1093/qje/qjv038}.
+
+
+{pstd}
+Cahuc, Pierre, Fabien Postel-Vinay, and Jean-Marc Robin. 2006.
+"Wage Bargaining with On-the-Job Search: Theory and Evidence."
+{it:Econometrica} 74(2): 323-364.
+{browse "https://doi.org/10.1111/j.1468-0262.2006.00665.x":doi:10.1111/j.1468-0262.2006.00665.x}.
 
 {title:License}
 

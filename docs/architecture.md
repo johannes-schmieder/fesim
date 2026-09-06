@@ -4,20 +4,20 @@ The normative architecture is in [`DESIGN.md`](../DESIGN.md). This note records 
 
 ## Current candidate
 
-All six presets dispatch through four scientific engines: interval AKM,
-monthly AKM, two-group pay-gap, and canonical continuous-time BM. The public
+All eight presets dispatch through five scientific engines: interval AKM,
+monthly AKM, two-group pay-gap, canonical continuous-time BM, and CPV bargaining. The public
 parser/configuration boundary validates before mutation; source loading,
 component RNG, streaming output, graph filtering, truth/moments, and final
 metadata are shared. `_fesim_schema.ado` supplies discovery inventories and
 scientific scope; numeric schemas remain in `fesim_registry.ado`.
-Public API level 1 and Mata API 33 are distinct and unchanged. Runtime installs
+Public API level 1 is unchanged; the internal Mata API is now 35. Runtime installs
 only authoritative Stata/Mata source. See [compatibility](compatibility.md).
 
 ## Historical evolution from Checkpoint 2
 
 The checkpoint narrative below records earlier boundaries. Statements such as
 “discovery-only”, “not yet”, and earlier API numbers describe those checkpoints,
-not the current six-preset candidate.
+not the current eight-preset candidate.
 
 The public `fesim.ado` layer performs subcommand detection, discovery dispatch, and data-safety enforcement. It delegates DGP and preset resolution, defaults, overrides, and validation before it considers replacing loaded data.
 
@@ -135,3 +135,12 @@ panel. Temporary interval-event/exposure columns allow common connectivity
 filtering before BM sample rates are computed. All five are dropped on success.
 Errors restore both the caller dataset and caller RNG. No persistent solver cache
 is used; D-042 defines the future cache key and keeps solveonly/solution private.
+
+## CPV public integration (API 35)
+
+`src/fesim_cpv.mata` solves the finite grouped Bellman system in O(J) after
+sorting and evaluates contracts through prefix sums. `src/fesim_cpv_simulate.mata`
+generates exact stationary contract-tenure histories, burn-in, bounded worker
+blocks and structural output. `_fesim_cpv.ado` supplies rollback, shared graph
+filtering/moments/durations and CPV results. Existing engine algorithms and
+RNG stream IDs are unchanged. The public API remains 1; CPV schema is 1.

@@ -15,7 +15,7 @@ quietly import delimited using ///
 generate double value_numeric = real(value)
 assert !missing(value_numeric)
 isid dgp preset parameter
-assert _N == 107
+assert _N == 127
 assert status == "stylized" if inlist(preset, "simple", "stylized")
 assert status == "targeted" if inlist(preset, ///
     "germany_chk_2002_2009", "cck2016")
@@ -39,6 +39,15 @@ forvalues row = 1/`=_N' {
         exit 459
     }
 }
+
+foreach preset in simple heterogeneous {
+    quietly fesim_registry, action(parameters) dgp(cpv) preset(`preset')
+    local model_parameters `"`r(model_parameters)'"'
+    local expected : word count `model_parameters'
+    quietly count if dgp=="cpv" & preset=="`preset'"
+    assert r(N)==`expected'
+}
+assert status=="stylized" & source_key=="fesim_d043" if dgp=="cpv"
 
 foreach preset in simple stylized germany_chk_2002_2009 {
     quietly fesim_registry, action(parameters) dgp(akm) preset(`preset')

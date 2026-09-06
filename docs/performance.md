@@ -384,3 +384,19 @@ Ignored receipts/logs are under `build/benchmarks/<exact-sha>/`.
 | `bm-1000x10-none.json` | `79ca3340ed6fbb963b1c8610d167dd69109e456ccd459f196556215d69d961f5` |
 | `bm-events-100000x10-record-0.json` | `45e54ea147f6f4fb8a2708d4f1debb514fb54eba46ff48e65895ba8a04d568fc` |
 | `bm-events-100000x10-record-1.json` | `5ff701e064f37f979dd0ce3cb2e78b3fc12bb5f9b3e3e58f2042a8f42ebf6a04` |
+
+## CPV candidate measurement protocol
+
+Preserve the 26 existing controls with the unchanged release benchmark harness
+and inputs, using pre-CPV source `1064f10c55ee4c3f7f0a74e3affa34cfa4a70148`
+as baseline. Compare deterministic signatures/counts and measure runtime and
+peak process RSS on the same macOS host. An increase above 10% triggers three
+matched repeats; resolve a reproducible regression before accepting the candidate.
+
+The separate `scripts/run_cpv_benchmarks.py` adds 20 cases: both presets at
+1,000/10,000/100,000 workers over ten years with none/full truth; both presets
+at 10,000 workers and 120 monthly snapshots with none/full truth; and a
+heterogeneous full-truth firm-count sweep of 1/50/5,000/50,000 at 1,000 workers.
+Each receipt binds source, harness, driver, dimensions, signature, event count,
+stage timings and peak block rows. The common release harness is unchanged,
+so all baseline and candidate legacy controls use identical tooling.

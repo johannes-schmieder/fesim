@@ -1,4 +1,4 @@
-*! fesim canonical CPV public handler 1.1.0-dev 05sep2026
+*! fesim canonical CPV public handler 1.1.0-rc.1 06sep2026
 program define _fesim_cpv, rclass
     version 16.0
     syntax [, CLEAR *]

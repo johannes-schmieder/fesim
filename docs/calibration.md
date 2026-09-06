@@ -71,3 +71,12 @@ before fitting. Store auditable numeric results under `calibrations/`, document
 claim boundaries, register metadata, and add deterministic and statistical tests.
 Do not silently retune a published preset; version its changed defaults and explain
 the consequences under the [compatibility policy](compatibility.md).
+
+## CPV presets
+
+`cpv/simple` and `cpv/heterogeneous` are stylized implementations of the original
+CPV bargaining protocol. The latter changes only log ability dispersion from
+0 to .4 with a population mean-one lognormal normalization. Uniform firm
+productivity is 1.5–2, b=1, lambda_u=.5, lambda_e=.3, delta=.2, r=.05, beta=.5.
+No empirical skill/sector calibration is claimed. Overrides are classified
+`stylized_modified`. Source version and equation audit: [cpv-derivation.md](cpv-derivation.md).

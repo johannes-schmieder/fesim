@@ -59,7 +59,7 @@ assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
 capture noisily fesim version
 assert _rc == 0
-assert `"`r(version)'"' == "1.1.0-dev"
+assert `"`r(version)'"' == "1.1.0-rc.1"
 
 capture noisily fesim list
 assert _rc == 0

@@ -1,10 +1,10 @@
 # Manual examples
 
-These six self-contained Stata 19 do-files generate their own fixed-seed data,
+These ten self-contained Stata 19 do-files generate their own fixed-seed data,
 retain named graphs, and restore the caller's dataset. Put the current
 development version of `fesim` on the adopath before running an individual file.
 
-From the repository root, run all examples and export the six vector figures:
+From the repository root, run all examples and export the ten vector figures:
 
 ```stata
 do docs/manual_figures.do
@@ -38,3 +38,9 @@ the committed figures, writes auxiliary files under ignored `build/manual/`,
 and places the final PDF at `docs/fesim_manual.pdf`. Regenerating figures
 requires Stata; compiling the existing document does not. These documentation
 dependencies are separate from the Stata/Mata-only installed runtime.
+
+CPV examples: `07_cpv_paths.do` shows selected worker histories with raises and
+wage cuts (seed 20260908); `08_cpv_dispersion.do` shows within-firm dispersion
+before/after ability scaling (20260909); `09_cpv_bargaining.do` compares beta
+0/.5/1 with common employment paths (20260910); `10_cpv_movers.do` runs official
+`areg` and plots balanced mover windows (20260911). All are self-contained.

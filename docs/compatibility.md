@@ -69,3 +69,7 @@ a minor release and retain the old interface for the rest of that major series.
 Numerical bug fixes must disclose affected quantities and whether seeded output
 changes. Bitwise reproducibility is qualified for a fixed source, command, seed,
 and Stata environment; it is not promised across software/platform changes.
+
+The CPV extension targets an unpublished 1.1.0-rc.1 review candidate with
+macOS Stata/MP 19 qualification. CPV does not inherit historical Windows
+qualification from the earlier simple-AKM release.

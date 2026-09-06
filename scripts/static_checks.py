@@ -196,6 +196,8 @@ def check_help_examples() -> None:
         "ladder",
         "paygap",
         "bm",
+        "cpv", "cpv_heterogeneous", "cpv_paths", "cpv_dispersion",
+        "cpv_bargaining", "cpv_akm", "cpv_movers",
     )
     for example in examples:
         require(

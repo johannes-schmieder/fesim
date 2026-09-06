@@ -1,4 +1,4 @@
-*! fesim 1.1.0-dev 05sep2026
+*! fesim 1.1.0-rc.1 06sep2026
 program define fesim, rclass
     version 16.0
 

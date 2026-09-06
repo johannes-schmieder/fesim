@@ -6,9 +6,9 @@ if "`repository_root'" == "" local repository_root "`c(pwd)'"
 quietly adopath ++ "`repository_root'"
 set scheme s2color
 capture mkdir "`repository_root'/docs/manual_figures"
-local scripts 01_akm 02_mobility 03_paygap 04_bm 05_bm_paths 06_bm_flows
-local graphs fesim_akm fesim_mobility fesim_paygap fesim_bm fesim_bm_paths fesim_bm_flows
-forvalues index=1/6 {
+local scripts 01_akm 02_mobility 03_paygap 04_bm 05_bm_paths 06_bm_flows 07_cpv_paths 08_cpv_dispersion 09_cpv_bargaining 10_cpv_movers
+local graphs fesim_akm fesim_mobility fesim_paygap fesim_bm fesim_bm_paths fesim_bm_flows fesim_cpv_paths fesim_cpv_dispersion fesim_cpv_bargaining fesim_cpv_movers
+forvalues index=1/10 {
     local script : word `index' of `scripts'
     local graph : word `index' of `graphs'
     do "`repository_root'/docs/manual_examples/`script'.do"

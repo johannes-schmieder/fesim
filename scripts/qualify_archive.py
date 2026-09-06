@@ -53,7 +53,7 @@ def run(root, stata, output):
         require(f"===== {test} rc=0 =====" in log.read_text(), f"missing success: {test}")
     require("FESIM CLEAN INSTALL SMOKE PASS" in
             (extracted / "build/test-results/install_smoke.log").read_text(),
-            "isolated six-preset installation failed")
+            "isolated eight-preset installation failed")
     require(before == {str(p.relative_to(extracted)): digest(p) for p in files},
             "tracked archive source changed during testing")
     require(git(root, "rev-parse", "HEAD") == sha and
@@ -61,11 +61,11 @@ def run(root, stata, output):
             "source checkout changed during qualification")
     result = {"source_sha": sha, "archive_sha256": digest(archive),
               "suite_receipt_sha256": digest(receipt), "status": "accepted",
-              "tests_passed": len(tests), "installed_presets": 6,
+              "tests_passed": len(tests), "installed_presets": 8,
               "source_files": before, "platform": {key: data[key] for key in
                  ("stata_version", "stata_flavor", "os", "architecture")}}
     (output / "archive-receipt.json").write_text(json.dumps(result, indent=2) + "\n")
-    print(f"FESIM EXACT ARCHIVE ACCEPTED {sha}: {len(tests)} test files, six presets")
+    print(f"FESIM EXACT ARCHIVE ACCEPTED {sha}: {len(tests)} test files, eight presets")
 
 
 if __name__ == "__main__":

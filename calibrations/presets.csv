@@ -106,3 +106,23 @@ akmpaygap,cck2016,worker_sort_m,.18,type-surplus tilt,targeted,cck2016_table2,CC
 akmpaygap,cck2016,worker_sort_f,.273,type-surplus tilt,targeted,cck2016_table2,CCK 2016 Table II,fixed-seed moment fit,maps female worker-premium correlation .152,0.3.0
 akmpaygap,cck2016,wage_trend_m,.05,log points per year,targeted,cck2016_table2,CCK 2016 Table II,supporting moment fit,helps map male log-wage dispersion .554,0.3.0
 akmpaygap,cck2016,wage_trend_f,.05,log points per year,targeted,cck2016_table2,CCK 2016 Table II,supporting moment fit,helps map female log-wage dispersion .513 without changing the group gap,0.3.0
+cpv,simple,b,1,level per efficiency unit,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,simple,p_min,1.5,level per efficiency unit,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,simple,p_max,2,level per efficiency unit,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,simple,lambda_u,0.5,annual continuous-time rate,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,simple,lambda_e,0.3,annual continuous-time rate,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,simple,delta,0.2,annual continuous-time rate,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,simple,r,0.05,annual continuous-time rate,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,simple,beta,0.5,worker bargaining share,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,simple,sd_worker,0,log ability standard deviation,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,simple,random_firms,0,indicator,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,heterogeneous,b,1,level per efficiency unit,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,heterogeneous,p_min,1.5,level per efficiency unit,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,heterogeneous,p_max,2,level per efficiency unit,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,heterogeneous,lambda_u,0.5,annual continuous-time rate,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,heterogeneous,lambda_e,0.3,annual continuous-time rate,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,heterogeneous,delta,0.2,annual continuous-time rate,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,heterogeneous,r,0.05,annual continuous-time rate,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,heterogeneous,beta,0.5,worker bargaining share,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,heterogeneous,sd_worker,0.4,log ability standard deviation,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+cpv,heterogeneous,random_firms,0,indicator,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1

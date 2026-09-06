@@ -21,3 +21,13 @@ matrices are `r(solver)` (22-by-1), `r(bm_flows)` (4-by-4), and `r(bm_firms)`
 returned-sample scopes are in D-042 and the canonical BM help section. No AKM
 truth effects or inappropriate AKM targets are fabricated. Basic/full truth
 changes output columns only; BM diagnostics are available with every truth mode.
+
+## CPV-specific results
+
+`r(solver)` is 17-by-1; `r(cpv_firms)` is 8-by-3 (mean/min/max);
+`r(cpv_flows)` is 5-by-4 (theory, event, observed, observed_per_year). The
+last flow row is renegotiation, whose observed columns are missing. Theory
+and `r(cpv_events)` retain the original economy's scope; realized event rates
+are recomputed for returned complete workers after filtering. Temporary count
+columns are removed under all truth settings. No CPV `psi_true` or population
+AKM projection is claimed.

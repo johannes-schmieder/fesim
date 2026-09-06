@@ -68,3 +68,11 @@ Primary source: [NBER working paper](https://www.nber.org/papers/w18850) and
 `calibrations/presets.csv`, the fixed validation record in
 `calibrations/paygap_cck2016_results.csv`, and the executable large-sample check
 in `tests/statistical/paygap_cck_moments.do`.
+
+## fesim_d043: CPV stylized primitives
+
+The two CPV presets implement the original Cahuc–Postel-Vinay–Robin bargaining
+protocol with package-chosen primitives. The 20 new CSV rows are not empirical
+estimates. Both presets share uniform firm productivity and common rates;
+heterogeneous workers change only log ability SD to .4, using mean-one lognormal
+ability. Source and finite-equation audit: [cpv-derivation.md](../docs/cpv-derivation.md).

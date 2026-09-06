@@ -6,12 +6,14 @@ The installed runtime uses only official Stata and Mata. It does not require a c
 
 ## Current implementation status
 
-CPV is now implemented on `main` in `1.1.0-dev`: `dgp(cpv)` provides
-`preset(simple)` and `preset(heterogeneous)`, exact continuous-time bargaining,
-stationary contracts and tenure, structural truth, and finite-economy flow
-diagnostics. The CPV examples, manual update and review-candidate qualification
-are in progress. The previous qualified six-preset candidate remains documented
-in [its review report](docs/qualification-1.0.0-rc.1.md).
+The unpublished `1.1.0-rc.1` candidate provides eight presets across AKM,
+pay-gap, BM wage posting and CPV wage bargaining. The
+[user and technical manual](docs/fesim_manual.pdf) covers syntax, defaults,
+structural truth and ten illustrated examples. Its appendices derive every
+DGP, including the finite CPV value solver, contract wages and exact joint
+stationary initialization. [LaTeX source](docs/fesim_manual.tex) and
+[self-contained figure scripts](docs/manual_examples/README.md) are included.
+The installed help contains 17 one-click examples.
 
 ```stata
 fesim, dgp(cpv) preset(heterogeneous) workers(5000) firms(250) ///
@@ -19,17 +21,13 @@ fesim, dgp(cpv) preset(heterogeneous) workers(5000) firms(250) ///
 matrix list r(cpv_flows)
 ```
 
-Offers may raise wages at the current employer; upward employer moves may cut
-current wages. Ability scales values and wages without changing mobility.
-[Finite-firm derivation and source audit](docs/cpv-derivation.md).
-
-The [user and technical manual](docs/fesim_manual.pdf) covers syntax, all six
-DGP presets, parameter defaults, returned data, and six illustrated examples.
-Its appendices document the DGP implementations and derive the BM equilibrium,
-finite-firm stationary allocation, and exact continuous-time simulation.
-[LaTeX source](docs/fesim_manual.tex) and [runnable figure examples](docs/manual_examples/README.md)
-are included. Rebuild from the repository root with `bash docs/build_manual.sh`;
-regenerate figures in Stata with `do docs/manual_figures.do`.
+Outside offers can produce raises at the current employer, and direct moves
+can cut current wages. Worker ability scales wages without changing mobility.
+The CPV presets use stylized primitives and do not reproduce empirical
+estimates. [Derivation and source audit](docs/cpv-derivation.md).
+Candidate source/archive and performance qualification is in progress;
+[the preceding six-preset report](docs/qualification-1.0.0-rc.1.md) retains its
+own exact source identity. No new tag or release has been created.
 
 The latest release is `v0.1.0`. The preceding `1.0.0-rc.1` review candidate includes
 three public AKM presets, two public pay-gap presets, and canonical BM. The pay-gap family
@@ -48,6 +46,7 @@ fesim describe akm, preset(germany_chk_2002_2009)
 fesim describe akmpaygap, preset(simple)
 fesim describe akmpaygap, preset(cck2016)
 fesim describe bm
+fesim describe cpv, preset(heterogeneous)
 ```
 
 `fesim describe akmsimple` reports the resolved `akm/simple` configuration, scalar values/bounds/units, output inventories, supported initialization/network choices, and scientific source/target scope. The same resolver validates named common options and model-specific name-value pairs such as `parameters(mu 3.2 p_ee .10)`, records their sources, and serializes the result deterministically. In the frozen v0.1 contract, all model-specific scalars remain inside `parameters()`; only common controls have named options.
@@ -63,6 +62,8 @@ fesim, dgp(akm) preset(germany_chk_2002_2009) seed(12345) clear
 fesim, dgp(akmpaygap) preset(simple) seed(12345) clear
 fesim, dgp(akmpaygap) preset(cck2016) seed(12345) clear
 fesim, dgp(bm) seed(12345) clear
+fesim, dgp(cpv) seed(12345) clear
+fesim, dgp(cpv) preset(heterogeneous) seed(12345) clear
 ```
 
 The aliases resolve to `dgp(akm) preset(simple)` and `dgp(akm)

@@ -35,3 +35,13 @@ name leaves the interval semantics explicit. Finalization verifies that its
 generated-panel sum equals the exact bridge plan before graph filtering.
 
 The early spike exposes conservative final-panel and peak-working-byte estimates for the shared writer. Public simple-AKM benchmarks additionally record exact-source command/stage time, dataset width, maximum resident set size, and peak process footprint; see [`docs/performance.md`](performance.md). Later DGP modules must extend the accounting for their own live state rather than silently relying on either the toy estimate or simple-AKM measurements.
+
+## CPV output
+
+The CPV writer stores 13 common observed variables, five basic structural truth
+variables and 17 further full-truth variables. Worker ability is always defined
+when truth is requested; employer/contract fields are missing during unemployment.
+Reference firm 0 denotes unemployment. Incumbent raises do not change spell IDs,
+tenure or transition counts. Exact offers, rejections, raises, transitions and
+exposure include the first interval, although its public transition count is
+missing. See [the manual](fesim_manual.pdf) and [derivation](cpv-derivation.md).

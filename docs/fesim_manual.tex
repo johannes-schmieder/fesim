@@ -27,7 +27,7 @@
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\small\color{ink}\textsf{fesim: User and Technical Manual}}
-\fancyhead[R]{\small\textsf{1.0.0-rc.1}}
+\fancyhead[R]{\small\textsf{1.1.0-rc.1}}
 \fancyfoot[C]{\thepage}
 \setlength{\headheight}{14pt}
 \hypersetup{pdftitle={fesim: User and Technical Manual},
@@ -47,19 +47,20 @@ Johannes F. Schmieder\\
 Boston University
 \vspace{0.35in}
 
-Development version 1.0.0-rc.1 \quad $\cdot$ \quad Mata API 33\\
+Development version 1.1.0-rc.1 \quad $\cdot$ \quad Mata API 35\\
 September 6, 2026
 \vspace{0.5in}
 
 \begin{minipage}{0.91\textwidth}
-This manual explains the public command, all six available presets, and the
+This manual explains the public command, all eight available presets, and the
 data and diagnostics they return. Reproducible examples illustrate wage
-dispersion, sorting, pay gaps, and search dynamics. The technical appendix
+dispersion, sorting, pay gaps, search dynamics, and wage bargaining. The technical appendix
 documents the implemented random processes and derives the canonical
 Burdett--Mortensen equilibrium, its finite-firm approximation, and the exact
-continuous-time worker simulation.
+continuous-time worker simulation. A further appendix derives CPV values,
+contract wages, incumbent raises, and joint stationary histories.
 
-This manual accompanies the unpublished \code{1.0.0-rc.1} candidate.
+This manual accompanies the unpublished \code{1.1.0-rc.1} candidate.
 Qualification is limited to Stata/MP 19 on macOS Apple Silicon; exact source
 and archive evidence are recorded in the repository release-review report.
 The stable \code{v0.1.0} release contains the earlier simple-AKM command.
@@ -87,7 +88,7 @@ whose behavior depends on mobility and worker--firm sorting.
 The installed engine uses official Stata and Mata only. Stata 19 is the
 supported minimum. The current development source has been qualified on
 Stata/MP 19 on macOS Apple Silicon; Windows qualification of the older
-\code{v0.1.0} release does not qualify the later BM implementation.
+\code{v0.1.0} release does not qualify the later BM or CPV implementations.
 Reproducibility claims refer to a fixed package source, seed, command, and
 qualified Stata environment.
 
@@ -114,11 +115,17 @@ Targets selected Card, Cardoso, and Kline (CCK) group moments and
 male-reference firm decomposition under the package normalization.\\[4pt]
 \code{bm / simple} & \code{bmsimple} &
 Homogeneous-worker, common-productivity wage posting with unemployed and
-on-the-job search. Exact continuum model; stylized primitives.\\
+on-the-job search. Exact continuum model; stylized primitives.\\[4pt]
+\code{cpv / simple} & None &
+Sequential wage bargaining, incumbent raises, heterogeneous firms and
+homogeneous workers. Stylized primitives.\\[4pt]
+\code{cpv / heterogeneous} & None &
+The same bargaining engine with mean-one lognormal worker ability.
+No endogenous ability sorting.\\
 \bottomrule
 \end{longtable}
 
-There are three canonical family names and six family/preset combinations.
+There are four canonical family names and eight family/preset combinations.
 The three aliases resolve to designated presets. Omitting \code{dgp()}
 and \code{preset()} selects \code{akm/simple}.
 AKM terminology follows Abowd, Kramarz, and Margolis \cite{akm}.
@@ -207,7 +214,7 @@ Economic draws are invariant to this choice.\\[4pt]
 histories in the selected observed component. \code{force} is unavailable.\\[4pt]
 \code{network(...)} &
 Destination rule. \code{random} is the default and the only allowed
-design for pay-gap and BM. All four designs are available for AKM.\\[4pt]
+design for pay-gap, BM and CPV. All four designs are available for AKM.\\[4pt]
 \code{parameters(...)} &
 Whitespace-separated scalar name/value pairs. Model and network controls
 belong here. Unknown, duplicate, irrelevant, conflicting, or inadmissible
@@ -235,13 +242,14 @@ AKM Germany & 10,000 & 1,000 & 8 & random & 5 years\\
 Pay-gap simple & 10,000 & 500 & 10 & random & 5 years\\
 Pay-gap CCK & 10,000 & 1,000 & 8 & random & 5 years\\
 BM simple & 10,000 & 500 & 10 & stationary & 0 years\\
+CPV (both) & 10,000 & 500 & 10 & stationary & 0 years\\
 \bottomrule
 \end{tabular}
 \end{table}
 All presets support \code{initial(allunemployed)}. Exact stationary starts
-are available only for simple AKM and BM. Random starts require at least one
+are available for simple AKM, BM and both CPV presets. Random starts require at least one
 burn-in output interval for simple AKM and at least one year for monthly
-AKM and pay-gap. Those non-BM burn-in inputs are integers. BM burn-in is
+AKM and pay-gap. Those AKM/pay-gap burn-in inputs are integers. BM and CPV burn-in is
 continuous years and can be fractional. Pay-gap uses output-clock steps
 within its year-valued burn-in.
 
@@ -398,10 +406,63 @@ only strictly higher wages while employed. The exact finite stationary
 allocation differs from the continuum worker distribution; a finite
 wage-posting game is not solved anew (Appendix~\ref{app:bm}).
 
+\subsection{Cahuc--Postel-Vinay--Robin bargaining}\label{sec:cpvparams}
+\code{dgp(cpv)} implements the sequential bargaining protocol of
+Cahuc, Postel-Vinay, and Robin \cite{cpv} in a finite firm economy.
+\code{preset(simple)} has identical workers; \code{preset(heterogeneous)}
+adds mean-one lognormal worker ability. Both have heterogeneous firms.
+These are stylized designs, not estimates or a replication of the paper.
+\begin{center}\small
+\begin{tabular}{@{}llrl@{}}
+\toprule
+Parameter & Meaning & Default & Unit\\
+\midrule
+\code{b} & Unemployment flow payoff & 1 & Per efficiency unit\\
+\code{p_min}, \code{p_max} & Uniform firm productivity support & 1.5, 2 & Per efficiency unit\\
+\code{lambda_u} & Unemployed offer rate & .5 & Per year\\
+\code{lambda_e} & Employed offer rate & .3 & Per year\\
+\code{delta} & Destruction rate & .2 & Per year\\
+\code{r} & Discount rate & .05 & Per year\\
+\code{beta} & Worker bargaining share & .5 & Share in $[0,1]$\\
+\code{sd_worker} & Log ability standard deviation & 0 or .4 & Log units\\
+\code{random_firms} & Midpoint (0) or random (1) quantiles & 0 & Indicator\\
+\bottomrule
+\end{tabular}\end{center}
+The heterogeneous preset changes only \code{sd_worker} to .4. All model
+controls belong in \code{parameters()}, for example:
+\begin{lstlisting}
+fesim, dgp(cpv) preset(heterogeneous) workers(5000) firms(100) ///
+    periods(60) frequency(month) seed(12345) truth(full) ///
+    parameters(beta .3 sd_worker .5 lambda_e .4) clear
+\end{lstlisting}
+Firm productivity must be positive with $p_{\max}\ge p_{\min}$; equal
+endpoints are allowed. The unemployed offer, destruction, and discount
+rates are positive and at most 1,000; the employed offer rate may be zero.
+The flow payoff is positive and ability dispersion is nonnegative.
+Every generated firm must have strictly positive full surplus and entry
+wage. The solver rejects an invalid economy without clipping wages or
+removing firms. Random firm draws are included in transactional rollback.
+
+Defaults are 10,000 workers, 500 firms, ten annual observations,
+\code{initial(stationary)} and zero burn-in for both presets.
+Stationary initialization draws the joint employer, contract and tenure
+state. \code{initial(random)} starts half the workers employed at random
+firms with entry contracts and requires positive continuous-year burn-in.
+\code{initial(allunemployed)} starts all workers with zero unemployment
+age. Only \code{network(random)} and \code{jobrule(end)} are supported;
+\code{connectivity(keep)} and \code{connectivity(largest)} are available.
+
+Outside offers can raise the wage without changing the employer or spell.
+A move to a more productive firm can reduce today's wage because future
+bargaining opportunities improve. Worker ability multiplies production,
+wages, unemployment income and values; common contact rates imply no
+ability sorting. Neither structural firm productivity nor a contract wage
+is an AKM firm effect. Appendix~\ref{app:cpv} derives the implementation.
+
 \section{Network designs and connectedness}\label{sec:network}
 \code{network(random)} means the selected DGP's baseline destination
 mechanism; empirical-AKM and pay-gap sorting can still be nonzero.
-In BM it means uniform contacts with structural acceptance.
+In BM and CPV it means uniform contacts with structural acceptance.
 \begin{description}
 \item[\code{blocks}.] Independently assign workers and firms to balanced
 communities. Entry/initialization refer to the worker's home block;
@@ -456,7 +517,7 @@ balanced within returned workers. Time is Stata annual, quarterly, or monthly.\\
 \code{firmid}, \code{employed} & Current firm and 0/1 employment.
 Firm ID is missing in nonemployment.\\
 \code{lnwage} & Log wage, missing when unemployed.
-BM posted wages are levels before the logarithm.\\
+BM posted wages and CPV contract wages are levels before the logarithm.\\
 \code{spellid}, \code{tenure} & Employment spell and elapsed tenure
 in output-period units; missing when unemployed.\\
 \code{newjob} & Changed spell from preceding snapshot; first-row missing.
@@ -469,7 +530,7 @@ last-row missing. This indicator is forward-looking.\\
 first-row missing. It need not identify one latent EE event.\\
 \code{ntransitions} & Latent state transitions in the interval;
 first-row missing under the common reporting convention.\\
-\code{unemp_duration} & Added by monthly AKM and BM: elapsed
+\code{unemp_duration} & Added by monthly AKM, BM and CPV: elapsed
 unemployment duration in output units; missing when employed.\\
 \code{group} & Pay-gap group: 0 Men, 1 Women.\\
 \code{nbridges_imposed} & Imposed bridge events in an interval;
@@ -496,6 +557,13 @@ BM basic truth is \code{lnwage_true}, \code{posted_wage_true}, and
 \code{productivity_true}; it does not fabricate AKM worker effects.
 Appendix~\ref{app:bmtruth} lists full structural truth.
 
+CPV basic truth reports log and level contract wages, worker ability, firm
+productivity per efficiency unit, and match productivity. Full truth adds
+bargaining references and worker values, exact offers/raises/transitions,
+and employment/unemployment exposure. Worker ability remains defined during
+unemployment; job attributes are missing. Appendix~\ref{app:cpv} specifies
+these objects. There is no CPV structural \code{psi_true}.
+
 \subsection{Returned results}
 \begingroup\small
 \begin{longtable}{@{}P{0.31\textwidth}P{0.62\textwidth}@{}}
@@ -512,7 +580,7 @@ using appropriate origin-state denominators.\\
 \code{r(moments)}, \code{r(targets)} & Realized moments, applicable targets,
 realized-minus-target differences, and relative differences.\\
 \code{r(network)}, \code{r(leaveout)} & Graph and leave-out diagnostics.\\
-\code{r(durations)} & Year-valued distributions for monthly AKM and BM:
+\code{r(durations)} & Year-valued distributions for monthly AKM, BM and CPV:
 count, mean, sample SD, p10, p50, p90.\\
 \code{r(bridges)} & Eight-column imposed-event ledger.\\
 \code{r(group_moments)}, \code{r(group_targets)} & Pay-gap 17-by-2 matrices.\\
@@ -520,6 +588,9 @@ count, mean, sample SD, p10, p50, p90.\\
 Nine-by-three male, female, symmetric reference decompositions.\\
 \code{r(solver)}, \code{r(bm_flows)}, \code{r(bm_firms)} &
 BM solution/residuals, theory/event/endpoint flows, firm summaries.\\
+\code{r(cpv_flows)}, \code{r(cpv_firms)} &
+CPV finite theory, event and endpoint flows, and firm summaries;
+\code{r(solver)} reports CPV Bellman values and residuals.\\
 \code{r(runtime_total)}, \code{r(runtime_solve)},
 \code{r(runtime_simulate)}, \code{r(runtime_output)} &
 Total and stage timings in seconds.\\
@@ -627,6 +698,60 @@ intervening unemployment.}\label{fig:flows}
 \FloatBarrier
 
 \clearpage
+\subsection{CPV histories: incumbent raises and wage cuts}
+\begin{figure}[htbp]\centering
+\includegraphics[width=\textwidth]{manual_figures/07_cpv_paths.pdf}
+\caption{Two workers selected to illustrate direct-move wage cuts from
+1,000 workers, 100 firms and 120 monthly snapshots; seed 20260908,
+$\beta=.15$, otherwise simple-preset defaults. Dotted lines identify
+observed new jobs, triangles mark within-job raises, and diamonds mark
+wage cuts in intervals containing exactly one direct EE and no EU or UE.
+These are selected illustrations, not estimates of event frequencies.}
+\end{figure}
+\lstinputlisting{manual_examples/07_cpv_paths.do}
+\FloatBarrier
+
+\subsection{CPV wage dispersion within firms}
+\begin{figure}[htbp]\centering
+\includegraphics[width=\textwidth]{manual_figures/08_cpv_dispersion.pdf}
+\caption{Final annual snapshot of 6,000 workers and 100 firms over three
+years, heterogeneous preset, seed 20260909. The left panel shows selected
+firms' wage distributions (outside values omitted from the display).
+The right panel divides each wage by worker ability: bargaining history
+still produces dispersion among workers at the same firm.}
+\end{figure}
+\lstinputlisting{manual_examples/08_cpv_dispersion.do}
+\FloatBarrier
+
+\subsection{Changing bargaining power}
+\begin{figure}[htbp]\centering
+\includegraphics[width=\textwidth]{manual_figures/09_cpv_bargaining.pdf}
+\caption{Final snapshot of 4,000 homogeneous workers and 100 firms over
+five years, seed 20260910, at three bargaining shares. Firm and employment
+paths are held fixed by the seed. Wages change with bargaining power;
+at $\beta=1$ workers receive match output and have no incumbent raises.
+Kernel curves smooth a discrete finite-firm distribution.}
+\end{figure}
+\lstinputlisting{manual_examples/09_cpv_bargaining.do}
+\FloatBarrier
+
+\subsection{An AKM projection and a mover event study}
+\begin{figure}[htbp]\centering
+\includegraphics[width=.95\textwidth]{manual_figures/10_cpv_movers.pdf}
+\caption{Heterogeneous CPV preset: 5,000 workers, 100 firms, ten annual
+observations, seed 20260911. Workers are aligned around their first
+selected direct move and must be employed at all five snapshots.
+Destination groups are productivity quartiles. These selected-mover
+averages are descriptive; they are not causal employer effects.}
+\end{figure}
+The example uses official \code{areg} to absorb worker effects while
+including firm and time indicators. This is an additive projection of
+history-dependent wages. Its firm coefficients should not be interpreted
+as the primitive productivity levels. There is no population AKM
+projection API in this version.
+\lstinputlisting{manual_examples/10_cpv_movers.do}
+\FloatBarrier
+
 \subsection{A small estimation exercise}
 The simulator does not estimate AKM effects. Official Stata \code{areg}
 can fit a small connected example:
@@ -1215,7 +1340,7 @@ Tests cover equilibrium residuals, equal profit, Bellman identities,
 finite masses, ties, singleton firms, deterministic/random grids, replay,
 strict acceptance, burn-in convergence, truth/frequency/block invariance,
 rollback, and source-only installation. Statistical checks use fixed
-seeds and declared tolerances. The candidate inventory contains 63 Stata
+seeds and declared tolerances. The candidate inventory contains 68 Stata
 test files. Exact macOS Stata/MP 19 qualification receipts and archive hashes
 are recorded in the repository release-review report.
 
@@ -1231,6 +1356,299 @@ truth, with peak process RSS about 0.602 and 0.999 GB on that host.
 These environment-specific measurements are not guarantees.
 Public solve-only/saved-solution interfaces and heterogeneous BM remain
 outside the current command.
+
+\section{CPV sequential bargaining implementation}\label{app:cpv}
+\subsection{Environment and the source protocol}
+Workers have fixed ability $\varepsilon_i>0$; firm $j$ has productivity
+$p_j>0$. Output is $\varepsilon_i p_j$, unemployment flow utility is
+$\varepsilon_i b$, and utility is linear. The contact rates are
+$\lambda_u$ while unemployed and $\lambda_e$ while employed; jobs end
+at rate $\delta$ and workers discount at $r$. All firms have contact
+weight $a_j=1/J$. A contact with one's employer is a null offer, not
+another competitor. Equal-productivity distinct firms can compete over
+wages, but never generate a direct employer move between themselves.
+
+The protocol is CPV's original competition followed by bargaining over
+worker values. A less productive rival can trigger a raise even if its
+full value falls short of the worker's current promised value. Requiring
+that rival to beat the current promise would change the model. The share
+$\beta$ is imposed, rather than estimated. At $\beta=0$ competition
+operates as sequential auctions; at $\beta=1$ the worker receives full
+match output and incumbent offers cannot produce further raises.
+
+\subsection{Finite-firm full values and unemployment}
+All following quantities are per efficiency unit. Let $U$ be the value of
+unemployment, $B=rU$, and $M_j$ the worker's value at firm $j$ when the
+current wage equals its entire productivity $p_j$. Thus $M_j$ is the
+full-productivity worker benchmark, not a separately computed sum of
+worker and firm values. Write $S_j=M_j-U$. An entry contract promises
+$U+\beta S_j$, giving
+\begin{equation}\label{eq:cpvU}
+ B=b+\lambda_u\beta\sum_j a_j S_j.
+\end{equation}
+At full productivity an incumbent cannot improve the current contract.
+A higher-productivity rival $k$ instead delivers $M_j+\beta(M_k-M_j)$.
+The worker's Bellman equation therefore implies
+\begin{align}
+ (r+\delta)S_j
+ &=p_j-B+\beta\lambda_e\sum_{p_k>p_j}a_k(S_k-S_j),\\
+ (r+\delta+\beta\lambda_e A_j^+)S_j
+ &=p_j-B+\beta\lambda_e T_j^+,\label{eq:cpvS}
+\end{align}
+where $A_j^+=\sum_{p_k>p_j}a_k$ and
+$T_j^+=\sum_{p_k>p_j}a_kS_k$. Tails are strictly above the entire
+productivity tie group.
+
+The implementation solves this finite system, rather than inserting
+continuum wages into a finite contact process. Starting with the most
+productive group, express each $S_j=A_j-B C_j$:
+\begin{align}
+ A_j&=\frac{p_j+\beta\lambda_e\sum_{p_k>p_j}a_kA_k}
+ {r+\delta+\beta\lambda_e A_j^+},&
+ C_j&=\frac{1+\beta\lambda_e\sum_{p_k>p_j}a_kC_k}
+ {r+\delta+\beta\lambda_e A_j^+},\\
+ B&=\frac{b+\lambda_u\beta\sum_j a_j A_j}
+ {1+\lambda_u\beta\sum_j a_j C_j}.\label{eq:cpvsolve}
+\end{align}
+Group suffix sums give linear work and storage after sorting. There is
+no dense $J$-by-$J$ production solver. Solved surpluses must all be
+positive. The scaled residual of each Bellman equation, normalized by
+$\max(1,|p_j|,|B|)$, and the unemployment residual normalized by
+$\max(1,|B|)$ must be at most $10^{-9}$. Independent small-economy tests
+solve the full dense linear system with a $10^{-12}$ comparison bound.
+
+\subsection{The contract state and each offer case}
+A contract stores employer $j$ and reference $q$. The reference $q=0$
+denotes unemployment, with $S_0=0$. Define the promised surplus
+\begin{equation}\label{eq:cpvcontract}
+ C(q,j)=\beta S_j+(1-\beta)S_q.
+\end{equation}
+Upon a contact from firm $k$, the deterministic update is
+\begin{equation}
+ (j',q')=\begin{cases}
+ (j,q),&k=j,\\
+ (k,j),&p_k>p_j,\\
+ (j,k),&k\ne j,\ p_k\le p_j,\ S_k>S_q,\ \beta<1,\\
+ (j,q),&\text{otherwise}.
+ \end{cases}
+\end{equation}
+Only the second case is an EE transition. Only the third is a
+renegotiation. Tied firms share the same full surplus, so a different
+firm of equal productivity can bring the worker to full surplus.
+Reference updates at $\beta=1$ are unnecessary when they change no
+value; the stored reference then remains the entry reference or last
+employer from a move. Neither null offers nor raises reset job tenure.
+
+\subsection{Recovering wages from promises}
+Let $C_k'$ be the promised surplus after the contact update above. While
+the current contract is unchanged its wage is constant. Its Bellman
+identity yields
+\begin{equation}\label{eq:cpvwage}
+ w(q,j)=B+(r+\delta)C(q,j)
+       -\lambda_e\sum_k a_k\{C_k'-C(q,j)\}.
+\end{equation}
+Higher rivals contribute
+$\beta S_k+(1-\beta)S_j-C(q,j)$.
+Lower or equal rivals with $S_k>S_q$ contribute
+$(1-\beta)(S_k-S_q)$, except the current employer, whose contribution
+is zero. Prefix sums of surpluses and group endpoints evaluate both
+sums in constant time; the current employer's atom is explicitly
+subtracted from the second sum.
+
+Equation~\eqref{eq:cpvwage} gives $w(j,j)=p_j$ and an increasing wage
+in the reference surplus. Entry $q=0$ is the minimum contract wage at a
+firm. Every entry wage must be positive; neither negative wages nor
+invalid surpluses are clipped. Higher worker value at a new employer
+need not mean a higher current wage, because the expected future gain
+term can increase. A frozen test verifies a value-improving move with a
+current wage cut, and another verifies a raise from a rival below the
+current promise.
+
+As $J$ grows, a uniform grid converges to the continuous offer model.
+For an interior reference $x$ and employer $y>x$, the independent
+continuum check uses CPV's equation (3):
+\begin{equation}
+ \phi(x,y)=y-(1-\beta)\int_x^y
+ \frac{r+\delta+\lambda_e\bar F(z)}
+ {r+\delta+\beta\lambda_e\bar F(z)}\,dz.
+\end{equation}
+For uniform productivity, the integral has an elementary logarithmic
+form (and a polynomial limit at $\beta=0$). Tests compare it with
+500- and 5,000-firm solutions away from the entry boundary. Finite
+self-contact and tied-firm corrections are retained in simulated wages.
+
+\subsection{Worker and firm primitives}
+For the simple preset, $\varepsilon_i=1$. Otherwise,
+\begin{equation}
+ z_i\sim N(0,1),\qquad
+ \varepsilon_i=\exp(\sigma z_i-\sigma^2/2),\quad
+ \sigma=\text{\code{sd_worker}}.
+\end{equation}
+This is a population mean-one normalization, not sample
+restandardization. Every wage and value is multiplied by
+$\varepsilon_i$; production is $\varepsilon_i p_j$. Nonpositive or
+nonfinite simulated ability or wages cause a transactional error.
+Because contact rates and comparisons are common and per efficiency
+unit, changing $\sigma$ leaves the same seeded employment path intact.
+In population, ability is independent of employer productivity.
+
+Midpoint firms use $v_j=(j-1/2)/J$ and
+$p_j=p_{\min}+(p_{\max}-p_{\min})v_j$. Random firms use sorted
+independent uniform quantiles. IDs follow sorted productivity; exact
+ties remain ties. The economy does not add free entry, minimum wages,
+sector calibration, endogenous ability sorting, amenities, measurement
+error, or productivity shocks.
+
+\subsection{Exact finite stationary employment and raises}
+Unemployment is $u=\delta/(\delta+\lambda_u)$. If $F$ is cumulative
+offer mass through a whole productivity group, stationary balance for
+workers at or below that group gives
+\begin{equation}
+ G(F)=\Pr(p_{\rm employer}\le p\mid E)
+ =\frac{\delta F}{\delta+\lambda_e(1-F)}.
+\end{equation}
+Divide each group increment in $G$ equally among its firms and multiply
+by $1-u$ to obtain unconditional masses $m_j$. The exact EE hazard per
+employment year is
+\begin{equation}
+ h_{EE}=\lambda_e\sum_j\frac{m_j}{1-u}A_j^+.
+\end{equation}
+For an offered productivity group whose first sorted index is $l$,
+consider the stationary mass at any eligible incumbent with reference
+strictly below that offered productivity. Inflow is a UE into that
+incumbent or a move from a lower-productivity employer. Destruction or
+a sufficiently good rival removes the worker from this subset. Thus
+\begin{equation}
+ H_l=\frac{u\lambda_u+\lambda_e\sum_{p_h<p_l}m_h}
+ {J\delta+\lambda_e(J-l)}.
+\end{equation}
+For each offered firm there are $J-l$ eligible incumbents, after
+excluding self. When $\beta<1$, the exact raise hazard is
+\begin{equation}
+ h_R=\frac{\lambda_e}{J(1-u)}
+ \sum_{\text{groups }g} |g|(J-l_g)H_{l_g}.
+\end{equation}
+It is zero at $\beta=1$. These quantities require linear work; a dense
+CTMC over all admissible $(j,q)$ states is used only as an independent
+tiny-economy test oracle.
+
+\subsection{Stationary contracts and tenure without a dense state solver}
+A stationary employed worker's elapsed time since the last UE entry is
+$A\sim\operatorname{Exp}(\delta)$: conditional on employment, entry
+cohorts survive at the common destruction rate. At time $-A$, sample a
+uniform entry employer and set $q=0$. Replay employed contacts at rate
+$\lambda_e$ up to zero, conditioning on no intervening destruction.
+The final employer, reference and elapsed time since the last direct
+move jointly generate the stationary contract and job tenure. Sampling
+only an employer and assigning an independent entry wage would fail
+this joint-stationarity requirement.
+
+Conditional unemployment, backward unemployment duration is
+$\operatorname{Exp}(\lambda_u)$. All initialization draws, including
+historical offers, use the initial-state stream. The initial public
+spell counter starts at one for an employed worker; unobserved historical
+job numbers are not exposed. Random initialization instead uses half
+employment, uniform employers, entry contracts and zero ages.
+All-unemployed initialization uses zero ages and no initial-state draws.
+
+Independent tests construct the finite contract-state generator and
+solve its stationary distribution. For each employer, uniformization of
+the within-employer subgenerator gives joint contract masses with
+job tenure exceeding two years. Two disjoint 100,000-worker fixed-seed
+samples must satisfy predeclared absolute bounds of .005 for state
+masses and .004 for the contract--tenure tail. Long burn-in and returned
+flow tests use separate seeds.
+
+\subsection{Event clock, observation, storage and failures}
+The total primitive event rate is $\lambda_u$ while unemployed and
+$\delta+\lambda_e$ while employed. Waiting times are exponential. An
+employed event is destruction with probability
+$\delta/(\delta+\lambda_e)$; otherwise it is a uniform firm contact.
+Unemployed contacts enter a job, since every firm was validated viable.
+Self and rejected contacts remain primitive events. Destruction records
+an EU; entry records a UE; only an upward employer change records EE.
+
+Snapshots are taken at $\Delta,2\Delta,\ldots,T\Delta$. An event exactly
+at the endpoint belongs to that interval and its resulting state is
+observed. A waiting time drawn beyond one endpoint is carried into the
+next interval. No redraw occurs just because output frequency changes.
+Exact E/U exposure accumulates along each segment in years. Observed
+flow flags follow the common endpoint rules, and public first-row
+\code{ntransitions} is missing even though full truth records that first
+interval's latent counts. A same-firm return creates a new spell and
+latent EU/UE without an observed employer-to-employer flag.
+
+Uniform draws are buffered in blocks of 4,096 per component. Buffers
+survive worker and processing-block boundaries. Ability, firm primitives,
+initial states, event clocks and destinations use the established
+separate RNG streams. Fixed-seed none/basic/full output, ability changes,
+block sizes and nested frequencies are checked for path invariance.
+
+The public writer uses at most
+$\min\{10{,}000,\max(1,\lfloor100{,}000/T\rfloor)\}$ workers per block;
+a single worker's full requested history is the unavoidable minimum.
+It stores no population-wide event ledger. Bounds are ten million
+workers, one million firms, 2,147,483,647 requested rows, and 100,000
+years for each horizon. Initialization permits at most ten million historical employed offers;
+burn-in and retained simulation each have a ten-million primitive-event budget. Failure restores caller
+data and RNG, including errors after random firm construction.
+
+\subsection{Truth and result interpretation}
+Basic truth reports five structural objects:
+\begin{center}\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+Variable & Meaning\\
+\midrule
+\code{lnwage_true} & Log contract wage\\
+\code{contract_wage_true} & Contract wage level\\
+\code{worker_ability_true} & Fixed worker efficiency units\\
+\code{firm_productivity_true} & Firm productivity per efficiency unit\\
+\code{match_productivity_true} & Worker ability times firm productivity\\
+\bottomrule
+\end{tabular}\end{center}
+Ability is defined even while unemployed; job attributes are missing then. Full truth adds the reference firm,
+reference surplus and value, unemployment value, employment value,
+full-productivity match benchmark, and exact interval EU/EE/UE, offers,
+rejections, events, transitions, renegotiations and exposure. Reference
+firm zero means unemployment; reference value is then the worker's $U$.
+All reported values scale with worker ability.
+
+\code{r(solver)} has 17 named rows: primitives and realized firm support,
+unemployment value and shares, finite EE and raise hazards, Bellman
+residual, minimum surplus and entry wage, and firm count.
+\code{r(cpv_firms)} summarizes eight firm objects by mean/minimum/maximum:
+ID, quantile, productivity, full surplus, entry wage, expected mass,
+expected workers and conditional employment share. No large public
+Stata matrix of all firms is required.
+
+\code{r(cpv_flows)} has rows for unemployment share, UE, EU, EE and
+renegotiation, and columns for theory, event/exposure, observed endpoint
+probability and the descriptive endpoint probability per year.
+Renegotiation has no endpoint-transition analogue, so its last two
+columns are missing. With \code{connectivity(largest)}, theoretical
+objects and generated-event counts describe the original economy;
+realized rates, moments and durations are recomputed for returned workers.
+Six temporary count/exposure variables are removed before return under
+every truth setting. Structural truth is not labeled as AKM firm truth.
+
+\subsection{Equation audit and qualification boundary}
+The source audit uses the November 2005 author revision linked from
+Jean-Marc Robin's publications page, SHA256 prefix
+\code{f7e51c74dbd34914}. Rendered PDF pages 9--11 (printed 7--9) establish
+the bargaining cases, equation (3), beta limits and wage cuts. Its equation
+(4) visibly prints $p_{\inf}$ as the first term although it equates the
+expression with equation (3), which uses employer productivity $p$.
+This apparent typo is not copied: entry wages follow
+Equation~\eqref{eq:cpvwage}. The exact publisher PDF has not been verified;
+version-specific source claims retain that qualification. Full source
+identity, URL and evidence are in \code{docs/cpv-derivation.md}.
+
+The finite solver, continuous-time simulator and examples implement the
+canonical mechanisms with declared stylized primitives. They do not
+replicate empirical estimates or calibrate sector and skill groups.
+Qualification is for the tested macOS Stata/MP 19 environment. A release
+tag, publication and broader platforms remain separate decisions.
 
 \section{Source map and rebuilding the manual}
 \begin{longtable}{@{}P{0.49\textwidth}P{0.44\textwidth}@{}}
@@ -1254,6 +1672,8 @@ Stress designs and observed graph/audit.\\
 Initial states, burn-in, exact events.\\
 \code{src/fesim_bm_aggregate.mata}, \code{src/fesim_bm_output.mata},
 \code{src/fesim_bm_handler.mata} & BM aggregation, truth, blocks, diagnostics.\\
+\code{src/fesim_cpv.mata}, \code{src/fesim_cpv_simulate.mata},
+\code{_fesim_cpv.ado} & CPV values, contracts, exact paths and public transaction.\\
 \code{src/fesim_rng.mata}, \code{src/fesim_flows.mata},
 \code{_fesim_finalize.ado} & RNG, common flows, result finalization.\\
 \bottomrule
@@ -1262,7 +1682,7 @@ From the repository root, regenerate figures in Stata:
 \begin{lstlisting}
 do docs/manual_figures.do
 \end{lstlisting}
-The driver runs six examples and exports vector PDFs to
+The driver runs ten examples and exports vector PDFs to
 \code{docs/manual_figures/}. Each example also runs independently.
 Fixed-seed public simulations supply plotted data; analytical comparisons
 use the formulas in this manual. Raw simulated data are not needed to
@@ -1297,5 +1717,9 @@ Firms on the Relative Pay of Women.
 Leave-Out Estimation of Variance Components.
 \emph{Econometrica}, 88(5), 1859--1898.
 \url{https://doi.org/10.3982/ECTA16410}.
+\bibitem{cpv} Cahuc, Pierre, Fabien Postel-Vinay, and Jean-Marc Robin (2006).
+Wage Bargaining with On-the-Job Search: Theory and Evidence.
+\emph{Econometrica}, 74(2), 323--364.
+\url{https://doi.org/10.1111/j.1468-0262.2006.00665.x}.
 \end{thebibliography}
 \end{document}
