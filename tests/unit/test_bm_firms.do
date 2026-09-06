@@ -23,7 +23,7 @@ void fesim_test_bm_firms()
     real colvector tie_wage, tie_mass, worker_after, worker_control
     string scalar quantile_firm_state, caller_state
 
-    assert(fesim_mata_api_version() == 34)
+    assert(fesim_mata_api_version() == 35)
     assert(fesim_bm_firms_schema_version() == 1)
     solution = fesim_bm_solve(
         .4, 1, 1, .5, .2, .05, 401, 4000, 1e-10)

@@ -4,10 +4,10 @@ set more off
 set varabbrev off
 set seed 271828
 local caller_rng "`c(rngstate)'"
-local families "akm akm akm akmpaygap akmpaygap bm"
-local presets "simple stylized germany_chk_2002_2009 simple cck2016 simple"
+local families "akm akm akm akmpaygap akmpaygap bm cpv cpv"
+local presets "simple stylized germany_chk_2002_2009 simple cck2016 simple simple heterogeneous"
 tempfile common_reference
-forvalues route=1/6 {
+forvalues route=1/8 {
     local family : word `route' of `families'
     local preset : word `route' of `presets'
     quietly fesim describe `family', preset(`preset')
@@ -113,7 +113,7 @@ forvalues route=1/6 {
     bysort workerid (time): assert _N==4
     local override "mu 3.1"
     if "`family'"=="akmpaygap" local override "mu_m 3.1"
-    if "`family'"=="bm" local override "lambda_e .7"
+    if inlist("`family'","bm","cpv") local override "lambda_e .7"
     quietly fesim, dgp(`family') preset(`preset') workers(80) firms(8) ///
         periods(4) parameters(`override') seed(777) noreport clear
     local expected_class = cond(inlist("`preset'","germany_chk_2002_2009","cck2016"),"targeted_modified","stylized_modified")
@@ -129,4 +129,4 @@ forvalues route=1/6 {
     set rngstate `before_unseeded'
 }
 assert "`c(rngstate)'"=="`caller_rng'"
-display "FESIM PUBLIC CROSS-DGP CONTRACT PASS (54 truth/frequency cases)"
+display "FESIM PUBLIC CROSS-DGP CONTRACT PASS (72 truth/frequency cases)"

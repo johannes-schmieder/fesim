@@ -59,7 +59,7 @@ assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
 capture noisily fesim version
 assert _rc == 0
-assert `"`r(version)'"' == "1.0.0-rc.1"
+assert `"`r(version)'"' == "1.1.0-dev"
 
 capture noisily fesim list
 assert _rc == 0
@@ -120,7 +120,13 @@ assert _N == 300
 assert rowsof(r(solver)) == 22
 assert rowsof(r(bm_flows)) == 4
 
-mata: assert(fesim_mata_api_version() == 34)
+foreach preset in simple heterogeneous {
+    quietly fesim, dgp(cpv) preset(`preset') workers(100) firms(20) periods(3) seed(23456) truth(full) noreport clear
+    assert _N==300
+    assert rowsof(r(solver))==17 & rowsof(r(cpv_flows))==5
+    confirm variable contract_wage_true
+}
+mata: assert(fesim_mata_api_version() == 35)
 mata: assert(fesim_bm_schema_version() == 1)
 mata: assert(fesim_bm_history_schema_version() == 1)
 mata: mata clear

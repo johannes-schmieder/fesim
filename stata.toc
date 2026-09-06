@@ -1,5 +1,5 @@
 v 3
-d fesim 1.0.0-rc.1: linked employer-employee panel simulation
+d fesim 1.1.0-dev: linked employer-employee panel simulation
 d
 d Pure Stata/Mata simulator with public AKM and two-group pay-gap designs.
 p fesim Simulate linked employer-employee panels

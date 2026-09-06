@@ -1,4 +1,4 @@
-*! fesim configuration registry 1.0.0-rc.1 05sep2026
+*! fesim configuration registry 1.1.0-dev 05sep2026
 program define fesim_registry, rclass
     version 16.0
     syntax , ACTION(string) [ DGP(string) PRESet(string) PARAmeter(string) ]
@@ -10,11 +10,11 @@ program define fesim_registry, rclass
             di as error "dgp(), preset(), and parameter() are not allowed with registry action list"
             exit 198
         }
-        return local dgps "akm akmpaygap bm"
+        return local dgps "akm akmpaygap bm cpv"
         return local aliases "akmsimple akmempirical bmsimple"
-        return local qualified "akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016 bm/simple"
+        return local qualified "akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016 bm/simple cpv/simple cpv/heterogeneous"
         return local status "partial"
-        return scalar n_dgps = 3
+        return scalar n_dgps = 4
         exit
     }
 
@@ -33,7 +33,8 @@ program define fesim_registry, rclass
     local resolved_preset `"`r(preset)'"'
     if !inlist(`"`canonical'/`resolved_preset'"', ///
         "akm/simple", "akm/stylized", "akm/germany_chk_2002_2009", ///
-        "akmpaygap/simple", "akmpaygap/cck2016", "bm/simple") {
+        "akmpaygap/simple", "akmpaygap/cck2016", "bm/simple", ///
+        "cpv/simple", "cpv/heterogeneous") {
         if `"`action'"' == "parameters" {
             return local common_options ""
             return local scalar_parameters ""
@@ -49,7 +50,13 @@ program define fesim_registry, rclass
 
     if `"`action'"' == "parameters" {
         return local common_options "workers firms periods frequency start seed initial burnin jobrule truth connectivity network report"
-        if `"`canonical'"' == "bm" {
+        if `"`canonical'"' == "cpv" {
+            return local scalar_parameters "workers firms periods burnin b p_min p_max lambda_u lambda_e delta r beta sd_worker random_firms"
+            return local model_parameters "b p_min p_max lambda_u lambda_e delta r beta sd_worker random_firms"
+            return local network_parameters ""
+            return local config_schema "cpv_`resolved_preset'_v1"
+        }
+        else if `"`canonical'"' == "bm" {
             return local scalar_parameters "workers firms periods burnin b p lambda_u lambda_e delta r random_firms"
             return local model_parameters "b p lambda_u lambda_e delta r random_firms"
             return local network_parameters ""
@@ -88,7 +95,10 @@ program define fesim_registry, rclass
     }
 
     local common "workers firms periods frequency start seed initial burnin jobrule truth connectivity network report"
-    if `"`canonical'"' == "bm" {
+    if `"`canonical'"' == "cpv" {
+        local model "b p_min p_max lambda_u lambda_e delta r beta sd_worker random_firms"
+    }
+    else if `"`canonical'"' == "bm" {
         local model "b p lambda_u lambda_e delta r random_firms"
     }
     else if `"`canonical'"' == "akmpaygap" {
@@ -101,7 +111,7 @@ program define fesim_registry, rclass
         local model "mu sd_worker sd_firm sd_error firm_size_sd wage_trend rho_z_alpha rho_q_psi kappa_eu eu_worker eu_firm eu_duration kappa_ee ee_worker ee_firm ee_duration kappa_ue ue_worker ue_duration theta_sort theta_quality theta_up theta_down"
     }
     local network_model "block_count block_log_bonus bridge_count ladder_down_share ladder_lateral_share ladder_up_share ladder_band"
-    if `"`canonical'"' == "bm" local network_model ""
+    if inlist(`"`canonical'"', "bm", "cpv") local network_model ""
     local all `"`common' `model' `network_model'"'
     if !`: list name in all' {
         di as error "unknown fesim parameter: `name'"
@@ -227,6 +237,47 @@ program define fesim_registry, rclass
         local named_option "yes"
         local parameters_allowed "no"
         local description "Requested simulation seed; current leaves RNG selection to execution"
+    }
+    else if `"`canonical'"' == "cpv" {
+        local description "Canonical CPV primitive: `name'"
+        local lower "0"
+        local upper "1000"
+        local upper_closed "yes"
+        local unit "annual continuous-time rate"
+        if inlist(`"`name'"', "b", "p_min", "p_max") {
+            local upper "."
+            local unit "level per efficiency unit"
+            if `"`name'"' == "b" local default "1"
+            if `"`name'"' == "p_min" local default "1.5"
+            if `"`name'"' == "p_max" local default "2"
+        }
+        else if `"`name'"' == "lambda_u" local default ".5"
+        else if `"`name'"' == "lambda_e" {
+            local default ".3"
+            local lower_closed "yes"
+        }
+        else if `"`name'"' == "delta" local default ".2"
+        else if `"`name'"' == "r" local default ".05"
+        else if `"`name'"' == "beta" {
+            local default ".5"
+            local lower_closed "yes"
+            local upper "1"
+            local unit "worker bargaining share"
+        }
+        else if `"`name'"' == "sd_worker" {
+            local default "0"
+            if `"`resolved_preset'"' == "heterogeneous" local default ".4"
+            local lower_closed "yes"
+            local upper "."
+            local unit "log ability standard deviation"
+        }
+        else if `"`name'"' == "random_firms" {
+            local default "0"
+            local type "integer"
+            local unit "0 midpoint quantiles; 1 random quantiles"
+            local lower_closed "yes"
+            local upper "1"
+        }
     }
     else if `"`canonical'"' == "bm" {
         local description "Canonical BM primitive: `name'"
@@ -577,7 +628,7 @@ program define fesim_registry, rclass
         }
     }
 
-    if `"`canonical'"' == "bm" {
+    if inlist(`"`canonical'"', "bm", "cpv") {
         if `"`name'"' == "workers" local upper "10000000"
         if `"`name'"' == "firms" local upper "1000000"
         if `"`name'"' == "burnin" {
@@ -634,6 +685,7 @@ program define fesim_registry__resolve, rclass
     }
     else if `"`requested'"' == "akmpaygap" local canonical "akmpaygap"
     else if `"`requested'"' == "bm" local canonical "bm"
+    else if `"`requested'"' == "cpv" local canonical "cpv"
     else if `"`requested'"' == "bmsimple" {
         local canonical "bm"
         local alias_preset "simple"
@@ -706,6 +758,17 @@ program define fesim_registry__resolve, rclass
         local config_schema "akmpaygap_`resolved_preset'_v1"
         local configurable "yes"
     }
+    else if `"`canonical'"' == "cpv" {
+        local presets "simple heterogeneous"
+        if !inlist(`"`resolved_preset'"', "simple", "heterogeneous") {
+            di as error "unknown preset for dgp(cpv): `resolved_preset'"
+            exit 198
+        }
+        local title "Cahuc-Postel-Vinay-Robin sequential wage bargaining"
+        local calibration_class "stylized"
+        local config_schema "cpv_`resolved_preset'_v1"
+        local configurable "yes"
+    }
     else {
         local presets "simple"
         local aliases "bmsimple"
@@ -729,7 +792,8 @@ program define fesim_registry__resolve, rclass
     return local calibration_class `"`calibration_class'"'
     if inlist(`"`canonical'/`resolved_preset'"', ///
         "akm/simple", "akm/stylized", "akm/germany_chk_2002_2009", ///
-        "akmpaygap/simple", "akmpaygap/cck2016", "bm/simple") {
+        "akmpaygap/simple", "akmpaygap/cck2016", "bm/simple", ///
+        "cpv/simple", "cpv/heterogeneous") {
         return local status "qualified"
         return local implemented "yes"
     }

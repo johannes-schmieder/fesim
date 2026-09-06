@@ -1,5 +1,5 @@
-*! fesim canonical BM public handler 1.1.0-dev 05sep2026
-program define _fesim_bm, rclass
+*! fesim canonical CPV public handler 1.1.0-dev 05sep2026
+program define _fesim_cpv, rclass
     version 16.0
     syntax [, CLEAR *]
     if `"`clear'"' == "" & (_N > 0 | c(k) > 0) {
@@ -13,7 +13,7 @@ program define _fesim_bm, rclass
     quietly mata: st_matrix("`timers'", fesim_runtime_claim_timers(3))
     quietly mata: fesim_runtime_start(st_matrix("`timers'")[1,1])
     preserve
-    capture noisily _fesim_bm_run, timers(`timers') `options'
+    capture noisily _fesim_cpv_run, timers(`timers') `options'
     local rc = _rc
     if !`rc' return add
     quietly mata: fesim_runtime_release(st_matrix("`timers'"))
@@ -25,11 +25,11 @@ program define _fesim_bm, rclass
     quietly restore, not
 end
 
-program define _fesim_bm_run, rclass
+program define _fesim_cpv_run, rclass
     version 16.0
     syntax , TIMERS(name) [*]
     quietly fesim_config, `options'
-    foreach name in dgp_alias calibration_class frequency time_format initial ///
+    foreach name in dgp_alias preset calibration_class frequency time_format initial ///
         truth connectivity report config seed {
         local cfg_`name' `"`r(`name')'"'
     }
@@ -40,12 +40,12 @@ program define _fesim_bm_run, rclass
         moments network leaveout durations flows total
     matrix `parameters' = r(parameters)
     if `"`cfg_connectivity'"' == "force" {
-        di as error "connectivity(force) is not implemented for BM"
+        di as error "connectivity(force) is not implemented for CPV"
         exit 498
     }
-    matrix `primitives' = J(1, 6, .)
+    matrix `primitives' = J(1, 10, .)
     local column 0
-    foreach name in b p lambda_u lambda_e delta r {
+    foreach name in b p_min p_max lambda_u lambda_e delta r beta sd_worker random_firms {
         local ++column
         matrix `primitives'[1, `column'] = `parameters'["`name'", "value"]
     }
@@ -54,7 +54,7 @@ program define _fesim_bm_run, rclass
     local seed 0
     if `requested_seed' local seed `cfg_seed'
     clear
-    quietly mata: st_numscalar("`master_seed'", fesim_bm_simulate_to_stata( ///
+    quietly mata: st_numscalar("`master_seed'", fesim_cpv_simulate_to_stata( ///
         `cfg_workers', `cfg_firms', `cfg_periods', `cfg_start_value', ///
         "`cfg_time_format'", "`cfg_frequency'", `seed', `requested_seed', ///
         "`cfg_initial'", `cfg_burnin', "`cfg_truth'", st_matrix("`primitives'"), ///
@@ -78,9 +78,9 @@ program define _fesim_bm_run, rclass
     local eu = r(p_eu_realized)
     local ue = r(p_ue_realized)
     local ee = r(p_ee_realized)
-    quietly mata: fesim_bm_results_to_stata("`solver'", "`flows'", ///
+    quietly mata: fesim_cpv_results_to_stata("`solver'", "`flows'", ///
         `cfg_delta_years', `ue', `eu', `ee')
-    quietly drop _bm_eu _bm_ee _bm_ue _bm_e _bm_u
+    quietly drop _cpv_eu _cpv_ee _cpv_ue _cpv_e _cpv_u _cpv_reneg
     quietly mata: st_numscalar("`total'", ///
         fesim_runtime_stop(st_matrix("`timers'")[1,1]))
     local solve = `timing'[1,1]
@@ -89,7 +89,7 @@ program define _fesim_bm_run, rclass
     local seed : display %21.0f scalar(`master_seed')
     local seed = strtrim(`"`seed'"')
     local scientific = subinstr(`"`cfg_config'"', " report=`cfg_report'", "", .)
-    _fesim_finalize, dgp(bm) dgpalias(`cfg_dgp_alias') preset(simple) ///
+    _fesim_finalize, dgp(cpv) dgpalias(`cfg_dgp_alias') preset(`cfg_preset') ///
         calibrationclass(`cfg_calibration_class') command(`"fesim `scientific'"') ///
         seed(`seed') rng(mt64s) ///
         rngmethod(fixed_nonoverlapping_mt64s_component_streams) ///
@@ -107,17 +107,16 @@ program define _fesim_bm_run, rclass
         runtimetotal(`=scalar(`total')') runtimesolve(`solve') ///
         runtimesimulate(`simulate') runtimeoutput(`output') reporting(`cfg_report')
     return add
-    return matrix bm_flows = `flows'
-    return matrix bm_firms = `firm_summary'
-    return local model_class "canonical_homogeneous_BM"
+    return matrix cpv_flows = `flows'
+    return matrix cpv_firms = `firm_summary'
+    return local model_class "canonical_CPV_bargaining"
     return local solver_status "converged_analytic"
-    return local bm_theory_scope "unconditioned_finite_economy"
-    return local bm_sample_scope "returned_worker_panel"
-    return scalar bm_events = `timing'[1,3]
-    return scalar bm_peak_block_events = `timing'[1,4]
-    return scalar bm_peak_block_rows = `timing'[1,5]
-    return scalar bm_block_workers = `timing'[1,6]
-    char _dta[fesim_model_class] canonical_homogeneous_BM
-    char _dta[fesim_bm_theory_scope] unconditioned_finite_economy
-    char _dta[fesim_bm_sample_scope] returned_worker_panel
+    return local cpv_theory_scope "unconditioned_finite_economy"
+    return local cpv_sample_scope "returned_worker_panel"
+    return scalar cpv_events = `timing'[1,3]
+    return scalar cpv_peak_block_rows = `timing'[1,5]
+    return scalar cpv_block_workers = `timing'[1,6]
+    char _dta[fesim_model_class] canonical_CPV_bargaining
+    char _dta[fesim_cpv_theory_scope] unconditioned_finite_economy
+    char _dta[fesim_cpv_sample_scope] returned_worker_panel
 end

@@ -1,4 +1,4 @@
-*! fesim discovery output schema 1.0.0-rc.1 06sep2026
+*! fesim discovery output schema 1.1.0-dev 06sep2026
 program define _fesim_schema, rclass
     version 16.0
     syntax , DGP(string) PRESet(string)
@@ -38,6 +38,14 @@ program define _fesim_schema, rclass
         local initial "stationary random allunemployed"
         local source "Burdett and Mortensen (1998), IER 39(2); doi:10.2307/2527292. Exact homogeneous model, stylized primitives."
         local targets "Continuum equilibrium and exact finite-firm stationary allocation are distinct; no empirical calibration."
+    }
+    else if "`dgp'" == "cpv" {
+        local observed "`observed' unemp_duration"
+        local basic "lnwage_true contract_wage_true worker_ability_true firm_productivity_true match_productivity_true"
+        local full "bargaining_firm_true unemployment_value_true employment_value_true full_match_value_true reference_surplus_true reference_value_true n_eu_true n_ee_true n_ue_true n_unemployment_offers_true n_employed_offers_true n_rejected_offers_true n_events_true ntransitions_true n_renegotiations_true employment_exposure_true unemployment_exposure_true"
+        local initial "stationary random allunemployed"
+        local source "Cahuc, Postel-Vinay and Robin (2006), Econometrica 74(2); doi:10.1111/j.1468-0262.2006.00665.x. Stylized primitives."
+        local targets "Exact finite-firm bargaining model; structural productivity is not an AKM firm effect. No empirical calibration."
     }
     else exit 198
     return local observed_variables "`observed'"

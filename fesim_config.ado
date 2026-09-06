@@ -1,4 +1,4 @@
-*! fesim common configuration resolver 1.0.0-rc.1 05sep2026
+*! fesim common configuration resolver 1.1.0-dev 05sep2026
 program define fesim_config, rclass
     version 16.0
     syntax [ , DGP(string) PRESet(string) WORKers(string) FIRMs(string) ///
@@ -113,7 +113,7 @@ program define fesim_config, rclass
         di as error "network() must be random, blocks, bridges, or ladder"
         exit 198
     }
-    if inlist(`"`canonical'"', "akmpaygap", "bm") & `"`network'"' != "random" {
+    if inlist(`"`canonical'"', "akmpaygap", "bm", "cpv") & `"`network'"' != "random" {
         di as error "`canonical' currently requires network(random)"
         exit 198
     }
@@ -161,7 +161,13 @@ program define fesim_config, rclass
         local value_`name' = strtrim(`"`formatted'"')
     }
 
-    if `"`canonical'"' == "bm" {
+    if `"`canonical'"' == "cpv" {
+        if real(`"`value_p_max'"') < real(`"`value_p_min'"') {
+            di as error "CPV p_max must be at least p_min"
+            exit 198
+        }
+    }
+    else if `"`canonical'"' == "bm" {
         if real(`"`value_p'"') <= real(`"`value_b'"') {
             di as error "BM productivity p must exceed b"
             exit 198
@@ -193,7 +199,7 @@ program define fesim_config, rclass
             exit 198
         }
     }
-    else if `"`resolved_preset'"' != "simple" {
+    else if (`"`resolved_preset'"' != "simple" & `"`canonical'"' != "cpv") {
         if real(`"`value_firms'"') < 2 {
             di as error "firms() must be at least 2 for akm/`resolved_preset'"
             exit 198
@@ -209,7 +215,7 @@ program define fesim_config, rclass
             exit 198
         }
     }
-    if `"`canonical'"' != "bm" & abs(real(`"`value_ladder_down_share'"') + ///
+    if !inlist(`"`canonical'"', "bm", "cpv") & abs(real(`"`value_ladder_down_share'"') + ///
         real(`"`value_ladder_lateral_share'"') + ///
         real(`"`value_ladder_up_share'"') - 1) > 1e-12 {
         di as error "ladder direction shares must sum to one"
@@ -287,17 +293,17 @@ program define fesim_config, rclass
     local time_format `"`r(format)'"'
     local interval_unit `"`r(interval_unit)'"'
     local internal_clock `"`r(internal_clock)'"'
-    if `"`canonical'"' == "bm" local internal_clock "continuous_time"
+    if inlist(`"`canonical'"', "bm", "cpv") local internal_clock "continuous_time"
     else if `"`canonical'"' == "akmpaygap" local internal_clock "output_period"
-    else if `"`resolved_preset'"' != "simple" local internal_clock "month"
+    else if (`"`resolved_preset'"' != "simple" & `"`canonical'"' != "cpv") local internal_clock "month"
     local start_value = r(start_value)
     local end_value = r(end_value)
     local periods_per_year = r(periods_per_year)
     local delta_years = r(delta_years)
 
-    if `"`canonical'"' == "bm" & ///
+    if inlist(`"`canonical'"', "bm", "cpv") & ///
         real(`"`value_periods'"') * `delta_years' > 100000 {
-        di as error "BM retained horizon may not exceed 100000 years"
+        di as error "Continuous-time retained horizon may not exceed 100000 years"
         exit 198
     }
 
@@ -323,7 +329,7 @@ program define fesim_config, rclass
     }
     if `"`initial'"' == "" {
         if `"`canonical'"' == "akmpaygap" | ///
-            `"`resolved_preset'"' != "simple" {
+            (`"`resolved_preset'"' != "simple" & `"`canonical'"' != "cpv") {
             local initial "random"
             local source_initial "preset"
         }
@@ -337,19 +343,19 @@ program define fesim_config, rclass
         exit 198
     }
     if (`"`canonical'"' == "akmpaygap" | ///
-        `"`resolved_preset'"' != "simple") & `"`initial'"' == "stationary" {
+        (`"`resolved_preset'"' != "simple" & `"`canonical'"' != "cpv")) & `"`initial'"' == "stationary" {
         di as error "initial(stationary) is unavailable for `canonical'/`resolved_preset'"
         exit 198
     }
-    if `"`canonical'"' == "bm" & `"`initial'"' == "random" & ///
+    if inlist(`"`canonical'"', "bm", "cpv") & `"`initial'"' == "random" & ///
         real(`"`value_burnin'"') <= 0 {
-        di as error "BM initial(random) requires positive burnin() in years"
+        di as error "Continuous-time initial(random) requires positive burnin() in years"
         exit 198
     }
-    if `"`canonical'"' != "bm" & ///
+    if !inlist(`"`canonical'"', "bm", "cpv") & ///
         `"`initial'"' == "random" & real(`"`value_burnin'"') < 1 {
         if `"`canonical'"' == "akmpaygap" | ///
-            `"`resolved_preset'"' != "simple" {
+            (`"`resolved_preset'"' != "simple" & `"`canonical'"' != "cpv") {
             di as error "initial(random) requires burnin() of at least one year for `canonical'/`resolved_preset'"
         }
         else {

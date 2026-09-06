@@ -1,4 +1,4 @@
-*! fesim 1.0.0-rc.1 05sep2026
+*! fesim 1.1.0-dev 05sep2026
 program define fesim, rclass
     version 16.0
 
@@ -172,7 +172,7 @@ program define fesim__describe, rclass
         di as txt _newline "Configuration metadata for this preset is planned."
         return local calibration_class `"`calibration'"'
     }
-    if `"`dgp'"' == "bm" | (`"`dgp'"' == "akm" & ///
+    if inlist(`"`dgp'"', "bm", "cpv") | (`"`dgp'"' == "akm" & ///
         inlist(`"`resolved_preset'"', "simple", "stylized", ///
         "germany_chk_2002_2009")) | ///
         (`"`dgp'"' == "akmpaygap" & ///
@@ -255,6 +255,11 @@ program define fesim__simulate, rclass
     if `"`noreport'"' != "" local config_options `"`config_options' noreport"'
 
     quietly fesim_config, `config_options'
+    if `"`r(dgp)'"' == "cpv" {
+        _fesim_cpv, `config_options' `clear'
+        return add
+        exit
+    }
     if `"`r(dgp)'"' == "bm" {
         _fesim_bm, `config_options' `clear'
         return add

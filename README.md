@@ -6,6 +6,23 @@ The installed runtime uses only official Stata and Mata. It does not require a c
 
 ## Current implementation status
 
+CPV is now implemented on `main` in `1.1.0-dev`: `dgp(cpv)` provides
+`preset(simple)` and `preset(heterogeneous)`, exact continuous-time bargaining,
+stationary contracts and tenure, structural truth, and finite-economy flow
+diagnostics. The CPV examples, manual update and review-candidate qualification
+are in progress. The previous qualified six-preset candidate remains documented
+in [its review report](docs/qualification-1.0.0-rc.1.md).
+
+```stata
+fesim, dgp(cpv) preset(heterogeneous) workers(5000) firms(250) ///
+    periods(10) seed(12345) truth(full) parameters(beta .5) clear
+matrix list r(cpv_flows)
+```
+
+Offers may raise wages at the current employer; upward employer moves may cut
+current wages. Ability scales values and wages without changing mobility.
+[Finite-firm derivation and source audit](docs/cpv-derivation.md).
+
 The [user and technical manual](docs/fesim_manual.pdf) covers syntax, all six
 DGP presets, parameter defaults, returned data, and six illustrated examples.
 Its appendices document the DGP implementations and derive the BM equilibrium,
@@ -14,7 +31,7 @@ finite-firm stationary allocation, and exact continuous-time simulation.
 are included. Rebuild from the repository root with `bash docs/build_manual.sh`;
 regenerate figures in Stata with `do docs/manual_figures.do`.
 
-The latest release is `v0.1.0`. The `main` branch is now `1.0.0-rc.1`, an unpublished candidate for owner review, with
+The latest release is `v0.1.0`. The preceding `1.0.0-rc.1` review candidate includes
 three public AKM presets, two public pay-gap presets, and canonical BM. The pay-gap family
 includes a transparent stylized design and a CCK-inspired targeted design with
 an exact three-reference decomposition:

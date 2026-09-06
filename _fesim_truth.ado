@@ -1,4 +1,4 @@
-*! fesim retained-sample truth moments 1.0.0-rc.1 05sep2026
+*! fesim retained-sample truth moments 1.1.0-dev 05sep2026
 program define _fesim_truth, rclass
     version 16.0
 

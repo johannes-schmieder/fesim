@@ -42,7 +42,7 @@ if `build_rc' {
 local tests install_smoke smoke unit/test_parser unit/test_registry ///
     unit/test_loader ///
     unit/test_config unit/test_calibration_registry unit/test_time ///
-    unit/test_cpv_solver unit/test_rates unit/test_hazards unit/test_bm_derivation ///
+    unit/test_cpv_solver unit/test_cpv_events unit/test_rates unit/test_hazards unit/test_bm_derivation ///
     unit/bm_equal_profit unit/test_bm_firms unit/test_bm_events ///
     unit/test_bm_initialization unit/test_bm_aggregation ///
     unit/test_bm_output ///
@@ -66,6 +66,7 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     integration/test_network_bridges integration/test_network_ladder ///
     integration/test_output_blocks integration/test_panel_contract ///
     integration/test_results integration/bm_frequency integration/bm_output integration/bm_public integration/bm_streaming ///
+    integration/test_cpv_public integration/test_cpv_invariance statistical/test_cpv_stationary ///
     regression/akm_tiny ///
     statistical/akm_moments statistical/akm_exogeneity ///
     statistical/akm_stylized_mobility ///
