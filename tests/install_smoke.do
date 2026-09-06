@@ -21,6 +21,10 @@ capture noisily findfile fesim.ado
 assert _rc == 0
 assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
+capture noisily findfile _fesim_schema.ado
+assert _rc == 0
+assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
+
 capture noisily findfile _fesim_finalize.ado
 assert _rc == 0
 assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
@@ -55,7 +59,7 @@ assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
 capture noisily fesim version
 assert _rc == 0
-assert `"`r(version)'"' == "0.4.0-dev"
+assert `"`r(version)'"' == "1.0.0-rc.1"
 
 capture noisily fesim list
 assert _rc == 0
@@ -106,6 +110,11 @@ confirm variable group
 matrix installed_paygap = r(decomposition)
 assert rowsof(installed_paygap) == 9
 assert abs(installed_paygap["adding_up_error", "symmetric"]) < 1e-10
+quietly fesim, dgp(akmpaygap) preset(cck2016) workers(120) firms(12) ///
+    periods(3) seed(24680) truth(full) noreport clear
+assert _N == 360
+assert "`r(calibration_class)'" == "targeted"
+assert rowsof(r(decomposition)) == 9
 quietly fesim, dgp(bm) workers(100) firms(20) periods(3) seed(23456) truth(full) noreport clear
 assert _N == 300
 assert rowsof(r(solver)) == 22

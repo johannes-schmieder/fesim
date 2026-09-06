@@ -1,4 +1,4 @@
-*! fesim_run 0.4.0-dev 05sep2026
+*! fesim_run 1.0.0-rc.1 05sep2026
 *! Run named examples embedded in fesim.sthlp.
 program define fesim_run
     version 16.0

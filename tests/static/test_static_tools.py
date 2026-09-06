@@ -26,6 +26,10 @@ class ReceiptVerifierTests(unittest.TestCase):
         )
         (self.repo / ".gitignore").write_text("build/\n", encoding="utf-8")
         (self.repo / "source.ado").write_text("version 19.0\n", encoding="utf-8")
+        (self.repo / "tests").mkdir()
+        (self.repo / "tests/run_all.do").write_text(
+            "\nlocal tests smoke unit/example\nlocal n_tests : word count `tests'\n"
+        )
         subprocess.run(["git", "-C", str(self.repo), "add", "."], check=True)
         subprocess.run(
             ["git", "-C", str(self.repo), "commit", "-m", "fixture"],
@@ -53,7 +57,8 @@ class ReceiptVerifierTests(unittest.TestCase):
             "architecture": "test",
             "suite": "quick",
             "exit_code": 0,
-            "tests_passed": 15,
+            "tests_passed": 2,
+            "tests": ["smoke", "unit/example"],
             "tests_failed": 0,
             "mlib_rebuilt": True,
             "status": "accepted",
@@ -94,6 +99,16 @@ class ReceiptVerifierTests(unittest.TestCase):
         result = self.run_verifier(self.write_receipt(status="failed"))
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("status is not accepted", result.stderr)
+
+    def test_rejects_incomplete_count(self) -> None:
+        result = self.run_verifier(self.write_receipt(tests_passed=1))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("test count differs", result.stderr)
+
+    def test_rejects_wrong_inventory(self) -> None:
+        result = self.run_verifier(self.write_receipt(tests=["smoke", "unit/wrong"]))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("test inventory differs", result.stderr)
 
 
 if __name__ == "__main__":

@@ -57,7 +57,8 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     unit/test_paygap_lifecycle unit/test_paygap_decomp ///
     unit/test_akm_wages ///
     unit/test_akm_diagnostics ///
-    integration/test_discovery ///
+    integration/test_discovery integration/test_discovery_contract ///
+    integration/test_public_contract ///
     integration/test_akm_public ///
     integration/test_akm_stylized_public ///
     integration/test_akm_germany_chk_public integration/test_paygap_public ///
@@ -70,7 +71,7 @@ local tests install_smoke smoke unit/test_parser unit/test_registry ///
     statistical/akm_stylized_mobility ///
     statistical/paygap_limits statistical/paygap_cck_moments ///
     statistical/bm_burnin statistical/bm_moments ///
-    docs/run_examples docs/run_help_examples
+    docs/run_examples docs/run_help_examples docs/run_manual_examples
 local n_tests : word count `tests'
 foreach test of local tests {
     capture log close fesim_test
@@ -107,6 +108,13 @@ if `"`source_sha'"' != "" {
     file write `receipt' `"  "finished_at": "`finished_at'","' _n
     file write `receipt' `"  "exit_code": 0,"' _n
     file write `receipt' `"  "tests_passed": `n_tests',"' _n
+    file write `receipt' `"  "tests": ["'
+    local separator ""
+    foreach test of local tests {
+        file write `receipt' `"`separator'"`test'""'
+        local separator ", "
+    }
+    file write `receipt' "]," _n
     file write `receipt' `"  "tests_failed": 0,"' _n
     file write `receipt' `"  "mlib_rebuilt": true,"' _n
     file write `receipt' `"  "status": "accepted""' _n

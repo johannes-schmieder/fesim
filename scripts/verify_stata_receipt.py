@@ -47,6 +47,15 @@ def load_receipt(path: Path) -> dict[str, Any]:
     return data
 
 
+def registered_tests(root: Path) -> list[str]:
+    runner = (root / "tests/run_all.do").read_text(encoding="utf-8")
+    match = re.search(r"\nlocal tests\s+(.*?)\nlocal n_tests", runner, re.DOTALL)
+    require(match is not None, "cannot parse registered Stata tests")
+    names = match.group(1).replace("///", " ").split()
+    require(bool(names) and len(names) == len(set(names)), "invalid test inventory")
+    return names
+
+
 def verify(receipt_path: Path, expected_sha: str | None = None) -> str:
     root = repository_root(Path.cwd())
     head = git(root, "rev-parse", "HEAD").lower()
@@ -87,6 +96,9 @@ def verify(receipt_path: Path, expected_sha: str | None = None) -> str:
         isinstance(data.get("tests_passed"), int) and data["tests_passed"] > 0,
         "receipt has no positive test count",
     )
+    names = registered_tests(root)
+    require(data["tests_passed"] == len(names), "receipt test count differs from inventory")
+    require(data.get("tests") == names, "receipt test inventory differs from source")
     require(data.get("mlib_rebuilt") is True, "receipt did not rebuild Mata source")
     for key in ("suite", "stata_version", "stata_flavor", "os", "architecture"):
         require(str(data.get(key, "")).strip() != "", f"receipt omits {key}")

@@ -1,4 +1,4 @@
-*! fesim common configuration resolver 0.4.0-dev 05sep2026
+*! fesim common configuration resolver 1.0.0-rc.1 05sep2026
 program define fesim_config, rclass
     version 16.0
     syntax [ , DGP(string) PRESet(string) WORKers(string) FIRMs(string) ///

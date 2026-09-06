@@ -2,7 +2,7 @@
 
 `fesim` is a Stata/Mata package for simulating linked employer–employee panels. Its intended scope includes transparent AKM-style designs, mobility and network experiments, pay-gap decompositions, and structural search models, all behind a common output contract.
 
-The installed runtime will use only official Stata and Mata. It will not require a compiled plugin, Python, R, Julia, or a user-written Stata dependency.
+The installed runtime uses only official Stata and Mata. It does not require a compiled plugin, Python, R, Julia, or a user-written Stata dependency.
 
 ## Current implementation status
 
@@ -14,7 +14,7 @@ finite-firm stationary allocation, and exact continuous-time simulation.
 are included. Rebuild from the repository root with `bash docs/build_manual.sh`;
 regenerate figures in Stata with `do docs/manual_figures.do`.
 
-The latest release is `v0.1.0`. The `main` branch is now `0.4.0-dev`, with
+The latest release is `v0.1.0`. The `main` branch is now `1.0.0-rc.1`, an unpublished candidate for owner review, with
 three public AKM presets, two public pay-gap presets, and canonical BM. The pay-gap family
 includes a transparent stylized design and a CCK-inspired targeted design with
 an exact three-reference decomposition:
@@ -33,7 +33,7 @@ fesim describe akmpaygap, preset(cck2016)
 fesim describe bm
 ```
 
-`fesim describe akmsimple` reports the resolved `akm/simple` configuration and scalar-parameter matrix. The same resolver validates named common options and model-specific name-value pairs such as `parameters(mu 3.2 p_ee .10)`, records their sources, and serializes the result deterministically. In the frozen v0.1 contract, all model-specific scalars remain inside `parameters()`; only common controls have named options.
+`fesim describe akmsimple` reports the resolved `akm/simple` configuration, scalar values/bounds/units, output inventories, supported initialization/network choices, and scientific source/target scope. The same resolver validates named common options and model-specific name-value pairs such as `parameters(mu 3.2 p_ee .10)`, records their sources, and serializes the result deterministically. In the frozen v0.1 contract, all model-specific scalars remain inside `parameters()`; only common controls have named options.
 
 The development branch also exposes the common `network(random|blocks|bridges|ladder)` stress designs. `network(random)` is the frozen compatibility default. `network(blocks)` assigns balanced independent worker and firm communities and multiplies same-block destination weights by `exp(block_log_bonus)`; `parameters(block_log_bonus 0)` nests the exact random destination rule. `network(bridges)` starts from strict communities and redirects an exact reproducible set of existing EE events across adjacent blocks without changing their occurrence or timing. `network(ladder)` changes only ordinary EE destinations, using persistent firm-wage-effect ranks and default downward/lateral/upward shares of `.10/.20/.70`. Network scalars remain inside `parameters()`.
 
@@ -243,3 +243,13 @@ Read [DESIGN.md](DESIGN.md) before changing public behavior and [PLAN.md](PLAN.m
 The qualified component-stream protocol is documented in [docs/rng.md](docs/rng.md), the worker-block output strategy in [docs/output.md](docs/output.md), the common statistical definitions in [docs/moments.md](docs/moments.md), the pay-gap model in [docs/akm_paygap.md](docs/akm_paygap.md), the canonical BM equilibrium in [docs/bm_equilibrium.md](docs/bm_equilibrium.md), observed graph semantics in [docs/network.md](docs/network.md), frozen tiny-panel scope in [docs/regression.md](docs/regression.md), large-sample test bounds in [docs/statistical_tests.md](docs/statistical_tests.md), and exact-source runtime baselines in [docs/performance.md](docs/performance.md). User-visible release scope is summarized in [CHANGELOG.md](CHANGELOG.md).
 
 `fesim` is released under the MIT License. See [LICENSE](LICENSE).
+
+## Candidate review and compatibility
+
+See the [P6 audit](docs/p6_audit.md), [calibration guide](docs/calibration.md),
+[compatibility policy](docs/compatibility.md), and
+[qualification/publishing guide](docs/publishing.md). This candidate preserves
+simulation defaults and seeded paths. Public API level 1 and Mata API 33 remain
+unchanged. No new tag or release is implied. Cite the software using
+[CITATION.cff](CITATION.cff), record the exact version/SHA, and cite the relevant
+DGP paper separately; a software citation does not establish empirical calibration.

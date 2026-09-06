@@ -32,4 +32,4 @@ This protocol makes component draw order local: for example, adding observation-
 
 The executable spike and deterministic manager tests currently qualify Stata/MP 19.0, revision 12 Aug 2026, on macOS Apple Silicon. Reproducibility means bitwise equality for a fixed `fesim` source/version, command, explicit seed, and qualified Stata environment. Cross-version or cross-platform bitwise equality is not claimed without matching receipts.
 
-Discovery, configuration validation, deterministic output writing, and invalid commands consume no draws. DGP-level `report`/`noreport` and truth-mode invariance will be tested again once simulation output exists.
+Discovery, configuration validation, deterministic output writing, and invalid commands consume no draws. DGP-level report and truth-mode invariance are tested across all six presets and three output frequencies. The cross-DGP contract also checks the one-draw unseeded continuation for every preset.

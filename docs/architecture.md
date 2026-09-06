@@ -2,7 +2,22 @@
 
 The normative architecture is in [`DESIGN.md`](../DESIGN.md). This note records only implementation details established by the current source.
 
-## Evolution from the Checkpoint 2 boundaries
+## Current candidate
+
+All six presets dispatch through four scientific engines: interval AKM,
+monthly AKM, two-group pay-gap, and canonical continuous-time BM. The public
+parser/configuration boundary validates before mutation; source loading,
+component RNG, streaming output, graph filtering, truth/moments, and final
+metadata are shared. `_fesim_schema.ado` supplies discovery inventories and
+scientific scope; numeric schemas remain in `fesim_registry.ado`.
+Public API level 1 and Mata API 33 are distinct and unchanged. Runtime installs
+only authoritative Stata/Mata source. See [compatibility](compatibility.md).
+
+## Historical evolution from Checkpoint 2
+
+The checkpoint narrative below records earlier boundaries. Statements such as
+“discovery-only”, “not yet”, and earlier API numbers describe those checkpoints,
+not the current six-preset candidate.
 
 The public `fesim.ado` layer performs subcommand detection, discovery dispatch, and data-safety enforcement. It delegates DGP and preset resolution, defaults, overrides, and validation before it considers replacing loaded data.
 

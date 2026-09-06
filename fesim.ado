@@ -1,4 +1,4 @@
-*! fesim 0.4.0-dev 05sep2026
+*! fesim 1.0.0-rc.1 05sep2026
 program define fesim, rclass
     version 16.0
 
@@ -164,7 +164,6 @@ program define fesim__describe, rclass
         di as txt _newline "  resolved defaults: " as result `"`config'"'
         di as txt _newline "Scalar parameter metadata (value, default, lower, upper)"
         matrix list `parameters', noheader format(%12.6g)
-        return matrix parameters = `parameters'
         return local config `"`config'"'
         return local config_sources `"`config_sources'"'
         return local calibration_class `"`returned_calibration'"'
@@ -183,6 +182,40 @@ program define fesim__describe, rclass
     else {
         di as txt "Simulation is not yet available for this preset."
     }
+
+    quietly _fesim_schema, dgp(`dgp') preset(`resolved_preset')
+    foreach item in observed_variables truth_basic_variables truth_full_variables ///
+        conditional_variables initial_modes networks source_note target_scope {
+        local schema_`item' `"`r(`item')'"'
+    }
+    di as txt _newline "Observed variables: " as result `"`schema_observed_variables'"'
+    di as txt "Basic truth additions: " as result `"`schema_truth_basic_variables'"'
+    di as txt "Full truth further additions: " as result `"`schema_truth_full_variables'"'
+    di as txt "Conditional variables: " as result `"`schema_conditional_variables'"'
+    di as txt "Initial modes: " as result `"`schema_initial_modes'"'
+    di as txt "Networks: " as result `"`schema_networks'"'
+    di as txt "Source: " as result `"`schema_source_note'"'
+    di as txt "Target scope: " as result `"`schema_target_scope'"'
+    if `"`dgp'"' == "akmpaygap" ///
+        di as txt "Network parameter rows are reserved; only network(random) is supported."
+    di as txt _newline "Parameter units and bound endpoints (yes means included)"
+    local parameter_units ""
+    foreach name of local scalar_parameters {
+        quietly fesim_registry, action(parameter) dgp(`dgp') ///
+            preset(`resolved_preset') parameter(`name')
+        di as txt "  `name': " as result `"`r(unit)'"' ///
+            as txt " [lower included: `r(lower_closed)'; upper included: `r(upper_closed)']"
+        local parameter_units `"`parameter_units' `name'=`r(unit)';"'
+    }
+    foreach item in observed_variables truth_basic_variables truth_full_variables ///
+        conditional_variables initial_modes networks source_note target_scope {
+        return local `item' `"`schema_`item''"'
+    }
+    return local parameter_units `"`parameter_units'"'
+    return matrix parameters = `parameters'
+    return local config `"`config'"'
+    return local config_sources `"`config_sources'"'
+    return local calibration_class `"`returned_calibration'"'
 
     return local command "describe"
     return local dgp `"`dgp'"'

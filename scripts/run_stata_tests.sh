@@ -24,9 +24,12 @@ if [[ -z "$branch" ]]; then
 fi
 
 cd "$repository_root"
+receipt="$repository_root/build/test-results/receipt-$source_sha.json"
+# Batch Stata can return OS status zero after a do-file error. A stale receipt
+# must never turn such a failed rerun into accepted evidence.
+rm -f "$receipt"
 "$stata_binary" -q -b do tests/run_all.do \
     "$repository_root" "$source_sha" "$suite" "$branch"
 
-receipt="$repository_root/build/test-results/receipt-$source_sha.json"
 python3 "$repository_root/scripts/verify_stata_receipt.py" \
     "$receipt" "$source_sha"

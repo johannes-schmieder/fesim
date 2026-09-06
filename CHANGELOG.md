@@ -1,6 +1,20 @@
 # Changelog
 
-## Unreleased — 0.4.0 candidate
+## Unreleased — 1.0.0-rc.1 candidate
+
+- Complete six-preset discovery with variable inventories, units/bound closure,
+  initialization/network support, and scientific source/target scope.
+- Add cross-DGP frequency/truth/state/override tests and register all six manual
+  examples in the full suite; isolated installation now includes CCK.
+- Reject stale or incomplete qualification receipts; add exact-archive validation
+  and matched 26-case performance controls.
+- Reconcile architecture and design status; add calibration, compatibility, and
+  publishing guides. Synchronize candidate version and illustrated manual.
+- Economic defaults, simulation algorithms, public API level 1, and Mata API 33
+  are unchanged. Candidate qualification is macOS MP 19 only; tags/publication
+  and broader platform qualification remain separate owner gates.
+
+## 0.4.0 development milestones
 
 - Public canonical `bm/simple` and `bmsimple`: analytical equilibrium, finite
   firms, exact continuous-time events, stationary/random/all-unemployed starts,

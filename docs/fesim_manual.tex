@@ -27,7 +27,7 @@
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\small\color{ink}\textsf{fesim: User and Technical Manual}}
-\fancyhead[R]{\small\textsf{0.4.0-dev}}
+\fancyhead[R]{\small\textsf{1.0.0-rc.1}}
 \fancyfoot[C]{\thepage}
 \setlength{\headheight}{14pt}
 \hypersetup{pdftitle={fesim: User and Technical Manual},
@@ -47,8 +47,8 @@ Johannes F. Schmieder\\
 Boston University
 \vspace{0.35in}
 
-Development version 0.4.0-dev \quad $\cdot$ \quad Mata API 33\\
-September 5, 2026
+Development version 1.0.0-rc.1 \quad $\cdot$ \quad Mata API 33\\
+September 6, 2026
 \vspace{0.5in}
 
 \begin{minipage}{0.91\textwidth}
@@ -59,10 +59,10 @@ documents the implemented random processes and derives the canonical
 Burdett--Mortensen equilibrium, its finite-firm approximation, and the exact
 continuous-time worker simulation.
 
-The documentation describes development source following Checkpoint 49,
-repository revision \code{c299ce3}. The preceding full test qualification is
-\code{0c33a52}. The stable \code{v0.1.0} release contains only the earlier
-simple-AKM command.
+This manual accompanies the unpublished \code{1.0.0-rc.1} candidate.
+Qualification is limited to Stata/MP 19 on macOS Apple Silicon; exact source
+and archive evidence are recorded in the repository release-review report.
+The stable \code{v0.1.0} release contains the earlier simple-AKM command.
 \end{minipage}
 \vfill
 \url{https://github.com/johannes-schmieder/fesim}\\
@@ -211,7 +211,8 @@ design for pay-gap and BM. All four designs are available for AKM.\\[4pt]
 \code{parameters(...)} &
 Whitespace-separated scalar name/value pairs. Model and network controls
 belong here. Unknown, duplicate, irrelevant, conflicting, or inadmissible
-inputs fail validation.\\[4pt]
+inputs fail validation. Numeric common controls also accept this input route;
+named options are preferred and duplicate specification is rejected.\\[4pt]
 \code{report}, \code{noreport} &
 Show (default) or suppress the report without changing data.\\[4pt]
 \code{clear} &
@@ -243,6 +244,16 @@ burn-in output interval for simple AKM and at least one year for monthly
 AKM and pay-gap. Those non-BM burn-in inputs are integers. BM burn-in is
 continuous years and can be fractional. Pay-gap uses output-clock steps
 within its year-valued burn-in.
+
+\paragraph{Discovery and compatibility.}
+\code{fesim describe} also reports observed and truth-variable inventories,
+applicable initialization and network choices, parameter units, and scientific
+source/target scope. Full-truth inventories list additions beyond basic truth;
+conditional network fields are separate. Existing v1 option meanings, defaults,
+output semantics, and named matrices are compatibility commitments. Numerical
+fixes that change seeded output must be disclosed. See
+\href{https://github.com/johannes-schmieder/fesim/blob/main/docs/compatibility.md}{the compatibility policy}
+for accepted option abbreviations and future deprecation rules.
 
 \subsection{Changing model parameters}
 \begin{lstlisting}
@@ -1204,8 +1215,9 @@ Tests cover equilibrium residuals, equal profit, Bellman identities,
 finite masses, ties, singleton firms, deterministic/random grids, replay,
 strict acceptance, burn-in convergence, truth/frequency/block invariance,
 rollback, and source-only installation. Statistical checks use fixed
-seeds and declared tolerances. The preceding accepted full suite passed
-60 Stata files on Stata/MP 19 macOS Apple Silicon at \code{0c33a52}.
+seeds and declared tolerances. The candidate inventory contains 63 Stata
+test files. Exact macOS Stata/MP 19 qualification receipts and archive hashes
+are recorded in the repository release-review report.
 
 Limit tests approach equal offer rates, small employed offers, rare
 destruction, and small positive discounting. Public rates remain positive.

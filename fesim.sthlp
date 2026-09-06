@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.4.0-dev 05sep2026}{...}
+{* *! version 1.0.0-rc.1 05sep2026}{...}
 {.-}
 help for {cmd:fesim} {right:(Johannes F. Schmieder)}
 {.-}
@@ -8,7 +8,7 @@ help for {cmd:fesim} {right:(Johannes F. Schmieder)}
 
 {p 4 8}{cmd:fesim} {hline 2} linked employer-employee panel simulation{p_end}
 
-{title:Syntax available in 0.4.0-dev}
+{title:Syntax available in 1.0.0-rc.1}
 
 {p 8 12}{cmd:fesim version}{p_end}
 {p 8 12}{cmd:fesim list}{p_end}
@@ -145,6 +145,23 @@ Discovery and configuration resolution do not alter data or Stata's RNG state. T
 {synopt:{cmd:r(config)}}stable canonical default serialization, when available{p_end}
 {synopt:{cmd:r(config_sources)}}source of each resolved field, when available{p_end}
 {synopt:{cmd:r(parameters)}}scalar parameter matrix with value, default, lower, and upper columns{p_end}
+
+{synopt:{cmd:r(observed_variables)}}observed output inventory{p_end}
+{synopt:{cmd:r(truth_basic_variables)}}basic truth additions{p_end}
+{synopt:{cmd:r(truth_full_variables)}}further full truth additions{p_end}
+{synopt:{cmd:r(conditional_variables)}}conditional network fields and inclusion rules{p_end}
+{synopt:{cmd:r(initial_modes)}}supported initialization modes{p_end}
+{synopt:{cmd:r(networks)}}supported network designs{p_end}
+{synopt:{cmd:r(source_note)}}scientific source or stylized provenance{p_end}
+{synopt:{cmd:r(target_scope)}}limits of target/calibration claims{p_end}
+{synopt:{cmd:r(parameter_units)}}semicolon-delimited name=unit entries{p_end}
+
+{pstd}Numeric common controls also accept the legacy {cmd:parameters()} route.
+Prefer named options; supplying the same control through both routes is rejected.
+Pay-gap network scalar rows are reserved and do not enable nonrandom designs.
+Within v1, existing defaults and output semantics are compatibility commitments;
+removal or semantic changes require a major version. Numerical fixes that change
+seeded output must be disclosed.{p_end}
 
 {pstd}A successful simulation returns:{p_end}
 {synoptset 38 tabbed}{...}
@@ -421,10 +438,10 @@ caller's data.
 {title:Limitations}
 
 {pstd}
-Version 0.4.0-dev exposes all six registered presets. The Germany preset targets wage-component dispersions and sorting only; its hazards and durations are not German-calibrated. The CCK-inspired preset targets selected group moments and the male-reference firm decomposition under the package's standard-normal surplus normalization; it does not reproduce CCK's empirical normalization or full estimation. The BM preset implements the homogeneous-worker, common-productivity equilibrium with stylized primitives; worker heterogeneity and heterogeneous firm productivity are outside its scope. {cmd:connectivity(force)} has no accepted scientific design.
+Version 1.0.0-rc.1 exposes all six registered presets. The Germany preset targets wage-component dispersions and sorting only; its hazards and durations are not German-calibrated. The CCK-inspired preset targets selected group moments and the male-reference firm decomposition under the package's standard-normal surplus normalization; it does not reproduce CCK's empirical normalization or full estimation. The BM preset implements the homogeneous-worker, common-productivity equilibrium with stylized primitives; worker heterogeneity and heterogeneous firm productivity are outside its scope. {cmd:connectivity(force)} has no accepted scientific design.
 
 {pstd}
-The supported minimum is Stata 19. Current 0.4.0-dev exact-source qualification covers Stata/MP 19 on macOS Apple Silicon. The released v0.1.0 was additionally qualified on Windows x86-64. No cross-version or cross-platform bitwise claim is made.
+The supported minimum is Stata 19. Current 1.0.0-rc.1 exact-source qualification covers Stata/MP 19 on macOS Apple Silicon. The released v0.1.0 was additionally qualified on Windows x86-64. No cross-version or cross-platform bitwise claim is made.
 
 {title:Reference}
 
