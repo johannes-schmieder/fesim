@@ -45,3 +45,17 @@ Reference firm 0 denotes unemployment. Incumbent raises do not change spell IDs,
 tenure or transition counts. Exact offers, rejections, raises, transitions and
 exposure include the first interval, although its public transition count is
 missing. See [the manual](fesim_manual.pdf) and [derivation](cpv-derivation.md).
+
+
+## BLM output
+
+The finite-type writer returns 13 common variables, six basic truth columns and
+eight full-truth additions. Every row is employed; unemployment duration is
+always missing. Monthly earnings, event and destination draws are buffered in
+worker-major order, with 100,000 target output rows per block and at most 10,000
+workers. Annual/quarterly/monthly output takes endpoint snapshots after 12/3/1
+updates. Tenure resets to zero on every actual-firm move, including within-class
+moves. Full truth's lags and conditional quantities refer to the last internal
+month; interval move counts include the first retained interval. Common adjacent
+flow missing-value rules are unchanged. Full matrix provenance is chunked without
+truncation. See [the model note](blm.md) and [manual](fesim_manual.pdf).

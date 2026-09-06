@@ -31,3 +31,18 @@ and `r(cpv_events)` retain the original economy's scope; realized event rates
 are recomputed for returned complete workers after filtering. Temporary count
 columns are removed under all truth settings. No CPV `psi_true` or population
 AKM projection is claimed.
+
+
+## BLM-specific results
+
+BLM retains common moments, graph/leave-out diagnostics, year-valued durations,
+scalar parameters and timing. Fourteen `r(blm_*)` resolved tables describe the
+original finite economy, independently of truth suppression or component
+filtering. `r(blm_cells_generated)` and `r(blm_cells)` have L*K rows and six
+columns: observations, log-earnings mean/SD, innovation mean/SD and interval moves
+attributed to the ending cell. `r(blm_workers)` reports probability, generated
+count and returned count by permanent type. `r(blm_model)` stores the complete
+canonical table values; its short fingerprint is not a unique identifier.
+The separate move/work and peak-block scalars support performance diagnostics.
+See [BLM](blm.md), the installed help and [manual](fesim_manual.pdf) for exact
+names, units, empty-cell semantics and provenance characteristics.

@@ -448,3 +448,13 @@ the requested population; this is not a constant-total-memory claim. Dataset
 width is 49 bytes without truth and 225 with full truth. At 50,000 firms the
 solver takes .233 seconds and total time .582 seconds, with 72,843,264 bytes
 process RSS. No cache or solve-only interface is justified by these measurements.
+
+
+## BLM candidate (2026-09-06)
+
+Exact `3f9bb87` adds 20 BLM scale cases and preserves all 46 pre-BLM legacy/CPV
+deterministic controls. Two first-pass cases exceeded the predeclared 10% time/RSS investigation threshold. Each was measured in three fresh baseline/candidate pairs, alternating source order. The initial observations and every repeat are retained. No median increase remains above 10%. Million-row annual BLM panels take
+94.929–97.138 seconds including 36 million worker-months,
+with 473,284,608–640,352,256 bytes peak RSS and at most 100,000 temporary panel
+rows. See [the complete report](qualification-1.2.0-rc.1.md) for all 66 initial
+cases, raw evidence locations, matched repeats and model/platform scope.

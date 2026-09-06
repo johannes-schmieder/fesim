@@ -27,7 +27,7 @@ contracts, block/frequency nesting and statistical conditional moments. The
 current inventory is 73 files, ten installed presets, 90 common contract cases,
 22 clickable examples and fourteen standalone manual scripts. See
 [`docs/statistical_tests.md`](../docs/statistical_tests.md) for fixed sampling
-bounds and [`docs/qualification-1.1.0-rc.1.md`](../docs/qualification-1.1.0-rc.1.md)
+bounds and [`docs/qualification-1.2.0-rc.1.md`](../docs/qualification-1.2.0-rc.1.md)
 for exact candidate evidence. Performance measurements remain a separate lane.
 
 The dependency-free static lane is separate from Stata qualification:

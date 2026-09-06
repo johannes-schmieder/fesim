@@ -75,3 +75,11 @@ and Stata environment; it is not promised across software/platform changes.
 The CPV extension is qualified as an unpublished 1.1.0-rc.1 review candidate with
 macOS Stata/MP 19 qualification. CPV does not inherit historical Windows
 qualification from the earlier simple-AKM release.
+
+
+BLM is qualified in unpublished candidate `3f9bb87` (1.2.0-rc.1), on macOS
+Stata/MP19 only. Its nine matrix keys extend `parameters()` for BLM without
+changing legacy scalar semantics. The 16-by-4 numeric scalar table is retained;
+separately named resolved tables and full serialized model values specify
+matrix-driven behavior. No existing economic defaults or simulation algorithms
+changed. See [the BLM review](qualification-1.2.0-rc.1.md).

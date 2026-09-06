@@ -6,7 +6,7 @@ The installed runtime uses only official Stata and Mata. It does not require a c
 
 ## Current implementation status
 
-The `1.2.0-rc.1` branch adds BLM-style static and dynamic finite-type panels to
+The unpublished `1.2.0-rc.1` candidate adds BLM-style static and dynamic finite-type panels to
 the eight existing AKM, pay-gap, BM and CPV presets. BLM supports arbitrary
 retained panel lengths, nonlinear earnings interactions, sorting, earnings
 persistence and wage-dependent mobility. Its scalar recipes and optional Stata
@@ -21,8 +21,11 @@ matrix list r(blm_cells)
 
 BLM is an employed-only monthly forward process with illustrative parameters.
 It does not estimate BLM or reproduce the Swedish empirical calibration.
-The new source is undergoing qualification; historical CPV evidence belongs to
-[the 1.1.0-rc.1 report](docs/qualification-1.1.0-rc.1.md).
+Exact candidate `3f9bb87` passes all 73 Stata files on clean source and isolated
+archive, nine static checks, six verifier tests, hosted static CI, 46 unchanged
+legacy/CPV deterministic controls and 20 BLM scale cases. See
+[the review report](docs/qualification-1.2.0-rc.1.md) for hashes and performance
+repeat investigations. Qualification is Stata/MP19 on macOS Apple Silicon.
 The [53-page user and technical manual](docs/fesim_manual.pdf) covers the BLM
 syntax, matrix inputs, four new figures and detailed technical appendix. No new tag or release has been created.
 
