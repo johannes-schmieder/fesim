@@ -63,7 +63,7 @@ assert `"`r(version)'"' == "1.1.0-dev"
 
 capture noisily fesim list
 assert _rc == 0
-assert r(n_dgps) == 3
+assert r(n_dgps) == 4
 
 capture noisily fesim presets akm
 assert _rc == 0
