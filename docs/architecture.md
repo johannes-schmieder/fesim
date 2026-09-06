@@ -10,7 +10,7 @@ parser/configuration boundary validates before mutation; source loading,
 component RNG, streaming output, graph filtering, truth/moments, and final
 metadata are shared. `_fesim_schema.ado` supplies discovery inventories and
 scientific scope; numeric schemas remain in `fesim_registry.ado`.
-Public API level 1 is unchanged; the internal Mata API is now 35. Runtime installs
+Public API level 1 is unchanged; the internal Mata API is now 36. Runtime installs
 only authoritative Stata/Mata source. See [compatibility](compatibility.md).
 
 ## Historical evolution from Checkpoint 2
@@ -136,7 +136,7 @@ filtering before BM sample rates are computed. All five are dropped on success.
 Errors restore both the caller dataset and caller RNG. No persistent solver cache
 is used; D-042 defines the future cache key and keeps solveonly/solution private.
 
-## CPV public integration (API 35)
+## CPV public integration (API 36)
 
 `src/fesim_cpv.mata` solves the finite grouped Bellman system in O(J) after
 sorting and evaluates contracts through prefix sums. `src/fesim_cpv_simulate.mata`

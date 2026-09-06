@@ -47,7 +47,7 @@ Johannes F. Schmieder\\
 Boston University
 \vspace{0.35in}
 
-Development version 1.1.0-rc.1 \quad $\cdot$ \quad Mata API 35\\
+Development version 1.1.0-rc.1 \quad $\cdot$ \quad Mata API 36\\
 September 6, 2026
 \vspace{0.5in}
 
@@ -1591,7 +1591,8 @@ It stores no population-wide event ledger. Bounds are ten million
 workers, one million firms, 2,147,483,647 requested rows, and 100,000
 years for each horizon. Initialization permits at most ten million historical employed offers;
 burn-in and retained simulation each have a ten-million primitive-event budget. Failure restores caller
-data and RNG, including errors after random firm construction.
+data and RNG, including errors after random firm construction. Nonfinite lifetime values
+or ability-scaled productivity/value bounds are rejected under every truth mode.
 
 \subsection{Truth and result interpretation}
 Basic truth reports five structural objects:

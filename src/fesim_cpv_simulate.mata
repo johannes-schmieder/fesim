@@ -213,6 +213,9 @@ real scalar fesim_cpv_simulate_to_stata(
     ability=J(workers,1,1)
     if(primitives[9]>0) ability=exp(fesim_rng_rnormal(rng,"worker_primitives",workers,1,0,primitives[9]):-primitives[9]^2/2)
     if(any(missing(ability)) | min(ability)<=0) _error(430,"CPV ability draws are not positive finite values")
+    if(missing(max(ability)*max((max(s.p),s.B/s.discount+max(s.S))))) {
+        _error(430,"CPV ability-scaled productivity or lifetime values exceed the numerical range")
+    }
     draws=fesim_cpv_draws_init()
     state=fesim_cpv_initialize(s,workers,initial,rng,draws)
     burn_events=0

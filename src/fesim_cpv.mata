@@ -102,6 +102,9 @@ struct fesim_cpv_solution scalar fesim_cpv_solve(
     if (any(missing(s.S)) | min(s.S) <= 0 | missing(s.B)) {
         _error(430, "CPV requires positive surplus at every firm; revise primitives")
     }
+    if (missing(s.B/discount) | missing(s.B/discount+max(s.S))) {
+        _error(430, "CPV lifetime values exceed the numerical range; revise discounting")
+    }
     s.prefix=0\runningsum(s.S)
     s.residual=abs(s.B-b-lu*beta*mean(s.S))/max((1,abs(s.B)))
     s.entry_wage=s.mass=J(n,1,.)

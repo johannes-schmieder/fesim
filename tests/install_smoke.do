@@ -126,7 +126,7 @@ foreach preset in simple heterogeneous {
     assert rowsof(r(solver))==17 & rowsof(r(cpv_flows))==5
     confirm variable contract_wage_true
 }
-mata: assert(fesim_mata_api_version() == 35)
+mata: assert(fesim_mata_api_version() == 36)
 mata: assert(fesim_bm_schema_version() == 1)
 mata: assert(fesim_bm_history_schema_version() == 1)
 mata: mata clear

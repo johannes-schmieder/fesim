@@ -58,8 +58,17 @@ foreach bad in "parameters(beta -1)" "parameters(beta 1.1)" ///
     quietly datasignature
     assert "`r(datasignature)'"=="`signature'"
 }
-foreach bad in "b 3 random_firms 1" "beta 0 lambda_e 10 random_firms 1" "sd_worker 1000" {
+foreach bad in "b 3 random_firms 1" "beta 0 lambda_e 10 random_firms 1" "sd_worker 1000" "r 1e-308" {
     capture noisily fesim, dgp(cpv) workers(20) firms(10) parameters(`bad') clear noreport
+    assert _rc==430
+    assert "`c(rngstate)'"=="`caller'"
+    quietly datasignature
+    assert "`r(datasignature)'"=="`signature'"
+}
+foreach truth in none basic full {
+    capture noisily fesim, dgp(cpv) preset(heterogeneous) workers(2000) ///
+        firms(10) parameters(r 1e-307 sd_worker 1) seed(7001) ///
+        truth(`truth') clear noreport
     assert _rc==430
     assert "`c(rngstate)'"=="`caller'"
     quietly datasignature

@@ -79,3 +79,11 @@ regenerative history, jointly generating employer, reference and job tenure.
 Conditional unemployment, backward duration is exponential(lambda_u). Only the
 initial-state RNG stream is used. Retained and burn-in paths use the existing
 mobility-event and destination streams. Primitive offers include null contacts.
+
+## Numerical range guard
+
+Finite current wages do not guarantee representable lifetime values when r is
+extremely small. The solver rejects nonfinite U and full-productivity values;
+the handler additionally checks the maximum ability-scaled productivity/value
+bound under every truth mode. Fixed tiny-discount regression cases verify
+transactional data/RNG rollback, including after worker draws.
