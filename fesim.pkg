@@ -46,3 +46,4 @@ f src/fesim_dispatch.mata
 f _fesim_bm.ado
 f src/fesim_bm_handler.mata
 f _fesim_schema.ado
+f src/fesim_cpv.mata

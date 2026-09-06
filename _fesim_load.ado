@@ -2,7 +2,7 @@
 program define _fesim_load
     version 16.0
 
-    capture mata: assert(fesim_mata_api_version() == 33)
+    capture mata: assert(fesim_mata_api_version() == 34)
     if !_rc exit
 
     quietly findfile _fesim_load.ado
@@ -10,7 +10,7 @@ program define _fesim_load
     local loader_name "_fesim_load.ado"
     local package_root = substr(`"`loader_path'"', 1, ///
         strlen(`"`loader_path'"') - strlen(`"`loader_name'"') - 1)
-    foreach source in types rng time hazards bm bm_events destinations bm_initial network_design flows moments network runtime output bm_aggregate bm_output lifecycle ///
+    foreach source in types rng cpv time hazards bm bm_events destinations bm_initial network_design flows moments network runtime output bm_aggregate bm_output lifecycle ///
         akm_simple empirical paygap akm_handler emp_handler paygap_handler bm_handler dispatch {
         local source_path `"`package_root'/src/fesim_`source'.mata"'
         capture confirm file `"`source_path'"'
@@ -30,7 +30,7 @@ program define _fesim_load
         }
         quietly do `"`source_path'"'
     }
-    capture mata: assert(fesim_mata_api_version() == 33)
+    capture mata: assert(fesim_mata_api_version() == 34)
     if _rc {
         di as error "fesim Mata source failed to load"
         exit 3000

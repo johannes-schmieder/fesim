@@ -21,7 +21,7 @@ void fesim_test_bm_aggregation()
     real colvector employed, firm_id, spell_id, tenure, unemployment
     real matrix report
 
-    assert(fesim_mata_api_version() == 33)
+    assert(fesim_mata_api_version() == 34)
     assert(fesim_bm_panel_schema_version() == 1)
     assert(fesim_bm_flow_row_names() == ///
         ("unemployment_share", "ue", "eu", "ee"))

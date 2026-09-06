@@ -20,6 +20,7 @@ capture erase `"`output_dir'/lfesim.mlib"'
 mata: mata clear
 quietly do `"`repository_root'/src/fesim_types.mata"'
 quietly do `"`repository_root'/src/fesim_rng.mata"'
+quietly do `"`repository_root'/src/fesim_cpv.mata"'
 quietly do `"`repository_root'/src/fesim_time.mata"'
 quietly do `"`repository_root'/src/fesim_hazards.mata"'
 quietly do `"`repository_root'/src/fesim_bm.mata"'
@@ -50,7 +51,7 @@ mata: mata mlib add lfesim fesim_*(), dir(`"`output_dir'"') complete
 quietly adopath ++ `"`output_dir'"'
 mata: mata clear
 mata: mata mlib index
-mata: assert(fesim_mata_api_version() == 33)
+mata: assert(fesim_mata_api_version() == 34)
 mata: assert(fesim_config_schema_version() == 2)
 mata: assert(fesim_rng_schema_version() == 2)
 mata: assert(cols(fesim_rng_component_names()) == 9)

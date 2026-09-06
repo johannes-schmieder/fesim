@@ -120,7 +120,7 @@ assert _N == 300
 assert rowsof(r(solver)) == 22
 assert rowsof(r(bm_flows)) == 4
 
-mata: assert(fesim_mata_api_version() == 33)
+mata: assert(fesim_mata_api_version() == 34)
 mata: assert(fesim_bm_schema_version() == 1)
 mata: assert(fesim_bm_history_schema_version() == 1)
 mata: mata clear
