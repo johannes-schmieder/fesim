@@ -77,3 +77,34 @@ Small employed-offer, destruction and discount rates have explicit limiting
 checks. `bm_burnin.do` separately compares 20/40-year starts from unemployment
 and 20-year random-start convergence. Runtime and source qualification are
 recorded in `PLAN.md`; statistical tests do not establish platform portability.
+
+## CPV contracts, tenure and flow validation
+
+`tests/statistical/test_cpv_stationary.do` constructs an independent finite
+contract-state generator for a three-firm economy. A dense stationary solve
+provides joint employer/reference masses. Uniformization of each within-employer
+subgenerator supplies joint contract masses with tenure exceeding two years.
+Two disjoint, predetermined 100,000-worker initialization samples must meet
+absolute bounds of `.005` for state masses and `.004` for the tenure tail.
+These worker-level checks test the dependence between contracts and tenure;
+matching employer shares alone would not establish joint stationarity.
+
+A separate 20,000-worker heterogeneous sample over ten years checks the five
+finite theoretical versus event-sample flow rows with bounds `.012` for
+unemployment and `.015` for the four event hazards. Mean ability must be within
+`.02` of one and its correlation with employer productivity within `.035` of
+zero. An independent 12,000-worker sample starts unemployed, burns in for
+60 years and observes five years; its respective flow bounds are `.02` and
+`.025`. These fixed conservative mechanism tolerances are not empirical
+calibration confidence intervals. Observation-based transition probabilities
+are separately labeled and are not expected to equal continuous-time hazards.
+
+Deterministic tests complement these Monte Carlo checks: dense Bellman and
+contract CTMC oracles, tied firms and singletons, beta endpoints, zero employed
+offers, numerical range failure/rollback, constant-time wages versus an explicit
+offer sum, wage-cut and incumbent-raise fixtures, and the continuum equation-3
+integral on 500/5,000-firm grids. Fixed event buffers check right-closed output
+boundaries, null contacts and same-firm re-entry. Integration tests compare
+block sizes 1/7/333/1201 and nested annual/quarterly/monthly snapshots exactly,
+including event counts, exposures, structural state and caller RNG behavior.
+See [the CPV derivation](cpv-derivation.md) for the source and model boundary.

@@ -25,9 +25,10 @@ Outside offers can produce raises at the current employer, and direct moves
 can cut current wages. Worker ability scales wages without changing mobility.
 The CPV presets use stylized primitives and do not reproduce empirical
 estimates. [Derivation and source audit](docs/cpv-derivation.md).
-Candidate source/archive and performance qualification is in progress;
-[the preceding six-preset report](docs/qualification-1.0.0-rc.1.md) retains its
-own exact source identity. No new tag or release has been created.
+The [CPV qualification report](docs/qualification-1.1.0-rc.1.md) records all
+68 Stata files passing on exact source and isolated archive, 26 matched legacy
+controls with repeated outlier checks, and 20 CPV scaling cases. Qualification
+is macOS Stata/MP 19. No new tag or release has been created.
 
 The latest release is `v0.1.0`. The preceding `1.0.0-rc.1` review candidate includes
 three public AKM presets, two public pay-gap presets, and canonical BM. The pay-gap family

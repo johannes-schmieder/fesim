@@ -1,6 +1,27 @@
 # Changelog
 
-## Unreleased — 1.0.0-rc.1 candidate
+## Unreleased — 1.1.0-rc.1 CPV candidate
+
+- Add `cpv/simple` and `cpv/heterogeneous`: finite-firm Bellman solution,
+  sequential bargaining, incumbent raises, wage-cutting moves and multiplicative
+  worker ability. Exact joint stationary contracts/tenure, continuous events,
+  burn-in and bounded worker blocks preserve truth/frequency/block invariants.
+- Add structural CPV truth, finite firm summaries, and distinct theoretical,
+  event-sample and observed flows. Reject nonviable firms, nonpositive entry
+  wages and nonfinite lifetime values transactionally under every truth mode.
+- Add five independent solver/event/public/invariance/statistical test files;
+  source/archive suites now cover 68 files, eight installed presets and the
+  72-case common truth/frequency grid.
+- Expand help to 17 one-click examples and the manual to 42 pages, ten figures
+  and a detailed CPV appendix. Include stylized source records and AKM/mover
+  examples with explicit descriptive interpretation.
+- Public API remains 1; Mata API advances to 36. Legacy engine algorithms and
+  matched deterministic controls are preserved. All 20 CPV scale cases pass;
+  two initial legacy performance outliers are resolved by three matched repeats.
+- Exact candidate and evidence: [qualification report](docs/qualification-1.1.0-rc.1.md).
+  macOS MP 19 qualification only; no new tag or release.
+
+## Earlier unreleased — 1.0.0-rc.1 candidate
 
 - Complete six-preset discovery with variable inventories, units/bound closure,
   initialization/network support, and scientific source/target scope.

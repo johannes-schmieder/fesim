@@ -1,15 +1,17 @@
 # Public contract and compatibility
 
-The `1.0.0-rc.1` candidate preserves the economic defaults and seeded simulation
-paths of `0.4.0-dev`. Public API level 1 and internal Mata API 33 are unchanged.
-The candidate adds discovery metadata and qualification tooling. It is an
-unpublished development candidate; the stable tag remains `v0.1.0`.
+The `1.1.0-rc.1` candidate adds the CPV bargaining family while preserving the
+six earlier presets' economic defaults and matched deterministic outputs.
+Public API remains 1; internal Mata API advances to 36 for CPV loading and
+numerical range guards. It is an unpublished development candidate; the stable
+tag remains `v0.1.0`. [Qualification evidence](qualification-1.1.0-rc.1.md)
+binds the tested implementation to its exact source and archive.
 
 ## Accepted names and syntax
 
 Canonical routes are `akm/simple`, `akm/stylized`,
 `akm/germany_chk_2002_2009`, `akmpaygap/simple`, `akmpaygap/cck2016`, and
-`bm/simple`. The only aliases are `akmsimple`, `akmempirical`, and `bmsimple`.
+`bm/simple`, plus `cpv/simple` and `cpv/heterogeneous`. The only aliases are `akmsimple`, `akmempirical`, and `bmsimple`.
 In particular, `akmempirical` means the stylized preset, not Germany.
 
 Stata accepts these existing option minima; spelling options out is preferred:
@@ -36,7 +38,7 @@ the same control through both routes is an error, even if the values agree.
 implemented; `connectivity(force)` is reserved and fails before changing data
 or RNG. `solveonly`, `solution()`, alternative output datasets, an explicit
 initial employment share, and heterogeneous BM are outside this candidate.
-All four network designs apply to AKM; pay-gap and BM accept only `random`.
+All four network designs apply to AKM; pay-gap, BM and CPV accept only `random`.
 Seven network scalar rows in the pay-gap parameter matrix are reserved schema
 entries and do not enable these designs.
 
@@ -70,6 +72,6 @@ Numerical bug fixes must disclose affected quantities and whether seeded output
 changes. Bitwise reproducibility is qualified for a fixed source, command, seed,
 and Stata environment; it is not promised across software/platform changes.
 
-The CPV extension targets an unpublished 1.1.0-rc.1 review candidate with
+The CPV extension is qualified as an unpublished 1.1.0-rc.1 review candidate with
 macOS Stata/MP 19 qualification. CPV does not inherit historical Windows
 qualification from the earlier simple-AKM release.

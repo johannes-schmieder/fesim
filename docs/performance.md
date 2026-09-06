@@ -400,3 +400,51 @@ heterogeneous full-truth firm-count sweep of 1/50/5,000/50,000 at 1,000 workers.
 Each receipt binds source, harness, driver, dimensions, signature, event count,
 stage timings and peak block rows. The common release harness is unchanged,
 so all baseline and candidate legacy controls use identical tooling.
+
+## CPV candidate qualification — 2026-09-06
+
+Exact source `ab4de7140a66edc40f717395bfa4f5f2e061b3d5` passes all 20 CPV cases and the 26 legacy controls. The two first-pass time/RSS outliers do not reproduce above the 10% threshold in three paired repeats; all compared deterministic results match. See [the review report](qualification-1.1.0-rc.1.md) for the full initial/repeated legacy table, raw-artifact locations and hashes.
+
+## CPV scaling results
+
+All 20 cases pass at the exact candidate SHA. Annual cases cover ten years;
+monthly cases cover the same ten years with 120 snapshots. Default stationary
+initialization and seed 20260912 are fixed. Except for the final four firm-sweep
+rows, firms number 500. Total time excludes Stata process startup and includes
+solving, initial-state generation, simulation and common output diagnostics.
+The exposed simulation stage includes initialization and snapshot construction;
+output includes writing, graph/leave-out diagnostics, moments and metadata.
+
+| Preset | Workers | Firms | Frequency | Truth | Rows | Total seconds | Solve seconds | Simulate seconds | Output seconds | Max RSS bytes | Peak block rows |
+|---|---:|---:|---|---|---:|---:|---:|---:|---:|---:|---:|
+| simple | 1,000 | 500 | year | none | 10,000 | 0.365 | 0.002 | 0.063 | 0.300 | 52,838,400 | 10,000 |
+| simple | 1,000 | 500 | year | full | 10,000 | 0.364 | 0.002 | 0.064 | 0.298 | 55,607,296 | 10,000 |
+| simple | 10,000 | 500 | year | none | 100,000 | 1.594 | 0.002 | 0.616 | 0.976 | 128,335,872 | 100,000 |
+| simple | 10,000 | 500 | year | full | 100,000 | 1.635 | 0.002 | 0.614 | 1.019 | 239,550,464 | 100,000 |
+| simple | 100,000 | 500 | year | none | 1,000,000 | 13.837 | 0.002 | 6.138 | 7.697 | 536,510,464 | 100,000 |
+| simple | 100,000 | 500 | year | full | 1,000,000 | 16.369 | 0.002 | 6.144 | 10.223 | 933,330,944 | 100,000 |
+| simple | 10,000 | 500 | month | none | 1,200,000 | 10.760 | 0.003 | 3.804 | 6.953 | 570,802,176 | 99,960 |
+| simple | 10,000 | 500 | month | full | 1,200,000 | 13.678 | 0.003 | 3.757 | 9.918 | 1,003,257,856 | 99,960 |
+| heterogeneous | 1,000 | 500 | year | none | 10,000 | 0.361 | 0.003 | 0.063 | 0.295 | 54,149,120 | 10,000 |
+| heterogeneous | 1,000 | 500 | year | full | 10,000 | 0.367 | 0.003 | 0.064 | 0.300 | 55,541,760 | 10,000 |
+| heterogeneous | 10,000 | 500 | year | none | 100,000 | 1.549 | 0.002 | 0.614 | 0.933 | 126,812,160 | 100,000 |
+| heterogeneous | 10,000 | 500 | year | full | 100,000 | 1.633 | 0.002 | 0.622 | 1.009 | 240,484,352 | 100,000 |
+| heterogeneous | 100,000 | 500 | year | none | 1,000,000 | 13.593 | 0.002 | 6.159 | 7.432 | 543,244,288 | 100,000 |
+| heterogeneous | 100,000 | 500 | year | full | 1,000,000 | 16.380 | 0.002 | 6.100 | 10.278 | 930,725,888 | 100,000 |
+| heterogeneous | 10,000 | 500 | month | none | 1,200,000 | 10.685 | 0.003 | 3.865 | 6.817 | 566,181,888 | 99,960 |
+| heterogeneous | 10,000 | 500 | month | full | 1,200,000 | 13.718 | 0.002 | 3.836 | 9.880 | 1,004,240,896 | 99,960 |
+| heterogeneous | 1,000 | 1 | year | full | 10,000 | 0.324 | 0.000 | 0.060 | 0.264 | 54,411,264 | 10,000 |
+| heterogeneous | 1,000 | 50 | year | full | 10,000 | 0.336 | 0.000 | 0.060 | 0.276 | 54,755,328 | 10,000 |
+| heterogeneous | 1,000 | 5,000 | year | full | 10,000 | 0.361 | 0.024 | 0.062 | 0.275 | 55,099,392 | 10,000 |
+| heterogeneous | 1,000 | 50,000 | year | full | 10,000 | 0.582 | 0.233 | 0.062 | 0.287 | 72,843,264 | 10,000 |
+
+The million-row annual panels take 13.593–16.380 seconds and peak at
+536,510,464–933,330,944 bytes RSS. Both presets/truth modes generate the same
+499,495 primitive events. Monthly panels have 1.2 million rows and take
+10.685–13.718 seconds; their 49,993 events equal the 10,000-worker annual
+controls. Temporary panel blocks never exceed 100,000 rows (99,960 for monthly
+output). The complete returned dataset and worker/firm state still scale with
+the requested population; this is not a constant-total-memory claim. Dataset
+width is 49 bytes without truth and 225 with full truth. At 50,000 firms the
+solver takes .233 seconds and total time .582 seconds, with 72,843,264 bytes
+process RSS. No cache or solve-only interface is justified by these measurements.
