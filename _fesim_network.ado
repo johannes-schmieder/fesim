@@ -1,4 +1,4 @@
-*! fesim observed bipartite network diagnostics 1.2.0-dev 06sep2026
+*! fesim observed bipartite network diagnostics 1.2.0-rc.1 06sep2026
 program define _fesim_network, rclass
     version 16.0
     syntax , WORKERS(integer) FIRMS(integer) PERIODS(integer) ///

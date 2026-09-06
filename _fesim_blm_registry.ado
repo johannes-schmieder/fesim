@@ -1,4 +1,4 @@
-*! fesim BLM typed parameter registry 1.2.0-dev 06sep2026
+*! fesim BLM typed parameter registry 1.2.0-rc.1 06sep2026
 program define _fesim_blm_registry, rclass
     version 16.0
     syntax , ACTION(string) PRESet(string) [ PARAmeter(string) ]

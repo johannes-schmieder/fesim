@@ -1,4 +1,4 @@
-*! fesim common configuration resolver 1.2.0-dev 06sep2026
+*! fesim common configuration resolver 1.2.0-rc.1 06sep2026
 program define fesim_config, rclass
     version 16.0
     local invocation `"`0'"'

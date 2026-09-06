@@ -1,4 +1,4 @@
-*! fesim BLM finite-type public handler 1.2.0-dev 06sep2026
+*! fesim BLM finite-type public handler 1.2.0-rc.1 06sep2026
 program define _fesim_blm, rclass
     version 16.0
     syntax [, CLEAR *]

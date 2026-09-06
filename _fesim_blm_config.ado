@@ -1,4 +1,4 @@
-*! fesim common configuration resolver 1.2.0-dev 06sep2026
+*! fesim common configuration resolver 1.2.0-rc.1 06sep2026
 program define _fesim_blm_config, rclass
     version 16.0
     syntax [ , DGP(string) PRESet(string) WORKers(string) FIRMs(string) ///

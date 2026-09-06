@@ -27,7 +27,7 @@
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\small\color{ink}\textsf{fesim: User and Technical Manual}}
-\fancyhead[R]{\small\textsf{1.1.0-rc.1}}
+\fancyhead[R]{\small\textsf{1.2.0-rc.1}}
 \fancyfoot[C]{\thepage}
 \setlength{\headheight}{14pt}
 \hypersetup{pdftitle={fesim: User and Technical Manual},
@@ -47,20 +47,22 @@ Johannes F. Schmieder\\
 Boston University
 \vspace{0.35in}
 
-Development version 1.1.0-rc.1 \quad $\cdot$ \quad Mata API 36\\
+Development version 1.2.0-rc.1 \quad $\cdot$ \quad Mata API 37\\
 September 6, 2026
 \vspace{0.5in}
 
 \begin{minipage}{0.91\textwidth}
-This manual explains the public command, all eight available presets, and the
+This manual explains the public command, all ten available presets, and the
 data and diagnostics they return. Reproducible examples illustrate wage
 dispersion, sorting, pay gaps, search dynamics, and wage bargaining. The technical appendix
 documents the implemented random processes and derives the canonical
 Burdett--Mortensen equilibrium, its finite-firm approximation, and the exact
 continuous-time worker simulation. A further appendix derives CPV values,
-contract wages, incumbent raises, and joint stationary histories.
+contract wages, incumbent raises, and joint stationary histories. The BLM
+appendix defines finite worker and firm types, nonadditive earnings,
+endogenous mobility, and persistent monthly wage histories.
 
-This manual accompanies the unpublished \code{1.1.0-rc.1} candidate.
+This manual accompanies the unpublished \code{1.2.0-rc.1} candidate.
 Qualification is limited to Stata/MP 19 on macOS Apple Silicon; exact source
 and archive evidence are recorded in the repository release-review report.
 The stable \code{v0.1.0} release contains the earlier simple-AKM command.
@@ -88,7 +90,7 @@ whose behavior depends on mobility and worker--firm sorting.
 The installed engine uses official Stata and Mata only. Stata 19 is the
 supported minimum. The current development source has been qualified on
 Stata/MP 19 on macOS Apple Silicon; Windows qualification of the older
-\code{v0.1.0} release does not qualify the later BM or CPV implementations.
+\code{v0.1.0} release does not qualify the later BM, CPV or BLM implementations.
 Reproducibility claims refer to a fixed package source, seed, command, and
 qualified Stata environment.
 
@@ -121,11 +123,17 @@ Sequential wage bargaining, incumbent raises, heterogeneous firms and
 homogeneous workers. Stylized primitives.\\[4pt]
 \code{cpv / heterogeneous} & None &
 The same bargaining engine with mean-one lognormal worker ability.
-No endogenous ability sorting.\\
+No endogenous ability sorting.\\[4pt]
+\code{blm / static} & None &
+Finite worker types and firm classes, nonadditive Gaussian cell earnings,
+and type-dependent sorting. Employed workers only.\\[4pt]
+\code{blm / dynamic} & None &
+The same finite economy with persistent earnings, wage-dependent moves
+and origin-class move shifts. Flexible, uncalibrated primitives.\\
 \bottomrule
 \end{longtable}
 
-There are four canonical family names and eight family/preset combinations.
+There are five canonical family names and ten family/preset combinations.
 The three aliases resolve to designated presets. Omitting \code{dgp()}
 and \code{preset()} selects \code{akm/simple}.
 AKM terminology follows Abowd, Kramarz, and Margolis \cite{akm}.
@@ -214,9 +222,9 @@ Economic draws are invariant to this choice.\\[4pt]
 histories in the selected observed component. \code{force} is unavailable.\\[4pt]
 \code{network(...)} &
 Destination rule. \code{random} is the default and the only allowed
-design for pay-gap, BM and CPV. All four designs are available for AKM.\\[4pt]
+design for pay-gap, BM, CPV and BLM. All four designs are available for AKM.\\[4pt]
 \code{parameters(...)} &
-Whitespace-separated scalar name/value pairs. Model and network controls
+Whitespace-separated name/value pairs; BLM also accepts Stata matrix names. Model and network controls
 belong here. Unknown, duplicate, irrelevant, conflicting, or inadmissible
 inputs fail validation. Numeric common controls also accept this input route;
 named options are preferred and duplicate specification is rejected.\\[4pt]
@@ -243,15 +251,18 @@ Pay-gap simple & 10,000 & 500 & 10 & random & 5 years\\
 Pay-gap CCK & 10,000 & 1,000 & 8 & random & 5 years\\
 BM simple & 10,000 & 500 & 10 & stationary & 0 years\\
 CPV (both) & 10,000 & 500 & 10 & stationary & 0 years\\
+BLM (both) & 10,000 & 500 & 10 & random & 20 years\\
 \bottomrule
 \end{tabular}
 \end{table}
-All presets support \code{initial(allunemployed)}. Exact stationary starts
+All presets except BLM support \code{initial(allunemployed)}. Exact stationary starts
 are available for simple AKM, BM and both CPV presets. Random starts require at least one
 burn-in output interval for simple AKM and at least one year for monthly
 AKM and pay-gap. Those AKM/pay-gap burn-in inputs are integers. BM and CPV burn-in is
 continuous years and can be fractional. Pay-gap uses output-clock steps
-within its year-valued burn-in.
+within its year-valued burn-in. BLM permits only random starts; its burn-in
+is year-valued, nonnegative and aligned to whole months, with a 20-year default.
+Finite burn-in does not certify stationarity.
 
 \paragraph{Discovery and compatibility.}
 \code{fesim describe} also reports observed and truth-variable inventories,
@@ -459,6 +470,84 @@ wages, unemployment income and values; common contact rates imply no
 ability sorting. Neither structural firm productivity nor a contract wage
 is an AKM firm effect. Appendix~\ref{app:cpv} derives the implementation.
 
+
+\subsection{Bonhomme--Lamadon--Manresa-style finite types}\label{sec:blmparams}
+\code{dgp(blm)} selects \code{preset(static)} by default. Both presets generate
+employed-only panels on an internal monthly clock. Their flexible Gaussian
+specification follows the static and first-order dynamic restrictions of
+Bonhomme, Lamadon and Manresa \cite{blm}; it is not an implementation of their
+estimator or a replication of their Swedish estimates. Appendix~\ref{app:blm}
+defines the exact forward process and its relationship to the author code.
+
+Let $l$ denote permanent worker type and $k$ firm class. Distinct actual firms
+within a class share earnings and mobility primitives. Class identity is not
+firm identity: moves within a class still create a new employment spell.
+\begin{longtable}{@{}P{.27\textwidth}P{.20\textwidth}P{.46\textwidth}@{}}
+\toprule
+Scalar key & Static / dynamic & Meaning\\\midrule\endhead
+\code{worker_types}, \code{firm_types} & 6, 10 (both) &
+Integers $L,K$ from 1 to 20; number of actual firms $J\geq K$.\\[3pt]
+\code{mu} & 3 / 3 & Grand location of log earnings.\\[3pt]
+\code{sd_worker}, \code{sd_firm} & .4, .15 (both) &
+Nonnegative coefficients of normalized type and class scores.\\[3pt]
+\code{interaction} & .1 / .1 & Coefficient of the product of scores.\\[3pt]
+\code{sd_error} & .2 / .2 & Nonnegative cell scale; fixed-cell stationary SD when persistence is nonzero.\\[3pt]
+\code{lambda_move} & .25 / .25 & Nonnegative annual baseline move intensity.\\[3pt]
+\code{sorting} & .5 / .5 & Type--class coefficient in destination log weights.\\[3pt]
+\code{rho} & 0 / .6 & Annual persistence in $[0,1)$; monthly value $\rho^{1/12}$.\\[3pt]
+\code{mobility_wage} & 0 / $-2$ & Log-intensity slope on current earnings minus origin cell location.\\[3pt]
+\code{origin_dependence} & 0 / .05 & Move-shift coefficient on origin score minus destination score.\\
+\bottomrule
+\end{longtable}
+All real inputs must be finite; coefficients without a stated sign restriction
+may be negative. Static mode requires all persistence, wage-mobility and
+move-shift entries to equal zero. Dynamic mode with those three components zero
+reproduces static paths exactly for the same seed and remaining inputs.
+
+Full matrices replace scalar recipes. Values are copied from ordinary Stata
+matrices and validated before data or RNG mutation. Dimensions must match the
+specified $L,K$; supplying a matrix does not infer dimensions. Rows and columns
+are positional, regardless of Stata matrix labels.
+\begin{longtable}{@{}P{.35\textwidth}P{.12\textwidth}P{.46\textwidth}@{}}
+\toprule
+Matrix key & Shape & Values and scalar conflicts\\\midrule\endhead
+\code{worker_weights} & $1\times L$ & Strictly positive worker-type weights, normalized to probabilities.\\[3pt]
+\code{firm_weights} & $1\times K$ & Strictly positive class weights used to allocate actual firms.\\[3pt]
+\code{mean_matrix} & $L\times K$ & Arbitrary finite locations; conflicts with explicit \code{mu}, \code{sd_worker}, \code{sd_firm}, \code{interaction}.\\[3pt]
+\code{sd_matrix} & $L\times K$ & Nonnegative scales; conflicts with \code{sd_error}.\\[3pt]
+\code{move_rate_matrix} & $L\times K$ & Nonnegative annual rates; conflicts with \code{lambda_move}.\\[3pt]
+\code{rho_matrix} & $L\times K$ & Annual persistence in $[0,1)$; conflicts with \code{rho}.\\[3pt]
+\code{mobility_wage_matrix} & $L\times K$ & Finite log-rate slopes; conflicts with \code{mobility_wage}.\\[3pt]
+\code{destination_matrix} & $(LK)\times K$ & Nonnegative class masses with positive row sums; conflicts with \code{sorting}.\\[3pt]
+\code{move_shift_matrix} & $(LK)\times K$ & Finite move shifts; conflicts with \code{origin_dependence}.\\
+\bottomrule
+\end{longtable}
+For the last two tables, row $(l-1)K+k$ identifies worker type $l$ and origin
+class $k$; column $h$ is the destination class. Destination masses include the
+origin employer before self-exclusion, and do not need to sum to one. An
+origin-class mass is reduced by $(n_k-1)/n_k$ before renormalization. A positive
+move-rate cell must have an eligible employer when $J>1$. With one actual firm,
+all moves are suppressed. The initializer independently draws worker type,
+a uniform actual firm, and a cell-normal wage; tenure starts at zero.
+
+This example uses the full matrix interface with no external data:
+\begin{lstlisting}
+preserve
+tempname M S D
+matrix `M'=(2.4,2.7,3.0\3.0,3.2,3.7)
+matrix `S'=(.10,.15,.20\.20,.15,.10)
+matrix `D'=(1,2,3\1,2,3\1,2,3\3,2,1\3,2,1\3,2,1)
+fesim, dgp(blm) workers(1000) firms(30) periods(6) ///
+    seed(20260925) truth(full) parameters(worker_types 2 firm_types 3 ///
+    mean_matrix `M' sd_matrix `S' destination_matrix `D') clear
+matrix list r(blm_mean)
+matrix list r(blm_eligible_destination)
+restore
+\end{lstlisting}
+\code{r(parameters)} stays a numeric 16-by-4 scalar table. When a matrix replaces
+a recipe, its unused scalar values are not the operative cell values. Read the
+resolved \code{r(blm_*)} matrices and \code{r(blm_model)} for those values.
+
 \section{Network designs and connectedness}\label{sec:network}
 \code{network(random)} means the selected DGP's baseline destination
 mechanism; empirical-AKM and pay-gap sorting can still be nonzero.
@@ -564,6 +653,27 @@ and employment/unemployment exposure. Worker ability remains defined during
 unemployment; job attributes are missing. Appendix~\ref{app:cpv} specifies
 these objects. There is no CPV structural \code{psi_true}.
 
+
+\begingroup\raggedright
+BLM basic truth contains \code{worker_type_true}, \code{firm_type_true},
+\code{wage_location_true}, \code{conditional_mean_true}, \code{epsilon_true}
+and \code{lnwage_true}. The last equals realized \code{lnwage}: there is no
+additional observation error. \code{epsilon_true} is the scaled fresh
+innovation, not the complete deviation from a cell location. Full truth adds
+\code{lag_lnwage_true}, \code{lag_firm_type_true}, \code{persistence_true},
+\code{move_shift_true}, \code{innovation_sd_true}, \code{move_probability_true},
+\code{moved_month_true} and \code{n_ee_true}. Lags and conditional quantities
+refer to the last internal month, even in annual data. The accounting identity is
+\[
+y=\mu_{lh}+\text{persistence}+\text{move shift}
++\text{innovation}.
+\]
+BLM returns all 13 common variables, with \code{employed=1} and
+\code{unemp_duration} always missing. \code{n_ee_true} counts every actual-firm
+move in the output interval, including the first interval and moves that return
+to the original employer. The common first/last-row flow conventions still apply.
+
+\par\endgroup
 \subsection{Returned results}
 \begingroup\small
 \begin{longtable}{@{}P{0.31\textwidth}P{0.62\textwidth}@{}}
@@ -605,6 +715,33 @@ command. For example, execute \code{matrix saved_moments = r(moments)}
 before \code{summarize lnwage}.
 
 \clearpage
+
+\begingroup\raggedright
+For BLM, the 14 resolved matrices are \code{r(blm_worker_weights)},
+\code{r(blm_firm_weights)}, \code{r(blm_mean)}, \code{r(blm_sd)},
+\code{r(blm_move_rate)}, \code{r(blm_rho)}, \code{r(blm_mobility_wage)},
+\code{r(blm_destination)}, \code{r(blm_move_shift)}, \code{r(blm_firm_counts)},
+\code{r(blm_worker_scores)}, \code{r(blm_firm_scores)},
+\code{r(blm_monthly_rho)} and \code{r(blm_eligible_destination)}.
+\code{r(blm_cells_generated)} and \code{r(blm_cells)} have $LK$ rows and columns
+\code{observations}, \code{lnwage_mean}, \code{lnwage_sd},
+\code{innovation_mean}, \code{innovation_sd}, \code{interval_moves}.
+They describe generated and returned samples, respectively. Moves are attributed
+to the interval's ending cell. Empty means and SDs, and single-observation SDs,
+are missing. \code{r(blm_workers)} gives primitive probability, generated count
+and returned count by worker type. Filtering recomputes realized summaries for
+complete retained worker histories; it does not redefine the primitive economy.
+
+Full resolved values are serialized in \code{r(blm_model)} and numbered dataset
+characteristics \code{_dta[fesim_blm_model_1]}, etc.; their count is
+\code{_dta[fesim_blm_model_chunks]}. Matrix names are not provenance.
+The short \code{r(blm_fingerprint)} is a convenience checksum with possible
+collisions; use the complete serialization as the authoritative model record.
+Performance scalars include \code{r(blm_worker_months)},
+\code{r(blm_moves_generated)}, \code{r(blm_peak_block_rows)} and
+\code{r(blm_block_workers)}, alongside the common timing scalars.
+
+\par\endgroup
 \section{Reproducible examples and figures}\label{sec:examples}
 Each numbered figure example is read directly from its runnable
 \code{docs/manual_examples/} do-file, so printed and executed code share
@@ -750,6 +887,59 @@ history-dependent wages. Its firm coefficients should not be interpreted
 as the primitive productivity levels. There is no population AKM
 projection API in this version.
 \lstinputlisting{manual_examples/10_cpv_movers.do}
+\FloatBarrier
+
+
+\subsection{BLM interactions and cell distributions}
+\begin{figure}[htbp]\centering
+\includegraphics[width=\textwidth]{manual_figures/11_blm_interactions.pdf}
+\caption{Static BLM, 6,000 workers and 120 actual firms in ten classes, six
+annual snapshots, seed 20260921. Left: realized type/class mean earnings.
+Right: nonadditive part of the true cell location after removing unweighted
+row and column means. With \code{interaction(0)}, this second panel would be
+zero, up to numerical precision. All examples use 20 years of burn-in.}
+\end{figure}
+\lstinputlisting{manual_examples/11_blm_interactions.do}
+\FloatBarrier
+
+\subsection{BLM sorting can have either sign}
+\begin{figure}[htbp]\centering
+\includegraphics[width=\textwidth]{manual_figures/12_blm_sorting.pdf}
+\caption{Static BLM with \code{sorting(1)} and \code{sorting(-1)}, 12,000
+workers, 120 actual firms, seed 20260922. Colors show each worker type's
+realized employment shares across classes after burn-in and one retained
+year. These are employment allocations, distinct from contact probabilities
+and the primitive equally weighted class allocation.}
+\end{figure}
+\lstinputlisting{manual_examples/12_blm_sorting.do}
+\FloatBarrier
+
+\subsection{BLM persistent earnings and endogenous moves}
+\begin{figure}[htbp]\centering
+\includegraphics[width=.92\textwidth]{manual_figures/13_blm_dynamics.pdf}
+\caption{Dynamic BLM, 1,000 workers, 120 firms, 60 monthly snapshots, seed
+20260923. The illustrated worker is the first ID with at least two moves.
+The conditional earnings mean includes persistent deviations and any
+origin-class move shift. A negative wage-mobility slope raises the next
+move probability when the lagged wage is low relative to its cell location.}
+\end{figure}
+\lstinputlisting{manual_examples/13_blm_dynamics.do}
+\FloatBarrier
+
+\subsection{BLM additive projections and mover averages}
+\begin{figure}[htbp]\centering
+\includegraphics[width=.95\textwidth]{manual_figures/14_blm_movers.pdf}
+\caption{Dynamic BLM, 4,000 workers, 80 firms, ten annual snapshots, seed
+20260924. Balanced five-year windows around the first observed employer
+change are grouped by destination class. Earnings and mobility jointly
+select these workers; the lines are descriptive, not causal firm effects.}
+\end{figure}
+\lstinputlisting{manual_examples/14_blm_movers.do}
+The official Stata \code{areg} command estimates an additive projection.
+Under interactions, persistent earnings and endogenous mobility, its firm
+coefficients need not recover a scalar structural firm effect. Component
+connectedness and the package's AKM leave-out diagnostics do not establish
+finite-mixture identification.
 \FloatBarrier
 
 \subsection{A small estimation exercise}
@@ -1651,6 +1841,205 @@ replicate empirical estimates or calibrate sector and skill groups.
 Qualification is for the tested macOS Stata/MP 19 environment. A release
 tag, publication and broader platforms remain separate decisions.
 
+
+\section{BLM finite-type forward simulation}\label{app:blm}
+\subsection{Scientific scope and audited versions}
+The published reference is Bonhomme, Lamadon and Manresa (2019) \cite{blm}.
+The implementation audit uses the IFAU 2017 working paper, PDF pages 10--11
+(printed pages 8--9), Assumptions 1 and 2 and equations (1)--(2), and the author
+supplement, Section S1.2--S1.3. The main published PDF was unavailable during
+the bounded audit; equivalence between that PDF and the working-paper version
+is not assumed. \code{docs/blm.md} records URLs, version hashes, code locators
+and the mapping from source restrictions to implementation choices.
+
+The static source restriction makes mobility independent of wage history given
+type and class/history controls, and requires serial independence of movers'
+next earnings conditional on current type and destination. Our static Gaussian
+specialization is stronger: every monthly earnings draw, for movers and
+stayers, is independent conditional on its cell. The dynamic restriction permits
+mobility to depend on current earnings and makes next earnings first-order in
+current earnings, worker type, origin/destination class and move status.
+Our monthly process satisfies these restrictions by construction. Its Gaussian
+shape, score recipes, time-homogeneous tables, scalar defaults, event clock and
+initializer are package choices. There are no unemployment or covariate states,
+firm-level idiosyncratic effects, estimated mixture parameters, or empirical
+calibration targets.
+
+\subsection{Finite populations, probabilities and score normalization}
+Choose $N$ workers, $J$ actual firms, $L$ worker types and $K$ firm classes.
+Normalize strictly positive input weights to $p_l$ and $q_k$. Each class gets
+one actual firm. Allocate the remaining $J-K$ by largest remainders:
+\[
+ b_k=(J-K)q_k,\qquad n_k=1+\lfloor b_k\rfloor+d_k,
+ \qquad \sum_k n_k=J,
+\]
+where the $d_k\in\{0,1\}$ select the largest fractional remainders, with ties
+resolved by lower class index. Actual IDs form contiguous class ranges.
+Normalized class weights $q_k$ and realized class shares $n_k/J$ are distinct
+when allocation rounds. Worker types are independent categorical draws from
+$p$, with no constraint on their realized finite counts.
+
+For $D>1$ define raw normal midpoint scores
+$a_d=\Phi^{-1}((d-1/2)/D)$. Given probabilities $w_d$, use
+\[
+ z_d=\frac{a_d-\sum_e w_e a_e}
+ {\sqrt{\sum_e w_e(a_e-\sum_f w_f a_f)^2}}.
+\]
+Use $w=p$ for worker scores $x_l$ and $w=n/J$ for class scores $z_k$.
+For a singleton the score is zero. Weights are scaled by their maximum before
+normalizing to avoid overflow. Numerically unresolvable positive weights or
+score variance fail validation; they are not silently replaced.
+Default cell locations and scales are
+\[
+ \mu_{lk}=\mu+\sigma_w x_l+\sigma_f z_k+\gamma x_lz_k,
+ \qquad s_{lk}=\sigma_e.
+\]
+These recipes define cell locations, not necessarily unconditional means in the
+dynamic economy. Full input matrices can replace each recipe. Additivity means
+all cross-differences of $\mu_{lk}$ vanish; setting $\gamma=0$ achieves this
+for the scalar recipe without forcing homogeneous wage distributions.
+
+\subsection{Monthly timing and endogenous mobility}
+State just before month $m$ is $(l,j,k,y)$, with permanent type $l$, actual firm
+$j$ in class $k$ and current log earnings $y$. Let $\lambda_{lk}\geq0$ be the
+annual baseline move intensity and $g_{lk}$ its wage slope. First compute
+\begin{equation}
+ h_{lk}(y)=\lambda_{lk}\exp[g_{lk}(y-\mu_{lk})],\qquad
+ P_{lk}(y)=1-\exp[-h_{lk}(y)/12].
+\label{eq:blmmove}
+\end{equation}
+A uniform draw below $P$ triggers an actual-firm move. There is at most one
+move per internal month. This is a discrete monthly transition specification,
+not an exact continuous-time process with a frozen intensity. A zero rate, or
+$J=1$, implies zero move probability regardless of earnings. The destination
+draw precedes the new Gaussian wage shock, so that shock cannot cause the same
+month's move. Wage dependence operates through the preceding month's earnings.
+
+If $D_{lkh}$ is an input destination mass, normalize it row-wise first.
+The scalar recipe is proportional to
+\[
+ D_{lkh}\ \propto\ n_h\exp(s x_l z_h),
+\]
+independent of origin $k$ before excluding the current employer. Remove its
+per-firm mass, then normalize:
+\[
+ \widetilde D_{lkh}=D_{lkh}\left(1-\frac{\mathbf1\{h=k\}}{n_k}\right),
+ \qquad Q_{lkh}=\frac{\widetilde D_{lkh}}{\sum_a\widetilde D_{lka}}.
+\]
+The conditional probability of a particular eligible firm in class $h$ is
+$Q_{lkh}/(n_h-\mathbf1\{h=k\})$. One uniform draw selects both class and
+eligible actual firm by partitioning the corresponding cumulative interval.
+Within-origin-class selection skips the old firm ID. A row with no eligible
+mass is permitted only when its rate is zero or the economy has one firm.
+Conditional rows for impossible moves remain zero. Nonuniform class counts,
+within-class moves and self-exclusion therefore affect realized destinations.
+
+\subsection{Earnings transition and interpretation of scales}
+Let $M\in\{0,1\}$ indicate a move and $h$ be the selected next class, with
+$h=k$ if there is no move. Convert annual $\rho_{lh}\in[0,1)$ into monthly
+$\phi_{lh}=\rho_{lh}^{1/12}$. Draw $e\sim N(0,1)$ independently after mobility:
+\begin{align}
+ c &= \mu_{lh}+\phi_{lh}(y-\mu_{lk})+M C_{lkh},\\
+ v &=s_{lh}\sqrt{(1-\phi_{lh})(1+\phi_{lh})},\\
+ y'&=c+ve.
+\label{eq:blmwage}
+\end{align}
+Persistence and innovation scale use the destination cell; the carried residual
+is centered at the origin cell. The scalar shift is
+$C_{lkh}=o(z_k-z_h)$. Within-class shifts are zero for that recipe, although a
+full shift table can specify a nonzero shift on within-class moves. Shifts are
+applied only when actual firms change. In a fixed cell without moves,
+$s_{lk}$ is the stationary earnings SD. With changing cells, selection and
+shifts, it need not equal the realized cell SD or innovation SD. A zero scale
+is allowed and gives a deterministic conditional wage transition.
+
+Static mode sets $\phi=g=C=0$ exactly. Dynamic mode with all these values zero
+uses identical operations and random draws, giving identical static histories.
+Annual persistence approaching one closely enough that the monthly value rounds
+to one is rejected, rather than silently generating zero innovation variance.
+
+\subsection{Initialization, burn-in, observation and spells}
+Random initialization draws a permanent type, a uniform actual firm and
+$y_0=\mu_{lk}+s_{lk}e_0$ independently, sets tenure to zero and spell ID to one.
+It then advances the same monthly process through burn-in. The default is
+240 months; any nonnegative burn-in in years is allowed if it lies on a monthly
+grid. This is not an exact stationary initializer. Slow mixing, zero moves and
+extreme persistence may retain initialization effects after the default burn-in.
+
+The first retained observation follows one complete requested output interval
+after burn-in. Annual, quarterly and monthly output advances 12, 3 and 1 steps;
+the endpoint employer and last monthly earnings are recorded, with no average
+wage aggregation. Retained paths are identical at shared endpoints for equal
+burn-in and total horizons. A move resets monthly tenure to zero and increments
+the worker's spell ID. A stayer adds one month; output tenure is divided by
+months per output period. Spell numbering includes burn-in history. Counts reset
+after burn-in and at every retained interval. Common \code{ntransitions} retains
+its first-row missing convention, while \code{n_ee_true} includes the first
+retained interval. A return to the previous observed employer can produce
+\code{jobtojob=0} alongside positive latent counts and a changed spell.
+
+\subsection{Random streams, storage, numerical guards and provenance}
+Streams are worker types 101, initial states 103, mobility events 104,
+destinations 105 and wage shocks 106. Initial-state uniforms for all workers
+precede their initial normal draws. Every worker-month consumes one event
+uniform, one destination uniform and one normal draw, even for impossible moves
+or zero innovations, including burn-in. Three-column buffers of 4,096 draws
+persist across worker blocks. Worker-major simulation makes output frequency,
+truth level and block size irrelevant to the underlying path at matched horizons.
+
+The writer targets 100,000 output rows per block and at most 10,000 workers,
+allowing one larger worker history when necessary. It stores no complete
+population history beyond the final Stata dataset and the initial population.
+Guards limit total output to 2,147,483,647 rows and generated work to one billion
+worker-months, including burn-in. Stata edition and memory limits may bind first.
+
+Destination utilities use max-shifted exponentials. Mobility probabilities use
+log intensity and stable small-probability arithmetic; underflow and saturation
+map to floating-point zero and one. Invalid tables, nonfinite derived wages or
+summaries, and exhausted numerical range fail explicitly. Validation precedes
+mutation; later failures restore the caller's data and RNG. Exact-source tests
+cover both failure paths, caller-owned matrix preservation and large-grid
+serialization. Cell moments use Welford updates and are recomputed after
+component filtering. Model tables remain those of the generated finite economy.
+
+The resolved model is serialized in fixed table order, dimensions and row-major
+values with 17 significant decimal digits. Dataset characteristics hold chunks
+of at most 30,000 characters and a count; no values are truncated. The simulation
+loads the resolved tables directly, avoiding a second normalization that could
+change last-bit destination thresholds. Stata's 32-bit \code{hash1()} supplies a
+short fingerprint, which is neither a unique model ID nor an integrity guarantee.
+
+\subsection{Author-model fixtures and identification boundary}
+The pinned author repository contains \code{R/m2-mixt.r} and \code{R/m4-mixt.R}.
+These generate conditional two- and four-period stayer/mover samples, including
+worker-type probabilities conditional on origin/destination classes. In our
+forward economy, those conditional mixtures are implied by primitive worker
+probabilities and mobility. Arbitrary author conditional tables need not define
+a consistent long-panel Markov economy; there is no claim of full parameter-space
+equivalence or byte-for-byte R RNG replication.
+
+The static fixture compares compatible independent normal endpoints. A dynamic
+fixture uses a compatible stationary Gaussian AR(1) law with constant location
+and scale. The author's four-period construction draws the second wage, draws
+the third conditionally forward, the first conditionally backward from the
+second, and the fourth forward from the third. Gaussian reversibility gives
+\[
+ \E(Y_t)=\mu,\qquad
+ \Cov(Y_t,Y_u)=s^2\phi^{|t-u|}.
+\]
+Independent tests compare the full implied means and covariance matrix with the
+forward implementation. They also check conditional innovations, dynamic move
+probabilities, heterogeneous cell scales, zero-dynamics nesting, actual-firm
+exclusion, signed sorting and exact frequency/block/truth invariance.
+
+Type labels in truth do not imply identifiable mixtures. Identical component
+distributions, absent support, uninformative mobility or deficient rank can
+prevent identification. BLM identification conditions concern informative
+class and type transitions in addition to restrictions on wage distributions.
+Observed firm-graph connectedness and AKM leave-out diagnostics provide different
+information and do not certify those conditions. Additive wage regressions and
+mover figures are useful descriptive projections under the simulated law.
+
 \section{Source map and rebuilding the manual}
 \begin{longtable}{@{}P{0.49\textwidth}P{0.44\textwidth}@{}}
 \toprule
@@ -1675,6 +2064,9 @@ Initial states, burn-in, exact events.\\
 \code{src/fesim_bm_handler.mata} & BM aggregation, truth, blocks, diagnostics.\\
 \code{src/fesim_cpv.mata}, \code{src/fesim_cpv_simulate.mata},
 \code{_fesim_cpv.ado} & CPV values, contracts, exact paths and public transaction.\\
+\code{src/fesim_blm.mata}, \code{src/fesim_blm_simulate.mata},
+\code{_fesim_blm_config.ado}, \code{_fesim_blm.ado} &
+Finite types, matrix resolution, monthly paths, diagnostics and transaction.\\
 \code{src/fesim_rng.mata}, \code{src/fesim_flows.mata},
 \code{_fesim_finalize.ado} & RNG, common flows, result finalization.\\
 \bottomrule
@@ -1683,7 +2075,7 @@ From the repository root, regenerate figures in Stata:
 \begin{lstlisting}
 do docs/manual_figures.do
 \end{lstlisting}
-The driver runs ten examples and exports vector PDFs to
+The driver runs fourteen examples and exports vector PDFs to
 \code{docs/manual_figures/}. Each example also runs independently.
 Fixed-seed public simulations supply plotted data; analytical comparisons
 use the formulas in this manual. Raw simulated data are not needed to
@@ -1722,5 +2114,9 @@ Leave-Out Estimation of Variance Components.
 Wage Bargaining with On-the-Job Search: Theory and Evidence.
 \emph{Econometrica}, 74(2), 323--364.
 \url{https://doi.org/10.1111/j.1468-0262.2006.00665.x}.
+\bibitem{blm} Bonhomme, St\'ephane, Thibaut Lamadon, and Elena Manresa (2019).
+A Distributional Framework for Matched Employer Employee Data.
+\emph{Econometrica}, 87(3), 699--739.
+\url{https://doi.org/10.3982/ECTA15722}.
 \end{thebibliography}
 \end{document}

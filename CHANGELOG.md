@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.0-dev (unpublished)
+## 1.2.0-rc.1 (unpublished)
 
 - Add static and dynamic BLM-style finite-type long panels, nonlinear cell means,
   worker sorting, persistent earnings and wage-dependent monthly mobility.
@@ -8,7 +8,8 @@
   values in returned matrices and chunked metadata, and retain scalar APIs.
 - Add employed-only state histories, type/cell truth, explicit monthly lags,
   generated/returned cell summaries and independent regression tests.
-- Add five self-contained one-click examples. BLM parameters are illustrative;
+- Add five self-contained one-click examples and four illustrated manual
+  scripts with a source-audited technical appendix. BLM parameters are illustrative;
   no empirical replication, estimator or broader-platform claim is made.
 
 
