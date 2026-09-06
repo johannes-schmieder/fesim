@@ -14,15 +14,15 @@ assert _rc == 0
 
 capture noisily fesim version
 assert _rc == 0
-assert `"`r(version)'"' == "1.1.0-rc.1"
+assert `"`r(version)'"' == "1.2.0-dev"
 assert `"`r(status)'"' == "development"
 assert r(api_level) == 1
 
 capture noisily fesim list
 assert _rc == 0
-assert `"`r(dgps)'"' == "akm akmpaygap bm cpv"
+assert `"`r(dgps)'"' == "akm akmpaygap bm cpv blm"
 assert `"`r(qualified)'"' == ///
-    "akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016 bm/simple cpv/simple cpv/heterogeneous"
+    "akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016 bm/simple cpv/simple cpv/heterogeneous blm/static blm/dynamic"
 
 capture noisily fesim presets akm
 assert _rc == 0
@@ -49,11 +49,11 @@ assert _rc == 0
 quietly adopath ++ `"`repository_root'/build"'
 mata: mata clear
 mata: mata mlib index
-mata: assert(fesim_mata_api_version() == 36)
+mata: assert(fesim_mata_api_version() == 37)
 mata: assert(fesim_bm_schema_version() == 1)
 mata: assert(fesim_config_schema_version() == 2)
 mata: assert(fesim_moment_schema_version() == 1)
 mata: assert(fesim_akm_simple_schema_version() == 4)
-mata: assert(fesim_dispatch_status() == "akm_paygap_bm_and_cpv_public")
+mata: assert(fesim_dispatch_status() == "akm_paygap_bm_cpv_and_blm_public")
 
 di as result "FESIM SOURCE SMOKE PASS"

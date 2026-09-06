@@ -1,4 +1,4 @@
-*! fesim configuration registry 1.1.0-rc.1 06sep2026
+*! fesim configuration registry 1.2.0-dev 06sep2026
 program define fesim_registry, rclass
     version 16.0
     syntax , ACTION(string) [ DGP(string) PRESet(string) PARAmeter(string) ]
@@ -10,11 +10,11 @@ program define fesim_registry, rclass
             di as error "dgp(), preset(), and parameter() are not allowed with registry action list"
             exit 198
         }
-        return local dgps "akm akmpaygap bm cpv"
+        return local dgps "akm akmpaygap bm cpv blm"
         return local aliases "akmsimple akmempirical bmsimple"
-        return local qualified "akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016 bm/simple cpv/simple cpv/heterogeneous"
+        return local qualified "akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016 bm/simple cpv/simple cpv/heterogeneous blm/static blm/dynamic"
         return local status "partial"
-        return scalar n_dgps = 4
+        return scalar n_dgps = 5
         exit
     }
 
@@ -31,6 +31,12 @@ program define fesim_registry, rclass
 
     local canonical `"`r(dgp)'"'
     local resolved_preset `"`r(preset)'"'
+
+    if "`canonical'"=="blm" {
+        _fesim_blm_registry, action(`action') preset(`resolved_preset') parameter(`parameter')
+        return add
+        exit
+    }
     if !inlist(`"`canonical'/`resolved_preset'"', ///
         "akm/simple", "akm/stylized", "akm/germany_chk_2002_2009", ///
         "akmpaygap/simple", "akmpaygap/cck2016", "bm/simple", ///
@@ -686,6 +692,7 @@ program define fesim_registry__resolve, rclass
     else if `"`requested'"' == "akmpaygap" local canonical "akmpaygap"
     else if `"`requested'"' == "bm" local canonical "bm"
     else if `"`requested'"' == "cpv" local canonical "cpv"
+    else if `"`requested'"' == "blm" local canonical "blm"
     else if `"`requested'"' == "bmsimple" {
         local canonical "bm"
         local alias_preset "simple"
@@ -704,6 +711,7 @@ program define fesim_registry__resolve, rclass
 
     local resolved_preset `"`requested_preset'"'
     if `"`resolved_preset'"' == "" local resolved_preset `"`alias_preset'"'
+    if "`resolved_preset'"=="" & "`canonical'"=="blm" local resolved_preset "static"
     if `"`resolved_preset'"' == "" local resolved_preset "simple"
 
     local presets ""
@@ -758,6 +766,18 @@ program define fesim_registry__resolve, rclass
         local config_schema "akmpaygap_`resolved_preset'_v1"
         local configurable "yes"
     }
+
+    else if "`canonical'"=="blm" {
+        local presets "static dynamic"
+        if !inlist("`resolved_preset'","static","dynamic") {
+            di as error "BLM presets are static and dynamic"
+            exit 198
+        }
+        local title "BLM-style finite worker and firm types"
+        local calibration_class "stylized"
+        local config_schema "blm_`resolved_preset'_v1"
+        local configurable "yes"
+    }
     else if `"`canonical'"' == "cpv" {
         local presets "simple heterogeneous"
         if !inlist(`"`resolved_preset'"', "simple", "heterogeneous") {
@@ -790,7 +810,7 @@ program define fesim_registry__resolve, rclass
     return local aliases `"`aliases'"'
     return local title `"`title'"'
     return local calibration_class `"`calibration_class'"'
-    if inlist(`"`canonical'/`resolved_preset'"', ///
+    if "`canonical'"=="blm" | inlist(`"`canonical'/`resolved_preset'"', ///
         "akm/simple", "akm/stylized", "akm/germany_chk_2002_2009", ///
         "akmpaygap/simple", "akmpaygap/cck2016", "bm/simple", ///
         "cpv/simple", "cpv/heterogeneous") {

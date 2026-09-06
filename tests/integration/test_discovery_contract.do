@@ -7,7 +7,7 @@ generate caller_id=_n
 datasignature set
 set seed 314159
 local rng "`c(rngstate)'"
-foreach family in akm akmpaygap bm cpv {
+foreach family in akm akmpaygap bm cpv blm {
     quietly fesim presets `family'
     local presets "`r(presets)'"
     foreach preset of local presets {

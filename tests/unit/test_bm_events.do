@@ -23,7 +23,7 @@ void fesim_test_bm_events()
     real colvector wage, worker_after, worker_control
     string scalar zero_mobility_state, zero_destination_state
 
-    assert(fesim_mata_api_version() == 36)
+    assert(fesim_mata_api_version() == 37)
     assert(fesim_bm_history_schema_version() == 1)
     assert(fesim_bm_event_column_names() == ///
         ("worker_id", "event_time", "event_kind", "accepted", ///

@@ -16,3 +16,6 @@
 *.mlib
 build/
 windows-ci.status
+
+# Primary-source downloads used for the documented BLM audit.
+literature/downloads/

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.0-dev (unpublished)
+
+- Add static and dynamic BLM-style finite-type long panels, nonlinear cell means,
+  worker sorting, persistent earnings and wage-dependent monthly mobility.
+- Accept optional Stata matrix tables inside BLM parameters(), preserve their
+  values in returned matrices and chunked metadata, and retain scalar APIs.
+- Add employed-only state histories, type/cell truth, explicit monthly lags,
+  generated/returned cell summaries and independent regression tests.
+- Add five self-contained one-click examples. BLM parameters are illustrative;
+  no empirical replication, estimator or broader-platform claim is made.
+
+
 ## Unreleased — 1.1.0-rc.1 CPV candidate
 
 - Add `cpv/simple` and `cpv/heterogeneous`: finite-firm Bellman solution,

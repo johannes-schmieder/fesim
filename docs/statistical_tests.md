@@ -108,3 +108,31 @@ boundaries, null contacts and same-firm re-entry. Integration tests compare
 block sizes 1/7/333/1201 and nested annual/quarterly/monthly snapshots exactly,
 including event counts, exposures, structural state and caller RNG behavior.
 See [the CPV derivation](cpv-derivation.md) for the source and model boundary.
+
+
+## BLM finite-type validation
+
+`tests/statistical/test_blm_moments.do` uses 60,000 independent workers at the
+first internal month, with no burn-in, three worker types, three firm classes,
+and a heterogeneous 3-by-3 scale table. Static cell means and SDs are compared
+with their known Gaussian values using eight standard-error bounds. Both
+presets test standardized innovation mean and SD, correlations with lagged
+wages and selected moves, and the sum of move indicators minus their pre-shock
+probabilities against eight times the square root of the summed Bernoulli
+variances. Tests therefore use workers, not serially repeated rows, as units.
+A type/origin-class controlled regression checks static shock exogeneity and
+the negative dynamic wage-mobility slope. Separate 20,000-worker, 20-year
+burn-in samples require the correlation of ordered types and classes to exceed
+.3 in the direction of sorting coefficients +1 and -1. Those signed mechanism
+checks are not empirical calibration targets or stationarity certificates.
+
+Deterministic BLM tests independently enumerate actual-firm probabilities,
+check CDF draws on a 20,000-point uniform grid, cell cross-differences and
+conditional wage mean/variance, and compare compatible two-/four-period
+Gaussian laws with pinned author code. Integration covers all matrix inputs,
+caller matrix/data/RNG preservation, numerical failure after mutation,
+singletons, within-class moves, hidden same-firm returns, zero-dynamics nesting,
+exact frequency/block/truth invariance and complete 20-by-20 model provenance.
+The common grid covers ten presets across three truth levels and three output
+frequencies (90 cases). See [the source audit](blm.md) for limits of the mapping
+from conditional author sample simulators to a long-panel forward process.

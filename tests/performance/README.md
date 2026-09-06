@@ -62,3 +62,21 @@ recorded events at 100,000 workers over 10 years; recorded history is also
 aggregated separately. JSON, Stata logs, and macOS process-resource receipts
 are saved under the exact source SHA in ignored `build/benchmarks/`. Runtime
 receipts carry the clean SHA; the wrapper rejects changes during measurement.
+
+
+## BLM scaling and matched controls
+
+`python3 scripts/run_blm_benchmarks.py ROOT STATA OUTPUT` measures 20 clean-source
+cases: each BLM preset at 1,000/10,000/100,000 workers, 500 firms, ten annual
+snapshots, truth none/full; each preset at 10,000 workers and 120 monthly
+snapshots, truth none/full; and dynamic full truth at 1,000 workers with
+(L,K) = (1,1), (3,5), (10,10), (20,20). All use 20 years of burn-in.
+The harness preserves source and driver hashes, raw Stata logs, macOS peak RSS,
+data signatures, move/work counts, model fingerprints and peak block rows.
+
+Before qualifying BLM, retain the unchanged 26 legacy and 20 CPV controls from
+the pinned pre-BLM source and compare every deterministic output. Investigate
+initial time or RSS increases above 10% with three additional matched source
+pairs and compare medians. Run correctness and benchmark lanes sequentially;
+record outliers even when they do not reproduce. This is local macOS evidence,
+not a cross-platform speed claim.

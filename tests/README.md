@@ -21,8 +21,11 @@ The current suite covers clean installation, source smoke behavior, checkout-sou
 The CPV extension adds five files for independent Bellman and contract-state
 CTMC oracles, joint contract-tenure stationarity, fixed boundary events,
 public truth/rollback, beta/tie limits, and block/frequency invariance. The full
-inventory is 68 Stata files with eight installed presets, 72 common contract
-cases, 17 clickable examples and ten standalone manual scripts. See
+pre-BLM inventory was 68 Stata files. The BLM extension adds five files for
+finite-type probabilities, compatible author-model laws, public matrix/RNG
+contracts, block/frequency nesting and statistical conditional moments. The
+current inventory is 73 files, ten installed presets, 90 common contract cases,
+22 clickable examples and fourteen standalone manual scripts. See
 [`docs/statistical_tests.md`](../docs/statistical_tests.md) for fixed sampling
 bounds and [`docs/qualification-1.1.0-rc.1.md`](../docs/qualification-1.1.0-rc.1.md)
 for exact candidate evidence. Performance measurements remain a separate lane.

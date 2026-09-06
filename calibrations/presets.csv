@@ -126,3 +126,27 @@ cpv,heterogeneous,r,0.05,annual continuous-time rate,stylized,fesim_d043,DESIGN 
 cpv,heterogeneous,beta,0.5,worker bargaining share,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
 cpv,heterogeneous,sd_worker,0.4,log ability standard deviation,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
 cpv,heterogeneous,random_firms,0,indicator,stylized,fesim_d043,DESIGN D-043,none,stylized CPV primitives; no empirical calibration,1.1.0-rc.1
+blm,static,mu,3,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,static,sd_worker,0.4,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,static,sd_firm,0.15,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,static,interaction,0.1,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,static,sd_error,0.2,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,static,lambda_move,0.25,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,static,sorting,0.5,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,static,worker_types,6,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,static,firm_types,10,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,static,rho,0,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,static,mobility_wage,0,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,static,origin_dependence,0,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,dynamic,mu,3,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,dynamic,sd_worker,0.4,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,dynamic,sd_firm,0.15,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,dynamic,interaction,0.1,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,dynamic,sd_error,0.2,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,dynamic,lambda_move,0.25,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,dynamic,sorting,0.5,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,dynamic,worker_types,6,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,dynamic,firm_types,10,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,dynamic,rho,0.6,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,dynamic,mobility_wage,-2,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev
+blm,dynamic,origin_dependence,0.05,see BLM registry,stylized,package_blm_d044,DESIGN.md D-044,illustrative scalar recipe,Not an empirical calibration; full matrices may override recipes,1.2.0-dev

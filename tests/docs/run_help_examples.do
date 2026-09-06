@@ -7,11 +7,14 @@ set obs 4
 generate long original_id = _n
 generate double original_value = _n / 10
 quietly datasignature set, reset
+set seed 271828
+local caller_rng "`c(rngstate)'"
 
-foreach example in discovery simulate estimate stylized germany blocks bridges ladder paygap bm cpv cpv_heterogeneous cpv_paths cpv_dispersion cpv_bargaining cpv_akm cpv_movers {
+foreach example in discovery simulate estimate stylized germany blocks bridges ladder paygap bm cpv cpv_heterogeneous cpv_paths cpv_dispersion cpv_bargaining cpv_akm cpv_movers blm_static blm_dynamic blm_matrices blm_akm blm_movers {
     capture noisily fesim_run `example' using fesim.sthlp
     assert _rc == 0
     quietly datasignature confirm
+    assert "`c(rngstate)'"=="`caller_rng'"
 }
 
 capture noisily fesim_run missing_example using fesim.sthlp

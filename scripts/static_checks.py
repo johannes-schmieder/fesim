@@ -198,6 +198,7 @@ def check_help_examples() -> None:
         "bm",
         "cpv", "cpv_heterogeneous", "cpv_paths", "cpv_dispersion",
         "cpv_bargaining", "cpv_akm", "cpv_movers",
+        "blm_static", "blm_dynamic", "blm_matrices", "blm_akm", "blm_movers",
     )
     for example in examples:
         require(

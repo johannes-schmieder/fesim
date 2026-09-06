@@ -4,12 +4,12 @@ set more off
 set varabbrev off
 
 quietly fesim_registry, action(list)
-assert `"`r(dgps)'"' == "akm akmpaygap bm cpv"
+assert `"`r(dgps)'"' == "akm akmpaygap bm cpv blm"
 assert `"`r(aliases)'"' == "akmsimple akmempirical bmsimple"
 assert `"`r(qualified)'"' == ///
-    "akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016 bm/simple cpv/simple cpv/heterogeneous"
+    "akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016 bm/simple cpv/simple cpv/heterogeneous blm/static blm/dynamic"
 assert `"`r(status)'"' == "partial"
-assert r(n_dgps) == 4
+assert r(n_dgps) == 5
 
 quietly fesim_registry, action(resolve) dgp(AKMSIMPLE)
 assert `"`r(dgp)'"' == "akm"

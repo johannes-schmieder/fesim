@@ -6,72 +6,25 @@ The installed runtime uses only official Stata and Mata. It does not require a c
 
 ## Current implementation status
 
-The unpublished `1.1.0-rc.1` candidate provides eight presets across AKM,
-pay-gap, BM wage posting and CPV wage bargaining. The
-[user and technical manual](docs/fesim_manual.pdf) covers syntax, defaults,
-structural truth and ten illustrated examples. Its appendices derive every
-DGP, including the finite CPV value solver, contract wages and exact joint
-stationary initialization. [LaTeX source](docs/fesim_manual.tex) and
-[self-contained figure scripts](docs/manual_examples/README.md) are included.
-The installed help contains 17 one-click examples.
+The `1.2.0-dev` branch adds BLM-style static and dynamic finite-type panels to
+the eight existing AKM, pay-gap, BM and CPV presets. BLM supports arbitrary
+retained panel lengths, nonlinear earnings interactions, sorting, earnings
+persistence and wage-dependent mobility. Its scalar recipes and optional Stata
+matrices are documented in [the BLM model note](docs/blm.md).
 
 ```stata
-fesim, dgp(cpv) preset(heterogeneous) workers(5000) firms(250) ///
-    periods(10) seed(12345) truth(full) parameters(beta .5) clear
-matrix list r(cpv_flows)
+fesim, dgp(blm) preset(dynamic) workers(5000) firms(250) ///
+    periods(10) seed(12345) truth(full) clear
+matrix list r(blm_mean)
+matrix list r(blm_cells)
 ```
 
-Outside offers can produce raises at the current employer, and direct moves
-can cut current wages. Worker ability scales wages without changing mobility.
-The CPV presets use stylized primitives and do not reproduce empirical
-estimates. [Derivation and source audit](docs/cpv-derivation.md).
-The [CPV qualification report](docs/qualification-1.1.0-rc.1.md) records all
-68 Stata files passing on exact source and isolated archive, 26 matched legacy
-controls with repeated outlier checks, and 20 CPV scaling cases. Qualification
-is macOS Stata/MP 19. No new tag or release has been created.
-
-The latest release is `v0.1.0`. The preceding `1.0.0-rc.1` review candidate includes
-three public AKM presets, two public pay-gap presets, and canonical BM. The pay-gap family
-includes a transparent stylized design and a CCK-inspired targeted design with
-an exact three-reference decomposition:
-
-```stata
-fesim version
-fesim list
-fesim presets
-fesim presets akm
-fesim describe akmsimple
-fesim describe akm, preset(simple)
-fesim describe akmempirical
-fesim describe akm, preset(germany_chk_2002_2009)
-fesim describe akmpaygap, preset(simple)
-fesim describe akmpaygap, preset(cck2016)
-fesim describe bm
-fesim describe cpv, preset(heterogeneous)
-```
-
-`fesim describe akmsimple` reports the resolved `akm/simple` configuration, scalar values/bounds/units, output inventories, supported initialization/network choices, and scientific source/target scope. The same resolver validates named common options and model-specific name-value pairs such as `parameters(mu 3.2 p_ee .10)`, records their sources, and serializes the result deterministically. In the frozen v0.1 contract, all model-specific scalars remain inside `parameters()`; only common controls have named options.
-
-The development branch also exposes the common `network(random|blocks|bridges|ladder)` stress designs. `network(random)` is the frozen compatibility default. `network(blocks)` assigns balanced independent worker and firm communities and multiplies same-block destination weights by `exp(block_log_bonus)`; `parameters(block_log_bonus 0)` nests the exact random destination rule. `network(bridges)` starts from strict communities and redirects an exact reproducible set of existing EE events across adjacent blocks without changing their occurrence or timing. `network(ladder)` changes only ordinary EE destinations, using persistent firm-wage-effect ranks and default downward/lateral/upward shares of `.10/.20/.70`. Network scalars remain inside `parameters()`.
-
-The public simulation routes are:
-
-```stata
-fesim, dgp(akmsimple) seed(12345) clear
-fesim, dgp(akmempirical) seed(12345) clear
-fesim, dgp(akm) preset(germany_chk_2002_2009) seed(12345) clear
-fesim, dgp(akmpaygap) preset(simple) seed(12345) clear
-fesim, dgp(akmpaygap) preset(cck2016) seed(12345) clear
-fesim, dgp(bm) seed(12345) clear
-fesim, dgp(cpv) seed(12345) clear
-fesim, dgp(cpv) preset(heterogeneous) seed(12345) clear
-```
-
-The aliases resolve to `dgp(akm) preset(simple)` and `dgp(akm)
-preset(stylized)`, respectively; the Germany and pay-gap presets deliberately
-have no aliases. All public routes generate the required worker-period panel,
-optional truth variables, common moments, metadata, and returned results.
-Retained periods are streamed into the final worker-major Stata dataset.
+BLM is an employed-only monthly forward process with illustrative parameters.
+It does not estimate BLM or reproduce the Swedish empirical calibration.
+The new source is undergoing qualification; historical CPV evidence belongs to
+[the 1.1.0-rc.1 report](docs/qualification-1.1.0-rc.1.md).
+The [user and technical manual](docs/fesim_manual.pdf) is being expanded to
+cover the BLM extension. No new tag or release has been created.
 
 ## Canonical Burdett–Mortensen
 

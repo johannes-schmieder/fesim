@@ -1,7 +1,6 @@
 *! fesim common configuration resolver 1.2.0-dev 06sep2026
-program define fesim_config, rclass
+program define _fesim_blm_config, rclass
     version 16.0
-    local invocation `"`0'"'
     syntax [ , DGP(string) PRESet(string) WORKers(string) FIRMs(string) ///
         PERIODs(string) FREQuency(string) START(string) SEED(string) ///
         INITIAL(string) BURNIN(string) JOBRULE(string) TRUTH(string) ///
@@ -25,12 +24,6 @@ program define fesim_config, rclass
         local registry_options `"`registry_options' preset(`requested_preset')"'
     }
     quietly fesim_registry, `registry_options'
-
-    if "`r(dgp)'"=="blm" {
-        _fesim_blm_config `invocation'
-        return add
-        exit
-    }
     local canonical `"`r(dgp)'"'
     local alias `"`r(dgp_alias)'"'
     local resolved_preset `"`r(preset)'"'
@@ -46,6 +39,8 @@ program define fesim_config, rclass
     local scalar_parameters `"`r(scalar_parameters)'"'
     local model_parameters `"`r(model_parameters)'"'
     local network_parameters `"`r(network_parameters)'"'
+    local matrix_parameters `"`r(matrix_parameters)'"'
+    local matrix_results `"`r(matrix_results)'"'
 
     foreach name of local scalar_parameters {
         quietly fesim_registry, action(parameter) dgp(`canonical') ///
@@ -78,8 +73,8 @@ program define fesim_config, rclass
         local name = lower(strtrim(`"``i''"'))
         local j = `i' + 1
         local value `"``j''"'
-        if !`: list name in scalar_parameters' {
-            di as error "unknown or non-scalar fesim parameter in parameters(): `name'"
+        if !`: list name in scalar_parameters' & !`: list name in matrix_parameters' {
+            di as error "unknown BLM parameter in parameters(): `name'"
             exit 198
         }
         quietly fesim_registry, action(parameter) dgp(`canonical') ///
@@ -102,176 +97,80 @@ program define fesim_config, rclass
         local i = `i' + 2
     }
     local parameter_names = strtrim(`"`parameter_names'"')
-    local has_block_count : list posof "block_count" in parameter_names
-    local has_block_log_bonus : list posof "block_log_bonus" in parameter_names
-    local has_bridge_count : list posof "bridge_count" in parameter_names
-    local has_ladder_down_share : list posof "ladder_down_share" in parameter_names
-    local has_ladder_lateral_share : list posof "ladder_lateral_share" in parameter_names
-    local has_ladder_up_share : list posof "ladder_up_share" in parameter_names
-    local has_ladder_band : list posof "ladder_band" in parameter_names
 
     local network = lower(strtrim(`"`network'"'))
     local source_network "option"
-    if `"`network'"' == "" {
+    if "`network'"=="" {
         local network "random"
         local source_network "package"
     }
-    if !inlist(`"`network'"', "random", "blocks", "bridges", "ladder") {
-        di as error "network() must be random, blocks, bridges, or ladder"
+    if "`network'"!="random" {
+        di as error "BLM requires network(random)"
         exit 198
     }
-    if inlist(`"`canonical'"', "akmpaygap", "bm", "cpv") & `"`network'"' != "random" {
-        di as error "`canonical' currently requires network(random)"
-        exit 198
-    }
-    if `"`network'"' == "bridges" & `"`source_bridge_count'"' != "parameters" {
-        local value_bridge_count = real(`"`value_block_count'"') - 1
-        local default_bridge_count `"`value_bridge_count'"'
-        local source_bridge_count "derived"
-    }
-    if `"`network'"' == "bridges" {
-        local value_block_log_bonus "0"
-        local default_block_log_bonus "0"
-        local source_block_log_bonus "design"
-    }
-
     foreach name of local scalar_parameters {
         local value `"`value_`name''"'
         capture confirm number `value'
         if _rc | missing(real(`"`value'"')) {
-            di as error "`name' must be a nonmissing numeric scalar"
+            di as error "`name' must be a finite numeric scalar"
             exit 198
         }
-        quietly fesim_registry, action(parameter) dgp(`canonical') ///
-            preset(`resolved_preset') parameter(`name')
-        if `"`r(type)'"' == "integer" & real(`"`value'"') != floor(real(`"`value'"')) {
+        quietly fesim_registry, action(parameter) dgp(blm) preset(`resolved_preset') parameter(`name')
+        if "`r(type)'"=="integer" & real("`value'")!=floor(real("`value'")) {
             di as error "`name' must be an integer"
             exit 198
         }
-        local lower `"`r(lower)'"'
-        local upper `"`r(upper)'"'
-        if `"`lower'"' != "." {
-            if (`"`r(lower_closed)'"' == "yes" & real(`"`value'"') < real(`"`lower'"')) | ///
-                (`"`r(lower_closed)'"' == "no" & real(`"`value'"') <= real(`"`lower'"')) {
-                di as error "`name' is below its registered lower bound"
+        if (real("`r(lower)'")<. & real("`value'")<real("`r(lower)'")) | ///
+            (real("`r(upper)'")<. & (real("`value'")>real("`r(upper)'") | ///
+            ("`r(upper_closed)'"=="no" & real("`value'")==real("`r(upper)'")))) {
+            di as error "`name' is outside its registered bounds"
+            exit 198
+        }
+        local formatted : display %24.17g real("`value'")
+        local value_`name' = strtrim("`formatted'")
+    }
+    if real("`value_firms'")<real("`value_firm_types'") {
+        di as error "BLM firms() must be at least firm_types"
+        exit 198
+    }
+    if real("`value_workers'")*real("`value_periods'")>2147483647 {
+        di as error "BLM requested observation count exceeds supported range"
+        exit 198
+    }
+    if abs(12*real("`value_burnin'")-round(12*real("`value_burnin'")))>1e-8 {
+        di as error "BLM burnin() must be aligned to whole months"
+        exit 198
+    }
+    local matrix_inputs ""
+    foreach name of local matrix_parameters {
+        if "`source_`name''"=="parameters" {
+            capture confirm name `value_`name''
+            if _rc {
+                di as error "BLM `name' requires a Stata matrix name"
                 exit 198
             }
-        }
-        if `"`upper'"' != "." {
-            if (`"`r(upper_closed)'"' == "yes" & real(`"`value'"') > real(`"`upper'"')) | ///
-                (`"`r(upper_closed)'"' == "no" & real(`"`value'"') >= real(`"`upper'"')) {
-                di as error "`name' is above its registered upper bound"
+            capture confirm matrix `value_`name''
+            if _rc {
+                di as error "BLM matrix does not exist: `value_`name''"
                 exit 198
             }
+            local recipes ""
+            if "`name'"=="mean_matrix" local recipes "mu sd_worker sd_firm interaction"
+            if "`name'"=="sd_matrix" local recipes "sd_error"
+            if "`name'"=="move_rate_matrix" local recipes "lambda_move"
+            if "`name'"=="rho_matrix" local recipes "rho"
+            if "`name'"=="mobility_wage_matrix" local recipes "mobility_wage"
+            if "`name'"=="destination_matrix" local recipes "sorting"
+            if "`name'"=="move_shift_matrix" local recipes "origin_dependence"
+            foreach recipe of local recipes {
+                if "`source_`recipe''"=="parameters" {
+                    di as error "BLM `name' conflicts with explicit scalar recipe `recipe'"
+                    exit 198
+                }
+            }
+            local matrix_inputs "`matrix_inputs' `value_`name''"
         }
-        local formatted : display %21.15g real(`"`value'"')
-        local value_`name' = strtrim(`"`formatted'"')
-    }
-
-    if `"`canonical'"' == "cpv" {
-        if real(`"`value_p_max'"') < real(`"`value_p_min'"') {
-            di as error "CPV p_max must be at least p_min"
-            exit 198
-        }
-    }
-    else if `"`canonical'"' == "bm" {
-        if real(`"`value_p'"') <= real(`"`value_b'"') {
-            di as error "BM productivity p must exceed b"
-            exit 198
-        }
-    }
-    else if `"`canonical'"' == "akmpaygap" {
-        if real(`"`value_firms'"') < 2 {
-            di as error "firms() must be at least 2 for akmpaygap/`resolved_preset'"
-            exit 198
-        }
-        if real(`"`value_p_eu_m'"') + ///
-            real(`"`value_p_ee_m'"') >= 1 {
-            di as error "p_eu_m + p_ee_m must be strictly less than 1"
-            exit 198
-        }
-        if real(`"`value_p_eu_f'"') + ///
-            real(`"`value_p_ee_f'"') >= 1 {
-            di as error "p_eu_f + p_ee_f must be strictly less than 1"
-            exit 198
-        }
-    }
-    else if `"`resolved_preset'"' == "simple" {
-        if real(`"`value_p_eu'"') + real(`"`value_p_ee'"') >= 1 {
-            di as error "p_eu + p_ee must be strictly less than 1"
-            exit 198
-        }
-        if real(`"`value_firms'"') < 2 & real(`"`value_p_ee'"') > 0 {
-            di as error "firms() must be at least 2 when p_ee is positive"
-            exit 198
-        }
-    }
-    else if (`"`resolved_preset'"' != "simple" & `"`canonical'"' != "cpv") {
-        if real(`"`value_firms'"') < 2 {
-            di as error "firms() must be at least 2 for akm/`resolved_preset'"
-            exit 198
-        }
-        if real(`"`value_sd_worker'"') == 0 & ///
-            real(`"`value_rho_z_alpha'"') != 0 {
-            di as error "rho_z_alpha must be zero when sd_worker is zero"
-            exit 198
-        }
-        if real(`"`value_sd_firm'"') == 0 & ///
-            real(`"`value_rho_q_psi'"') != 0 {
-            di as error "rho_q_psi must be zero when sd_firm is zero"
-            exit 198
-        }
-    }
-    if !inlist(`"`canonical'"', "bm", "cpv") & abs(real(`"`value_ladder_down_share'"') + ///
-        real(`"`value_ladder_lateral_share'"') + ///
-        real(`"`value_ladder_up_share'"') - 1) > 1e-12 {
-        di as error "ladder direction shares must sum to one"
-        exit 198
-    }
-    if real(`"`value_workers'"') * real(`"`value_periods'"') > 2147483647 {
-        di as error "workers() times periods() exceeds the supported observation count"
-        exit 198
-    }
-    if inlist(`"`network'"', "blocks", "bridges") & ///
-        real(`"`value_block_count'"') > ///
-        min(real(`"`value_workers'"'), real(`"`value_firms'"')) {
-        di as error "block_count may not exceed workers() or firms()"
-        exit 198
-    }
-    if `"`network'"' == "bridges" & ///
-        real(`"`value_firms'"') < 2 * real(`"`value_block_count'"') {
-        di as error "network(bridges) requires at least two firms per block"
-        exit 198
-    }
-    if !inlist(`"`network'"', "blocks", "bridges") & ///
-        (`has_block_count' | `has_block_log_bonus' | `has_bridge_count') {
-        di as error "network design parameters require network(blocks) or network(bridges)"
-        exit 198
-    }
-    if `"`network'"' != "ladder" & ///
-        (`has_ladder_down_share' | `has_ladder_lateral_share' | ///
-        `has_ladder_up_share' | `has_ladder_band') {
-        di as error "ladder parameters require network(ladder)"
-        exit 198
-    }
-    if `"`network'"' == "blocks" & `has_bridge_count' {
-        di as error "bridge_count requires network(bridges)"
-        exit 198
-    }
-    if `"`network'"' == "bridges" & ///
-        `has_block_log_bonus' {
-        di as error "block_log_bonus is not used by strict network(bridges)"
-        exit 198
-    }
-    if `"`network'"' == "bridges" & ///
-        real(`"`value_bridge_count'"') < real(`"`value_block_count'"') - 1 {
-        di as error "bridge_count must be at least block_count minus one"
-        exit 198
-    }
-    if `"`network'"' == "bridges" & ///
-        real(`"`value_bridge_count'"') > real(`"`value_workers'"') {
-        di as error "bridge_count may not exceed workers()"
-        exit 198
+        else local matrix_inputs "`matrix_inputs' -"
     }
 
     local frequency = lower(strtrim(`"`frequency'"'))
@@ -334,40 +233,18 @@ program define fesim_config, rclass
         local `name' = lower(strtrim(`"``name''"'))
         local source_`name' "option"
     }
-    if `"`initial'"' == "" {
-        if `"`canonical'"' == "akmpaygap" | ///
-            (`"`resolved_preset'"' != "simple" & `"`canonical'"' != "cpv") {
-            local initial "random"
-            local source_initial "preset"
-        }
-        else {
-            local initial "stationary"
-            local source_initial "package"
-        }
+
+    if "`initial'"=="" {
+        local initial "random"
+        local source_initial "preset"
     }
-    if !inlist(`"`initial'"', "stationary", "random", "allunemployed") {
-        di as error "initial() must be stationary, random, or allunemployed"
+    if "`initial'"!="random" {
+        di as error "BLM supports initial(random) only; burn-in is not an exact stationary initialization"
         exit 198
     }
-    if (`"`canonical'"' == "akmpaygap" | ///
-        (`"`resolved_preset'"' != "simple" & `"`canonical'"' != "cpv")) & `"`initial'"' == "stationary" {
-        di as error "initial(stationary) is unavailable for `canonical'/`resolved_preset'"
-        exit 198
-    }
-    if inlist(`"`canonical'"', "bm", "cpv") & `"`initial'"' == "random" & ///
-        real(`"`value_burnin'"') <= 0 {
-        di as error "Continuous-time initial(random) requires positive burnin() in years"
-        exit 198
-    }
-    if !inlist(`"`canonical'"', "bm", "cpv") & ///
-        `"`initial'"' == "random" & real(`"`value_burnin'"') < 1 {
-        if `"`canonical'"' == "akmpaygap" | ///
-            (`"`resolved_preset'"' != "simple" & `"`canonical'"' != "cpv") {
-            di as error "initial(random) requires burnin() of at least one year for `canonical'/`resolved_preset'"
-        }
-        else {
-            di as error "initial(random) requires burnin() of at least one output period"
-        }
+    if real("`value_workers'")*(round(12*real("`value_burnin'"))+ ///
+        real("`value_periods'")*12*`delta_years')>1000000000 {
+        di as error "BLM internal simulation exceeds one billion worker-months"
         exit 198
     }
     if `"`jobrule'"' == "" {
@@ -406,10 +283,33 @@ program define fesim_config, rclass
         local source_report "option"
     }
 
+
+    quietly _fesim_load
+    tempname primitives
+    matrix `primitives' = J(1,12,.)
+    local col 0
+    foreach name of local model_parameters {
+        local ++col
+        matrix `primitives'[1,`col'] = real("`value_`name''")
+    }
+    local matrix_outputs ""
+    foreach result of local matrix_results {
+        tempname tmp_`result'
+        local matrix_outputs "`matrix_outputs' `tmp_`result''"
+    }
+    quietly mata: fesim_blm_resolve_to_stata(strtoreal(st_local("value_firms")), ///
+        st_matrix("`primitives'"),tokens(st_local("matrix_inputs")), ///
+        "`resolved_preset'",tokens(st_local("matrix_outputs")))
     local model_overrides ""
     foreach name of local model_parameters {
         if `"`source_`name''"' == "parameters" {
             local model_overrides `"`model_overrides' `name'=`value_`name''"'
+        }
+    }
+
+    foreach name of local matrix_parameters {
+        if "`source_`name''"=="parameters" {
+            local model_overrides "`model_overrides' `name'=resolved_table"
         }
     }
     local model_overrides = strtrim(`"`model_overrides'"')
@@ -451,6 +351,9 @@ program define fesim_config, rclass
         local config_sources `"`config_sources' `name'=`source_`name''"'
     }
 
+
+    local config "`config' blm_tables_v1=`blm_fingerprint'"
+    local config_sources "`config_sources' blm_tables=resolved_values"
     local n_parameters : word count `scalar_parameters'
     tempname parameter_matrix
     matrix `parameter_matrix' = J(`n_parameters', 4, .)
@@ -501,5 +404,13 @@ program define fesim_config, rclass
     return scalar end_value = `end_value'
     return scalar periods_per_year = `periods_per_year'
     return scalar delta_years = `delta_years'
+
+    return local matrix_parameters "`matrix_parameters'"
+    return local matrix_results "`matrix_results'"
+    return local blm_model `"`blm_model'"'
+    return local blm_fingerprint "`blm_fingerprint'"
+    foreach result of local matrix_results {
+        return matrix `result' = `tmp_`result''
+    }
     return matrix parameters = `parameter_matrix'
 end

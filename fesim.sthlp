@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.1.0-rc.1 06sep2026}{...}
+{* *! version 1.2.0-dev 06sep2026}{...}
 {.-}
 help for {cmd:fesim} {right:(Johannes F. Schmieder)}
 {.-}
@@ -8,7 +8,7 @@ help for {cmd:fesim} {right:(Johannes F. Schmieder)}
 
 {p 4 8}{cmd:fesim} {hline 2} linked employer-employee panel simulation{p_end}
 
-{title:Syntax available in 1.1.0-rc.1}
+{title:Syntax available in 1.2.0-dev}
 
 {p 8 12}{cmd:fesim version}{p_end}
 {p 8 12}{cmd:fesim list}{p_end}
@@ -38,7 +38,7 @@ The {cmd:dgp(akm)} presets {cmd:simple}, {cmd:stylized}, and {cmd:germany_chk_20
 {cmd:fesim list} shows canonical DGP families, presets, aliases, and implementation status. {cmd:fesim presets} lists presets for all families or one requested DGP. {cmd:fesim describe} resolves case-insensitive names to canonical lowercase names. For example, {cmd:akmsimple} resolves to {cmd:dgp(akm) preset(simple)} and reports the same canonical configuration.
 
 {pstd}
-Configuration metadata is implemented for all eight public presets. The simple and stylized presets retain their documented defaults. The Germany preset defaults to {cmd:workers(10000)}, {cmd:firms(1000)}, eight annual periods beginning in 2002, {cmd:initial(random)}, and a five-year monthly burn-in. All presets default to {cmd:truth(basic)}, {cmd:connectivity(keep)}, {cmd:network(random)}, and {cmd:report}. Omitting {cmd:seed()} records {cmd:current}; configuration resolution itself never changes the RNG state.
+Configuration metadata is implemented for all ten public presets. The simple and stylized presets retain their documented defaults. The Germany preset defaults to {cmd:workers(10000)}, {cmd:firms(1000)}, eight annual periods beginning in 2002, {cmd:initial(random)}, and a five-year monthly burn-in. All presets default to {cmd:truth(basic)}, {cmd:connectivity(keep)}, {cmd:network(random)}, and {cmd:report}. Omitting {cmd:seed()} records {cmd:current}; configuration resolution itself never changes the RNG state.
 
 For the simple AKM contract, {cmd:initial(stationary)} uses the exact interval transition matrix over unemployment and firms and initializes job age from the stationary geometric distribution. {cmd:initial(random)} uses employment probability 0.5, attraction-weighted firm assignment, tenure zero, and requires {cmd:burnin()} of at least one period. {cmd:initial(allunemployed)} is a diagnostic start.
 
@@ -310,6 +310,108 @@ Its fifth row is renegotiation, with missing endpoint columns. Theory and
 are recomputed after largest-component filtering. All diagnostics are
 available with {cmd:truth(none)}. Type {cmd:fesim describe cpv} for the exact
 variable inventory. The LaTeX manual derives the finite solver and histories.
+
+
+{title:BLM-style worker and firm types}
+
+{p 4 4 2}
+{cmd:dgp(blm)} supports {cmd:preset(static)} (default) and {cmd:preset(dynamic)}.
+All workers remain employed. Worker types are permanent; each actual firm has a
+permanent class. Firms in the same class are distinct employers. These are
+flexible forward simulation designs following BLM restrictions, with illustrative
+package parameters; they do not reproduce the Swedish calibration or estimate BLM.
+
+{p 4 4 2}
+Defaults are 10,000 workers, 500 firms, six worker types (L), ten firm classes (K),
+ten annual snapshots and {cmd:initial(random) burnin(20)}. Random starts draw a
+worker type, a uniform actual employer and a cell-normal wage, with zero tenure.
+Burn-in is in years aligned to whole months; zero is allowed. No exact joint
+stationary initializer is provided, and a 20-year burn-in is not a convergence
+guarantee. Only {cmd:network(random)}, {cmd:jobrule(end)} and
+{cmd:connectivity(keep|largest)} are supported.
+
+{p 4 4 2}
+Scalar recipes inside {cmd:parameters()} are {cmd:worker_types 6 firm_types 10
+mu 3 sd_worker .4 sd_firm .15 interaction .1 sd_error .2 lambda_move .25
+sorting .5 rho 0 mobility_wage 0 origin_dependence 0} for static. Dynamic changes
+{cmd:rho} to .6, {cmd:mobility_wage} to -2 and {cmd:origin_dependence} to .05.
+L and K must be integers from 1 to 20 and firms() must be at least K.
+Positive worker/class weights default to uniform. Each class gets one firm;
+remaining firms use largest remainders with class-index ties.
+
+{p 4 4 2}
+Worker scores x and class scores z are normal midquantiles, centered and scaled
+using worker probabilities and actual finite class shares. Singleton scores are
+zero. Cell earnings location is {cmd:mu + sd_worker*x + sd_firm*z + interaction*x*z}.
+The static additive case sets {cmd:interaction 0}. Destination class weights are
+actual class firm counts times {cmd:exp(sorting*x*z)}; actual firms are uniform
+within class. The current actual firm is excluded and probabilities renormalized.
+Within-class moves count as EE moves. A one-firm economy cannot move.
+
+{p 4 4 2}
+The internal clock is monthly. From current earnings y and origin cell (l,k),
+move probability is {cmd:1-exp(-lambda[l,k]*exp(g[l,k]*(y-mu[l,k]))/12)}.
+Choose movement/destination before the next Gaussian shock. With next class h,
+new earnings equal {cmd:mu[l,h] + phi[l,h]*(y-mu[l,k]) + moved*C[l,k,h]
++ sd[l,h]*sqrt(1-phi[l,h]^2)*epsilon}, where epsilon is standard normal and
+{cmd:phi=rho^(1/12)}. Dynamic default C is .05 times origin minus destination
+score. Static requires phi, g and C to be zero. Zeroing the three dynamic
+controls reproduces the static paths exactly at the same seed. No extra
+measurement-error state is added.
+
+{p 4 4 2}
+Optional matrix settings also appear as name/value pairs in {cmd:parameters()}:
+the value is an existing Stata matrix name, copied without altering it. Inputs are
+{cmd:worker_weights} (1 by L), {cmd:firm_weights} (1 by K), {cmd:mean_matrix},
+{cmd:sd_matrix}, {cmd:move_rate_matrix}, {cmd:rho_matrix},
+{cmd:mobility_wage_matrix} (each L by K), and {cmd:destination_matrix} and
+{cmd:move_shift_matrix} (each L*K by K). For three-index tables, row (l-1)*K+k
+is worker type l and origin class k; columns are destination classes.
+Destination values are class masses BEFORE excluding the current actual firm.
+
+{p 4 4 2}
+All entries must be finite. Worker/class weights must be positive; scales,
+intensities and destination weights may be zero; annual rho must lie in [0,1).
+Destination rows require positive mass and a moving cell requires an eligible
+alternative after self exclusion. Static rejects nonzero dynamic tables.
+Explicit matrices conflict with their scalar recipes: mean/mu+sd_worker+sd_firm+
+interaction, sd/sd_error, move_rate/lambda_move, destination/sorting, rho/rho,
+mobility_wage/mobility_wage, move_shift/origin_dependence.
+
+{p 4 4 2}
+Basic truth adds {cmd:worker_type_true firm_type_true wage_location_true
+conditional_mean_true epsilon_true lnwage_true}. Log-wage truth is the realized
+wage; the conditional mean and innovation refer to the last internal month.
+Full truth adds {cmd:lag_lnwage_true lag_firm_type_true persistence_true
+move_shift_true innovation_sd_true move_probability_true moved_month_true n_ee_true}.
+Those lags and probabilities refer to ONE MONTH before the snapshot, not the
+previous annual/quarterly output. {cmd:n_ee_true} counts all interval moves,
+including the first interval. Common flow flags retain first/last missing boundaries.
+BLM does not fabricate additive worker/firm effects or a population AKM projection.
+
+{p 4 4 2}
+Returned tables: {cmd:r(blm_worker_weights)}, {cmd:r(blm_firm_weights)},
+{cmd:r(blm_mean)}, {cmd:r(blm_sd)}, {cmd:r(blm_move_rate)}, {cmd:r(blm_rho)},
+{cmd:r(blm_mobility_wage)}, {cmd:r(blm_destination)}, {cmd:r(blm_move_shift)},
+{cmd:r(blm_firm_counts)}, {cmd:r(blm_worker_scores)}, {cmd:r(blm_firm_scores)},
+{cmd:r(blm_monthly_rho)} and {cmd:r(blm_eligible_destination)} describe the
+original economy. {cmd:r(blm_cells_generated)} and {cmd:r(blm_cells)} contain
+counts, wage/innovation means and SDs, and interval moves by ending cell before
+and after sample filtering. {cmd:r(blm_workers)} contains worker probabilities
+and generated/returned counts. {cmd:r(parameters)} remains a numeric scalar table.
+Full value provenance is {cmd:r(blm_model)} and numbered dataset characteristics
+{cmd:_dta[fesim_blm_model_1]}, etc.; {cmd:fesim_blm_model_chunks} gives their count.
+The short hash1 fingerprint is a convenience; full values are authoritative.
+
+{p 4 4 2}
+Resource guards allow at most 2,147,483,647 observations and one billion total
+worker-months including burn-in. Temporary output blocks target 100,000 rows,
+unless one worker has more periods. {cmd:r(blm_peak_block_rows)},
+{cmd:r(blm_block_workers)} and {cmd:r(blm_worker_months)} report realized scope.
+All finite-table checks precede replacement; a later numerical failure restores
+caller data/RNG. Type labels are arbitrary, and graph connectivity alone does not
+establish BLM mixture identification. See the manual's BLM appendix and
+{browse "https://doi.org/10.3982/ECTA15722":Bonhomme, Lamadon and Manresa (2019)}.
 
 {title:Examples}
 
@@ -679,13 +781,104 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run cpv_movers using fesim.sthlp:click to run})}
 
+
+{space 2}{hline 8} {it:Example 18 - Simulate static earnings interactions} {hline 8}
+{cmd}{...}
+          preserve
+{* example_start - blm_static}{...}
+          clear
+          fesim, dgp(blm) workers(1000) firms(60) periods(5) seed(12345) truth(basic) noreport clear
+          matrix list r(blm_mean)
+          matrix list r(blm_cells)
+          collapse (mean) lnwage, by(worker_type_true firm_type_true)
+          twoway contour lnwage worker_type_true firm_type_true, heatmap ///
+              title("Static BLM cell means") xtitle("Firm class") ytitle("Worker type")
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run blm_static using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 19 - Simulate persistence and wage-dependent mobility} {hline 8}
+{cmd}{...}
+          preserve
+{* example_start - blm_dynamic}{...}
+          clear
+          fesim, dgp(blm) preset(dynamic) workers(1000) firms(60) periods(24) ///
+              frequency(month) seed(12345) truth(full) noreport clear
+          assert abs(lnwage-conditional_mean_true-epsilon_true)<1e-12
+          matrix list r(blm_cells)
+          summarize lnwage persistence_true move_shift_true move_probability_true
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run blm_dynamic using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 20 - Supply custom type-cell matrices} {hline 8}
+{cmd}{...}
+          preserve
+{* example_start - blm_matrices}{...}
+          clear
+          tempname M S D
+          matrix `M'=(2,3,4\3,3.2,3.5)
+          matrix `S'=(.1,.2,.3\.3,.2,.1)
+          matrix `D'=(1,2,3\2,1,3\1,1,4\3,2,1\3,1,2\4,1,1)
+          fesim, dgp(blm) workers(1000) firms(60) periods(5) seed(54321) truth(full) ///
+              parameters(worker_types 2 firm_types 3 mean_matrix `M' sd_matrix `S' ///
+              destination_matrix `D') noreport clear
+          matrix list r(blm_mean)
+          matrix list r(blm_eligible_destination)
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run blm_matrices using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 21 - Fit an additive approximation} {hline 8}
+{cmd}{...}
+          preserve
+{* example_start - blm_akm}{...}
+          clear
+          fesim, dgp(blm) workers(1200) firms(40) periods(8) seed(12345) ///
+              parameters(interaction .25) connectivity(largest) truth(full) noreport clear
+          areg lnwage i.firmid i.time, absorb(workerid)
+          * This is a descriptive additive projection of nonlinear cell means.
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run blm_akm using fesim.sthlp:click to run})}
+
+{space 2}{hline 8} {it:Example 22 - Plot wages around observed firm changes} {hline 8}
+{cmd}{...}
+          preserve
+{* example_start - blm_movers}{...}
+          clear
+          fesim, dgp(blm) preset(dynamic) workers(2000) firms(60) periods(8) ///
+              seed(63721) truth(full) noreport clear
+          by workerid (time): generate long firstmove=time if jobtojob==1
+          by workerid: egen long event=min(firstmove)
+          generate int event_time=time-event
+          keep if inrange(event_time,-2,2)
+          collapse (mean) lnwage conditional_mean_true, by(event_time)
+          twoway connected lnwage conditional_mean_true event_time, ///
+              xline(0) xlabel(-2(1)2) xtitle("Years from first observed move") ///
+              ytitle("Mean log earnings") title("Descriptive mover window") ///
+              legend(order(1 "Realized wages" 2 "Conditional mean"))
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run blm_movers using fesim.sthlp:click to run})}
+
 {title:Limitations}
 
 {pstd}
-Version 1.1.0-rc.1 exposes all eight registered presets. The Germany preset targets wage-component dispersions and sorting only; its hazards and durations are not German-calibrated. The CCK-inspired preset targets selected group moments and the male-reference firm decomposition under the package's standard-normal surplus normalization; it does not reproduce CCK's empirical normalization or full estimation. The BM preset implements the homogeneous-worker, common-productivity equilibrium with stylized primitives; worker heterogeneity and heterogeneous firm productivity are outside its scope. {cmd:connectivity(force)} has no accepted scientific design.
+Version 1.2.0-dev exposes all ten registered presets. The Germany preset targets wage-component dispersions and sorting only; its hazards and durations are not German-calibrated. The CCK-inspired preset targets selected group moments and the male-reference firm decomposition under the package's standard-normal surplus normalization; it does not reproduce CCK's empirical normalization or full estimation. The BM preset implements the homogeneous-worker, common-productivity equilibrium with stylized primitives; worker heterogeneity and heterogeneous firm productivity are outside its scope. {cmd:connectivity(force)} has no accepted scientific design.
 
 {pstd}
-The supported minimum is Stata 19. Current 1.1.0-rc.1 exact-source qualification covers Stata/MP 19 on macOS Apple Silicon. The released v0.1.0 was additionally qualified on Windows x86-64. No cross-version or cross-platform bitwise claim is made.
+The supported minimum is Stata 19. Current 1.2.0-dev exact-source qualification covers Stata/MP 19 on macOS Apple Silicon. The released v0.1.0 was additionally qualified on Windows x86-64. No cross-version or cross-platform bitwise claim is made.
 
 {pstd}
 CPV does not implement minimum wages, free entry, amenities, shocks, endogenous

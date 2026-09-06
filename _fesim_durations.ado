@@ -1,4 +1,4 @@
-*! fesim duration diagnostics 1.1.0-rc.1 06sep2026
+*! fesim duration diagnostics 1.2.0-dev 06sep2026
 program define _fesim_durations, rclass
     version 16.0
     syntax , DELTAYEARS(real)

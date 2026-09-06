@@ -4,10 +4,10 @@ set more off
 set varabbrev off
 set seed 271828
 local caller_rng "`c(rngstate)'"
-local families "akm akm akm akmpaygap akmpaygap bm cpv cpv"
-local presets "simple stylized germany_chk_2002_2009 simple cck2016 simple simple heterogeneous"
+local families "akm akm akm akmpaygap akmpaygap bm cpv cpv blm blm"
+local presets "simple stylized germany_chk_2002_2009 simple cck2016 simple simple heterogeneous static dynamic"
 tempfile common_reference
-forvalues route=1/8 {
+forvalues route=1/10 {
     local family : word `route' of `families'
     local preset : word `route' of `presets'
     quietly fesim describe `family', preset(`preset')
@@ -100,13 +100,15 @@ forvalues route=1/8 {
         quietly cf _all using `common_reference'
     }
     * Check nondefault starts and filtering for every preset.
-    foreach initial in random allunemployed {
-        quietly fesim, dgp(`family') preset(`preset') workers(80) firms(8) ///
+    local initials "random allunemployed"
+    if "`family'"=="blm" local initials "random"
+    foreach initial of local initials {
+        quietly fesim, dgp(`family') preset(`preset') workers(80) firms(12) ///
             periods(4) initial(`initial') burnin(2) seed(777) noreport clear
         isid workerid time
         bysort workerid (time): assert _N==4
     }
-    quietly fesim, dgp(`family') preset(`preset') workers(80) firms(8) ///
+    quietly fesim, dgp(`family') preset(`preset') workers(80) firms(12) ///
         periods(4) connectivity(largest) seed(777) noreport clear
     assert "`: char _dta[fesim_connectivity]'"=="largest"
     isid workerid time
@@ -114,7 +116,7 @@ forvalues route=1/8 {
     local override "mu 3.1"
     if "`family'"=="akmpaygap" local override "mu_m 3.1"
     if inlist("`family'","bm","cpv") local override "lambda_e .7"
-    quietly fesim, dgp(`family') preset(`preset') workers(80) firms(8) ///
+    quietly fesim, dgp(`family') preset(`preset') workers(80) firms(12) ///
         periods(4) parameters(`override') seed(777) noreport clear
     local expected_class = cond(inlist("`preset'","germany_chk_2002_2009","cck2016"),"targeted_modified","stylized_modified")
     assert "`r(calibration_class)'"=="`expected_class'"
@@ -123,10 +125,10 @@ forvalues route=1/8 {
     mata: unused_master = runiformint(1,1,0,2147483647)
     local continuation "`c(rngstate)'"
     set rngstate `before_unseeded'
-    quietly fesim, dgp(`family') preset(`preset') workers(80) firms(8) ///
+    quietly fesim, dgp(`family') preset(`preset') workers(80) firms(12) ///
         periods(4) noreport clear
     assert "`c(rngstate)'"=="`continuation'"
     set rngstate `before_unseeded'
 }
 assert "`c(rngstate)'"=="`caller_rng'"
-display "FESIM PUBLIC CROSS-DGP CONTRACT PASS (72 truth/frequency cases)"
+display "FESIM PUBLIC CROSS-DGP CONTRACT PASS (90 truth/frequency cases)"

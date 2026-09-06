@@ -1,4 +1,4 @@
-*! fesim discovery output schema 1.1.0-rc.1 06sep2026
+*! fesim discovery output schema 1.2.0-dev 06sep2026
 program define _fesim_schema, rclass
     version 16.0
     syntax , DGP(string) PRESet(string)
@@ -46,6 +46,14 @@ program define _fesim_schema, rclass
         local initial "stationary random allunemployed"
         local source "Cahuc, Postel-Vinay and Robin (2006), Econometrica 74(2); doi:10.1111/j.1468-0262.2006.00665.x. Stylized primitives."
         local targets "Exact finite-firm bargaining model; structural productivity is not an AKM firm effect. No empirical calibration."
+    }
+    else if "`dgp'"=="blm" {
+        local observed "workerid time firmid employed lnwage spellid tenure unemp_duration newjob from_unemp to_unemp jobtojob ntransitions"
+        local basic "worker_type_true firm_type_true wage_location_true conditional_mean_true epsilon_true lnwage_true"
+        local full "lag_lnwage_true lag_firm_type_true persistence_true move_shift_true innovation_sd_true move_probability_true moved_month_true n_ee_true"
+        local initial "random"
+        local source "Bonhomme, Lamadon and Manresa (2019), Econometrica 87(3); doi:10.3982/ECTA15722. BLM-style forward monthly process."
+        local targets "Illustrative finite-type parameters; no empirical calibration, BLM estimator, or population AKM projection."
     }
     else exit 198
     return local observed_variables "`observed'"

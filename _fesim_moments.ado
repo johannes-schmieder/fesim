@@ -1,4 +1,4 @@
-*! fesim common realized moments 1.1.0-rc.1 06sep2026
+*! fesim common realized moments 1.2.0-dev 06sep2026
 program define _fesim_moments, rclass
     version 16.0
     syntax , FIRMS(integer) [ TRUTHMOMENTS(name) TARGETS(name) ]

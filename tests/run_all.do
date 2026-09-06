@@ -42,6 +42,8 @@ if `build_rc' {
 local tests install_smoke smoke unit/test_parser unit/test_registry ///
     unit/test_loader ///
     unit/test_config unit/test_calibration_registry unit/test_time ///
+    unit/test_blm_model unit/test_blm_author_fixtures ///
+    integration/test_blm_public integration/test_blm_invariance statistical/test_blm_moments ///
     unit/test_cpv_solver unit/test_cpv_events unit/test_rates unit/test_hazards unit/test_bm_derivation ///
     unit/bm_equal_profit unit/test_bm_firms unit/test_bm_events ///
     unit/test_bm_initialization unit/test_bm_aggregation ///

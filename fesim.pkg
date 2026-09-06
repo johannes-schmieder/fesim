@@ -1,6 +1,6 @@
 v 3
 d fesim
-d Version: 1.1.0-rc.1
+d Version: 1.2.0-dev
 d Linked employer-employee panel simulation
 d
 d Distribution-Date: 20260906
@@ -49,3 +49,8 @@ f _fesim_schema.ado
 f src/fesim_cpv.mata
 f src/fesim_cpv_simulate.mata
 f _fesim_cpv.ado
+f _fesim_blm_registry.ado
+f _fesim_blm_config.ado
+f _fesim_blm.ado
+f src/fesim_blm.mata
+f src/fesim_blm_simulate.mata

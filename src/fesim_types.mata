@@ -323,7 +323,7 @@ struct fesim_bm_panel {
 
 real scalar fesim_mata_api_version()
 {
-    return(36)
+    return(37)
 }
 
 real scalar fesim_config_schema_version()

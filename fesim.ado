@@ -1,4 +1,4 @@
-*! fesim 1.1.0-rc.1 06sep2026
+*! fesim 1.2.0-dev 06sep2026
 program define fesim, rclass
     version 16.0
 
@@ -161,6 +161,13 @@ program define fesim__describe, rclass
         local returned_calibration `"`r(calibration_class)'"'
         tempname parameters
         matrix `parameters' = r(parameters)
+        local matrix_results "`r(matrix_results)'"
+        local matrix_parameters "`r(matrix_parameters)'"
+        foreach result of local matrix_results {
+            tempname tmp_`result'
+            matrix `tmp_`result'' = r(`result')
+        }
+
         di as txt _newline "  resolved defaults: " as result `"`config'"'
         di as txt _newline "Scalar parameter metadata (value, default, lower, upper)"
         matrix list `parameters', noheader format(%12.6g)
@@ -172,7 +179,7 @@ program define fesim__describe, rclass
         di as txt _newline "Configuration metadata for this preset is planned."
         return local calibration_class `"`calibration'"'
     }
-    if inlist(`"`dgp'"', "bm", "cpv") | (`"`dgp'"' == "akm" & ///
+    if inlist(`"`dgp'"', "bm", "cpv", "blm") | (`"`dgp'"' == "akm" & ///
         inlist(`"`resolved_preset'"', "simple", "stylized", ///
         "germany_chk_2002_2009")) | ///
         (`"`dgp'"' == "akmpaygap" & ///
@@ -210,6 +217,15 @@ program define fesim__describe, rclass
     foreach item in observed_variables truth_basic_variables truth_full_variables ///
         conditional_variables initial_modes networks source_note target_scope {
         return local `item' `"`schema_`item''"'
+    }
+    if "`dgp'"=="blm" {
+        di as txt "Optional matrix parameters: `matrix_parameters'"
+        di as txt "Rows of three-index tables: (worker_type-1)*firm_types + origin_class."
+        foreach result of local matrix_results {
+            return matrix `result' = `tmp_`result''
+        }
+        return local matrix_parameters "`matrix_parameters'"
+        return local matrix_results "`matrix_results'"
     }
     return local parameter_units `"`parameter_units'"'
     return matrix parameters = `parameters'
@@ -255,6 +271,11 @@ program define fesim__simulate, rclass
     if `"`noreport'"' != "" local config_options `"`config_options' noreport"'
 
     quietly fesim_config, `config_options'
+    if "`r(dgp)'"=="blm" {
+        _fesim_blm, `config_options' `clear'
+        return add
+        exit
+    }
     if `"`r(dgp)'"' == "cpv" {
         _fesim_cpv, `config_options' `clear'
         return add
