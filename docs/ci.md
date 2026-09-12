@@ -13,9 +13,15 @@
 - complete unit/integration Stata test registration in `tests/run_all.do`;
 - absence of foreign-runtime calls from installed ado files;
 - the expected static workflow structure;
+- live handover version/API/preset/test inventories, review-candidate identity,
+  BLM roadmap completion and referenced documentation paths;
 - valid and invalid exact-SHA receipt cases.
 
 It does not install, emulate, or invoke Stata, and its job name states `no Stata`.
+Handover checks read only tracked source and Markdown; they work in shallow
+checkouts and do not require ignored local archives. They establish consistency,
+not qualification or existence of a licensed receipt. Dated historical handovers
+and accepted review reports retain their original source identities.
 
 ## Licensed Stata lane
 

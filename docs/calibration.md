@@ -12,6 +12,10 @@ changing parameters. A paper-inspired label is a bounded target claim.
 | `akmpaygap/simple` | Stylized two-group wages and mobility with exact decomposition |
 | `akmpaygap/cck2016` | Selected CCK group moments and male-reference firm decomposition; distinct surplus normalization |
 | `bm/simple` | Exact homogeneous BM equilibrium, stylized structural primitives |
+| `cpv/simple` | Finite-firm sequential bargaining with homogeneous workers; stylized primitives |
+| `cpv/heterogeneous` | The same CPV protocol with multiplicative mean-one worker ability; stylized primitives |
+| `blm/static` | Employed-only finite types, nonlinear Gaussian cell earnings and sorting; illustrative primitives |
+| `blm/dynamic` | Monthly persistence, wage-dependent moves and origin-class shifts; illustrative primitives |
 
 ## Inspect, modify, and record
 
@@ -80,3 +84,20 @@ CPV bargaining protocol. The latter changes only log ability dispersion from
 productivity is 1.5–2, b=1, lambda_u=.5, lambda_e=.3, delta=.2, r=.05, beta=.5.
 No empirical skill/sector calibration is claimed. Overrides are classified
 `stylized_modified`. Source version and equation audit: [cpv-derivation.md](cpv-derivation.md).
+
+## BLM presets
+
+`blm/static` and `blm/dynamic` implement the D-044 employed-only monthly
+forward process. They are not Swedish empirical calibrations or BLM estimators.
+Static earnings innovations are independent across months conditional on types;
+dynamic earnings add persistence, wage-dependent mobility and move shifts.
+The default 20-year burn-in is not an exact stationary initialization or a
+convergence guarantee. The [BLM note](blm.md) distinguishes the package's
+long-panel choices from the audited author short-panel simulators.
+
+All scalar recipes and optional matrix-name inputs belong inside `parameters()`.
+For matrix inputs, retain the resolved `r(blm_*)` tables and complete chunked
+dataset characteristics: caller matrix names and the short fingerprint do not
+uniquely identify the model. These resolved values, not an empirical target
+table or an invented additive worker/firm truth decomposition, describe the
+simulated economy.

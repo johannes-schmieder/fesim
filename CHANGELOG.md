@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased maintenance (2026-09-12)
+
+- Reconcile the live handover, BLM roadmap and calibration inventory with the
+  completed ten-preset candidate; preserve historical receipts and deferred scope.
+- Add static drift regressions for handover identities and inventories. No
+  installed runtime, model default, API, version or review-archive change.
+
 ## 1.2.0-rc.1 (unpublished)
 
 - Add static and dynamic BLM-style finite-type long panels, nonlinear cell means,
