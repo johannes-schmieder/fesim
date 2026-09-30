@@ -20,7 +20,23 @@ controls and passed 20 BLM scaling cases. Same-host repeated comparisons resolve
 two initial performance outliers. Benchmarks are descriptive measurements;
 see [performance](performance.md).
 
-## Source qualification — 2026-09-30
+## SSC filename qualification — 2026-09-30
+
+All 73 licensed Stata files passed on exact clean source
+`8ebb94b707a6b4d666b3c019508c3134f3d2787f` with Stata/MP 19 on macOS Apple
+Silicon. The source-only installation covers all ten presets and an older Mata
+file earlier on adopath, verifying that the renamed `fesim__*` loader selects
+its adjacent installed sources. All 49 installed basenames start with `fesim`.
+Ten static checks and sixteen Python tests passed; packaging tests reject
+unprefixed ado, help and Mata files.
+
+Accepted receipt SHA-256:
+`8833b2d9a381fa1841407fc413f056590f1a1582573fa6552e8ef63ae00f9964`.
+The subsequent documentation-only commit records this run and corrects the
+manual's inventory and cleaned benchmark reference. Runtime, manifest, tests
+and examples are identical to the exact tested source above.
+
+## History-cleanup qualification — 2026-09-30
 
 The complete licensed suite passed on exact clean source
 `e0bf2de0e22e2d2e37c0c7e3377b856facf73788` after the repository history cleanup:

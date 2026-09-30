@@ -6,6 +6,7 @@
   internal ado helpers to `fesim__*`, update their callers and source map, and
   ensure the installed loader reads adjacent Mata before adopath shadow files.
   Enforce the prefix in static packaging checks and test installation precedence.
+  Update the manual's helper map, test count and cleaned benchmark reference.
 - Reorganize the README and Stata help around installation, model choice,
   runnable examples, interpretation, and troubleshooting.
 - Bring compatibility, architecture, references, and preset inventories into
