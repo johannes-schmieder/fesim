@@ -15,32 +15,30 @@ caller data/RNG, block/truth/frequency invariants, 22 clickable help examples,
 and fourteen standalone manual scripts. The source inventory is in
 [interface](interface.md), and [tests](../tests/README.md) describes the suites.
 
-Licensed tests passed on exact source
-`be1ef898c545982022054a86a9bb1c9991667d03` on 2026-09-12. That maintenance
-source preserved the installed runtime and manual of the BLM candidate
-`3f9bb87ecb4ddbde2f9b093da0cfa0d27ec61c86`, whose full suite also passed in
-an isolated source archive on 2026-09-06. These are historical tested source
-identities; they must not be relabeled as qualification of later commits.
-
 The BLM candidate preserved all 46 pre-BLM deterministic legacy/CPV performance
 controls and passed 20 BLM scaling cases. Same-host repeated comparisons resolved
 two initial performance outliers. Benchmarks are descriptive measurements;
 see [performance](performance.md).
 
-## Public-source documentation checks — 2026-09-30
+## Source qualification — 2026-09-30
 
-The complete licensed suite passed on exact clean preparation source
-`4b4088abb30cb56ebcf6a7a46abe78c4d810c710`: all 73 Stata files, including ten-preset
-source installation, all 22 revised clickable help examples, and fourteen
-manual scripts. Seven noninstallation README Stata blocks also passed verbatim;
-the revised help translated successfully through Stata's SMCL renderer.
-Ten static contract checks and fourteen Python tests passed separately.
+The complete licensed suite passed on exact clean source
+`e0bf2de0e22e2d2e37c0c7e3377b856facf73788` after the repository history cleanup:
+all 73 Stata files, including ten-preset source installation, all 22 clickable
+help examples, and fourteen manual scripts. Ten static contract checks and
+fourteen Python tests also passed.
 
-The installed ado/Mata sources, Stata tests/examples, package manifest, and
-manual are unchanged from `8c75e87`; this preparation reorganizes documentation
-and replaces obsolete handover checks. A documentation-only follow-up records
-this tested SHA and corrects the historical BM benchmark source attribution.
-The receipt identifies its tested source, not that later documentation commit.
+The public-source preparation additionally passed seven noninstallation README
+Stata blocks verbatim and translated the revised help through Stata's SMCL
+renderer. The installed ado/Mata sources, Stata tests/examples, package manifest,
+and manual are unchanged by preparation and history cleanup. Obsolete planning
+and review records were removed from all published branches and tags; retained
+source trees were checked against the original revisions.
+
+A later documentation-only commit records this qualification and updates
+benchmark source references. The accepted receipt remains bound to the exact
+tested source above; historical receipts retain their original source IDs in
+private archives.
 
 ## Reproduce a qualification
 

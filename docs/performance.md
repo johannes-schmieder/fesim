@@ -9,9 +9,12 @@ including Stata itself. RSS is not incremental dataset memory or PSS.
 
 | Model/source | Workload | Command seconds | Peak process RSS |
 | --- | --- | ---: | ---: |
-| BM, `38eb5bc` | 100,000 workers, 10 annual snapshots, none/full truth | 17.943–21.526 | 602–999 MB |
-| CPV, `ab4de71` | 100,000 workers, 500 firms, 10 annual snapshots, both presets and none/full truth | 13.593–16.380 | 537–933 MB |
-| BLM, `3f9bb87` | 100,000 workers, 500 firms, 10 annual snapshots, both presets and none/full truth | 94.929–97.138 | 473–640 MB |
+| BM, `f936f0a` | 100,000 workers, 10 annual snapshots, none/full truth | 17.943–21.526 | 602–999 MB |
+| CPV, `e90e4f4` | 100,000 workers, 500 firms, 10 annual snapshots, both presets and none/full truth | 13.593–16.380 | 537–933 MB |
+| BLM, `03426c6` | 100,000 workers, 500 firms, 10 annual snapshots, both presets and none/full truth | 94.929–97.138 | 473–640 MB |
+
+The source IDs refer to the cleaned history; their runtime contents match the
+originally benchmarked revisions.
 
 MB denotes decimal millions of bytes. BLM uses six worker types, ten firm
 classes, and 20 years of burn-in; these cases include 36 million worker-months.
