@@ -33,7 +33,7 @@ program define fesim_registry, rclass
     local resolved_preset `"`r(preset)'"'
 
     if "`canonical'"=="blm" {
-        _fesim_blm_registry, action(`action') preset(`resolved_preset') parameter(`parameter')
+        fesim__blm_registry, action(`action') preset(`resolved_preset') parameter(`parameter')
         return add
         exit
     }

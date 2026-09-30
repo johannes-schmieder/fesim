@@ -48,7 +48,7 @@ Boston University
 \vspace{0.35in}
 
 Development version 1.2.0-rc.1 \quad $\cdot$ \quad Mata API 37\\
-September 6, 2026
+September 30, 2026
 \vspace{0.5in}
 
 \begin{minipage}{0.91\textwidth}
@@ -62,9 +62,9 @@ contract wages, incumbent raises, and joint stationary histories. The BLM
 appendix defines finite worker and firm types, nonadditive earnings,
 endogenous mobility, and persistent monthly wage histories.
 
-This manual accompanies the unpublished \code{1.2.0-rc.1} candidate.
+This manual accompanies the untagged \code{1.2.0-rc.1} candidate.
 Qualification is limited to Stata/MP 19 on macOS Apple Silicon; exact source
-and archive evidence are recorded in the repository release-review report.
+and archive evidence are recorded in the repository qualification guide.
 The stable \code{v0.1.0} release contains the earlier simple-AKM command.
 \end{minipage}
 \vfill
@@ -1532,7 +1532,7 @@ strict acceptance, burn-in convergence, truth/frequency/block invariance,
 rollback, and source-only installation. Statistical checks use fixed
 seeds and declared tolerances. The candidate inventory contains 68 Stata
 test files. Exact macOS Stata/MP 19 qualification receipts and archive hashes
-are recorded in the repository release-review report.
+are recorded in the repository qualification guide.
 
 Limit tests approach equal offer rates, small employed offers, rare
 destruction, and small positive discounting. Public rates remain positive.
@@ -2063,12 +2063,12 @@ Initial states, burn-in, exact events.\\
 \code{src/fesim_bm_aggregate.mata}, \code{src/fesim_bm_output.mata},
 \code{src/fesim_bm_handler.mata} & BM aggregation, truth, blocks, diagnostics.\\
 \code{src/fesim_cpv.mata}, \code{src/fesim_cpv_simulate.mata},
-\code{_fesim_cpv.ado} & CPV values, contracts, exact paths and public transaction.\\
+\code{fesim__cpv.ado} & CPV values, contracts, exact paths and public transaction.\\
 \code{src/fesim_blm.mata}, \code{src/fesim_blm_simulate.mata},
-\code{_fesim_blm_config.ado}, \code{_fesim_blm.ado} &
+\code{fesim__blm_config.ado}, \code{fesim__blm.ado} &
 Finite types, matrix resolution, monthly paths, diagnostics and transaction.\\
 \code{src/fesim_rng.mata}, \code{src/fesim_flows.mata},
-\code{_fesim_finalize.ado} & RNG, common flows, result finalization.\\
+\code{fesim__finalize.ado} & RNG, common flows, result finalization.\\
 \bottomrule
 \end{longtable}
 From the repository root, regenerate figures in Stata:

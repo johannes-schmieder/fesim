@@ -10,22 +10,25 @@ CPV bargaining, and finite-type BLM. Public API is 1; Mata API is 37.
 `fesim.ado` detects discovery subcommands, resolves models/presets, validates
 configuration before mutation, and enforces caller-data safety.
 `fesim_registry.ado` owns common and non-BLM scalar defaults, units, bounds,
-applicability, calibration classes, and aliases. `_fesim_blm_registry.ado`
-adds BLM scalar/matrix schemas. `_fesim_schema.ado` supplies observed/truth
+applicability, calibration classes, and aliases. `fesim__blm_registry.ado`
+adds BLM scalar/matrix schemas. `fesim__schema.ado` supplies observed/truth
 inventories, initialization/network support, and scientific source scope.
 
 `fesim_config.ado` merges defaults, common named options, and scalar overrides;
 rejects duplicate, unknown, inapplicable, and inconsistent values; resolves time;
 and returns canonical configuration/source metadata. Alias spelling does not
-alter the canonical configuration. `_fesim_blm_config.ado` additionally copies
+alter the canonical configuration. `fesim__blm_config.ado` additionally copies
 and validates matrix inputs and recipe conflicts. Model overrides reclassify
 presets; layout changes alone do not. See [calibration](calibration.md).
 
-`_fesim_load.ado` checks the Mata API and prefers source belonging to the installed
+`fesim__load.ado` checks the Mata API and prefers source belonging to the installed
 ado files, protecting against stale library/source precedence. Installed Mata
 source is authoritative. `src/build_mlib.do` registers all source and builds a
 development library in ignored `build/`; installation must work without it.
-`fesim_version_info.ado` is the runtime version source.
+`fesim_version_info.ado` is the runtime version source. All installed basenames
+start with `fesim`; internal ado helpers use `fesim__*`. In a checkout, the loader
+reads `src/`; in a Stata installation, it reads adjacent Mata files before global
+adopath lookup, so a shadow source cannot override the installed package.
 
 ## Shared infrastructure
 
@@ -40,7 +43,7 @@ development library in ignored `build/`; installation must work without it.
 | `src/fesim_output.mata`, `src/fesim_flows.mata` | Block output and observed flow finalization |
 | `src/fesim_moments.mata`, `src/fesim_network.mata` | Common moments, bipartite/firm graphs, and leave-out audits |
 | `src/fesim_runtime.mata` | Transactional ownership of available Stata timers |
-| `_fesim_finalize.ado` and common `_fesim_*` postprocessors | Filtered-sample recomputation, metadata, returns, and reporting |
+| `fesim__finalize.ado` and common `fesim__*` postprocessors | Filtered-sample recomputation, metadata, returns, and reporting |
 
 Keep the full final panel in Stata and write complete worker blocks directly.
 Do not retain a second full Mata panel or a full-population event ledger.
@@ -67,21 +70,21 @@ exact additive decomposition under three references. See [pay-gap](akm_paygap.md
 **BM:** `src/fesim_bm.mata` solves the continuum equilibrium and constructs finite
 firms. Event, initial, aggregate, output, and handler modules generate/replay
 continuous worker histories in bounded blocks. Buffered event/destination draws
-preserve paths across blocks. `_fesim_bm.ado` owns rollback, graph/sample
+preserve paths across blocks. `fesim__bm.ado` owns rollback, graph/sample
 postprocessing, and finite-versus-continuum diagnostics. There is no persistent
 solution cache. See [BM](bm_equilibrium.md).
 
 **CPV:** `src/fesim_cpv.mata` solves grouped finite-firm Bellman equations in O(J)
 after sorting and evaluates contracts with prefix sums.
 `src/fesim_cpv_simulate.mata` generates exact stationary contract-tenure histories,
-continuous burn-in, bounded blocks, and structural truth. `_fesim_cpv.ado` owns
+continuous burn-in, bounded blocks, and structural truth. `fesim__cpv.ado` owns
 rollback, common filtering/moments/durations, and CPV-specific results.
 See [CPV](cpv-derivation.md).
 
 **BLM:** `src/fesim_blm.mata` resolves actual-firm allocation and type/cell
 matrices, probabilities, and earnings maps. `src/fesim_blm_simulate.mata` runs
 monthly worker-major histories with bounded output blocks and cell moments.
-`_fesim_blm.ado` owns transactions, shared diagnostics, generated/returned cell
+`fesim__blm.ado` owns transactions, shared diagnostics, generated/returned cell
 summaries, and complete model serialization. See [BLM](blm.md).
 
 ## Test and compatibility obligations

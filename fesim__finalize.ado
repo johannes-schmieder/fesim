@@ -1,5 +1,5 @@
 *! fesim common metadata/result finalizer 1.2.0-rc.1 06sep2026
-program define _fesim_finalize, rclass
+program define fesim__finalize, rclass
     version 16.0
     syntax , DGP(string) DGPALIAS(string) PRESET(string) ///
         CALIBRATIONCLASS(string) COMMAND(string) SEED(string) ///

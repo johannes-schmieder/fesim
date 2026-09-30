@@ -17,7 +17,7 @@ quietly adopath ++ `"`stale_path'"'
 mata: mata clear
 mata: mata mlib index
 
-capture noisily _fesim_load
+capture noisily fesim__load
 assert _rc == 0
 mata: assert(fesim_mata_api_version() == 37)
 mata: assert(fesim_bm_schema_version() == 1)

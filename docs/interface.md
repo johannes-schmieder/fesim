@@ -1,7 +1,7 @@
 # Public interface contract
 
 The installed help, model notes, and this contract describe the current
-interface. The registry in `fesim_registry.ado` and `_fesim_blm_registry.ado`
+interface. The registry in `fesim_registry.ado` and `fesim__blm_registry.ado`
 is authoritative for preset values, bounds, units, and applicability.
 
 ## Source inventory
@@ -81,6 +81,9 @@ Frequency nesting applies to the shared monthly and continuous-history routes
 under a matched horizon; it does not imply that changing an interval-clock
 model's frequency preserves its latent path. Bitwise reproducibility is qualified
 for a fixed source, command, seed, and Stata environment. See [RNG](rng.md).
+
+Every filename installed by `fesim.pkg` starts with `fesim`, including private
+`fesim__*` helpers, Mata and help. Static CI enforces this SSC packaging rule.
 
 The installed runtime uses only official Stata/Mata. No plugin, foreign runtime,
 or user-written Stata dependency is allowed. Output is written in worker blocks;

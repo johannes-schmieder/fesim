@@ -117,7 +117,7 @@ generate long firmid = cond(workerid == 1, 1, ///
 sort workerid time
 by workerid (time): generate byte jobtojob = ///
     cond(_n == 1, ., firmid != firmid[_n - 1])
-quietly _fesim_network, workers(5) firms(4) periods(2) connectivity(keep)
+quietly fesim__network, workers(5) firms(4) periods(2) connectivity(keep)
 matrix kept_network = r(network)
 assert _N == 10
 assert r(N_workers_sample) == 5
@@ -144,7 +144,7 @@ foreach percentile in 10 50 90 99 {
 mata: assert(st_matrix("kept_network")[, 1] == ///
     st_matrix("kept_network")[, 2])
 
-quietly _fesim_network, workers(5) firms(4) periods(2) ///
+quietly fesim__network, workers(5) firms(4) periods(2) ///
     connectivity(largest)
 matrix largest_network = r(network)
 assert _N == 4
@@ -178,7 +178,7 @@ generate byte employed = 0
 generate long firmid = .
 sort workerid time
 by workerid (time): generate byte jobtojob = cond(_n == 1, ., 0)
-quietly _fesim_network, workers(3) firms(2) periods(2) connectivity(keep)
+quietly fesim__network, workers(3) firms(2) periods(2) connectivity(keep)
 matrix empty_network = r(network)
 assert r(components) == 0
 assert missing(r(largest_component_id))
@@ -188,7 +188,7 @@ assert r(firm_links) == 0
 assert r(articulation_firms) == 0
 assert r(graph_bridge_links) == 0
 assert missing(r(edge_weight_p50))
-capture _fesim_network, workers(3) firms(2) periods(2) connectivity(largest)
+capture fesim__network, workers(3) firms(2) periods(2) connectivity(largest)
 assert _rc == 459
 assert _N == 6
 

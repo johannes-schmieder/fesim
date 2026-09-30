@@ -190,7 +190,7 @@ program define fesim__describe, rclass
         di as txt "Simulation is not yet available for this preset."
     }
 
-    quietly _fesim_schema, dgp(`dgp') preset(`resolved_preset')
+    quietly fesim__schema, dgp(`dgp') preset(`resolved_preset')
     foreach item in observed_variables truth_basic_variables truth_full_variables ///
         conditional_variables initial_modes networks source_note target_scope {
         local schema_`item' `"`r(`item')'"'
@@ -272,17 +272,17 @@ program define fesim__simulate, rclass
 
     quietly fesim_config, `config_options'
     if "`r(dgp)'"=="blm" {
-        _fesim_blm, `config_options' `clear'
+        fesim__blm, `config_options' `clear'
         return add
         exit
     }
     if `"`r(dgp)'"' == "cpv" {
-        _fesim_cpv, `config_options' `clear'
+        fesim__cpv, `config_options' `clear'
         return add
         exit
     }
     if `"`r(dgp)'"' == "bm" {
-        _fesim_bm, `config_options' `clear'
+        fesim__bm, `config_options' `clear'
         return add
         exit
     }
@@ -385,7 +385,7 @@ program define fesim__simulate, rclass
         di as error "connectivity(`resolved_connectivity') is not implemented for `resolved_dgp'/`resolved_preset'"
         exit 498
     }
-    quietly _fesim_load
+    quietly fesim__load
 
     local seed_was_requested 0
     local seed_value 0
@@ -566,7 +566,7 @@ program define fesim__simulate, rclass
         matrix colnames `truth_targets' = target
     }
 
-    capture quietly _fesim_network, workers(`resolved_workers') ///
+    capture quietly fesim__network, workers(`resolved_workers') ///
         firms(`resolved_firms') periods(`resolved_periods') ///
         connectivity(`resolved_connectivity')
     local network_rc = _rc
@@ -591,7 +591,7 @@ program define fesim__simulate, rclass
 
     if `"`resolved_connectivity'"' == "largest" & ///
         `"`resolved_dgp'"' != "akmpaygap" {
-        capture quietly _fesim_truth
+        capture quietly fesim__truth
         local truth_rc = _rc
         if `truth_rc' {
             quietly mata: fesim_runtime_stop( ///
@@ -676,7 +676,7 @@ program define fesim__simulate, rclass
     local duration_option ""
     if `"`resolved_dgp'"' == "akm" & ///
         `"`resolved_preset'"' != "simple" {
-        capture quietly _fesim_durations, deltayears(`resolved_delta')
+        capture quietly fesim__durations, deltayears(`resolved_delta')
         local duration_rc = _rc
         if `duration_rc' {
             quietly mata: fesim_runtime_stop( ///
@@ -696,7 +696,7 @@ program define fesim__simulate, rclass
     local common_target_option ""
     if `"`resolved_dgp'"' == "akm" ///
         local common_target_option "targets(`truth_targets')"
-    capture quietly _fesim_moments, firms(`resolved_firms') ///
+    capture quietly fesim__moments, firms(`resolved_firms') ///
         truthmoments(`truth_moments') `common_target_option'
     local moments_rc = _rc
     if `moments_rc' {
@@ -741,7 +741,7 @@ program define fesim__simulate, rclass
         local paygap_metadata ///
             "groupcoding(0_men_1_women) gapdirection(men_minus_women) surplusnormalization(population_standard_normal_no_sample_restandardization)"
     }
-    _fesim_finalize, dgp(`resolved_dgp') dgpalias(`resolved_alias') ///
+    fesim__finalize, dgp(`resolved_dgp') dgpalias(`resolved_alias') ///
         preset(`resolved_preset') calibrationclass(`calibration_class') ///
         command(`"`resolved_command'"') seed(`recorded_seed') rng(mt64s) ///
         rngmethod(fixed_nonoverlapping_mt64s_component_streams) ///

@@ -1,7 +1,7 @@
 version 16
 clear all
 set more off
-quietly _fesim_load
+quietly fesim__load
 mata:
 s=fesim_cpv_solve((1.5\1.7\2),1,ln(2),ln(2)-.3,.3,.05,0)
 rng=fesim_rng_init(77,1)

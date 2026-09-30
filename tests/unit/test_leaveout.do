@@ -111,7 +111,7 @@ generate byte employed = 1
 sort workerid time
 by workerid (time): generate byte jobtojob = ///
     cond(_n == 1, ., firmid != firmid[_n - 1])
-quietly _fesim_network, workers(2) firms(2) periods(2) connectivity(keep)
+quietly fesim__network, workers(2) firms(2) periods(2) connectivity(keep)
 matrix panel_leaveout = r(leaveout)
 assert rowsof(panel_leaveout) == 19
 assert colsof(panel_leaveout) == 1
@@ -137,7 +137,7 @@ generate byte employed = 0
 generate long firmid = .
 sort workerid time
 by workerid (time): generate byte jobtojob = cond(_n == 1, ., 0)
-quietly _fesim_network, workers(3) firms(2) periods(2) connectivity(keep)
+quietly fesim__network, workers(3) firms(2) periods(2) connectivity(keep)
 matrix empty_panel_leaveout = r(leaveout)
 forvalues row = 1/9 {
     assert empty_panel_leaveout[`row', 1] == 0

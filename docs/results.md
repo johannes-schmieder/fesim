@@ -1,6 +1,6 @@
 # Common metadata and returned results
 
-The internal `_fesim_finalize` ado is the single common boundary between a completed simulation dataset and Stata metadata, `r()` results, and compact display. It is installed for use by the public execution paths but is not itself a public command or a DGP.
+The internal `fesim__finalize` ado is the single common boundary between a completed simulation dataset and Stata metadata, `r()` results, and compact display. It is installed for use by the public execution paths but is not itself a public command or a DGP.
 
 Before changing metadata, the finalizer validates the worker-period key, requested dimensions, named result matrices, scalar bounds, and stage runtimes. It then attaches every required characteristic from the metadata contract in the installed help, plus the Stata version, RNG method, network design, and truth mode required for reproducibility. The resolved design is returned as `r(network_design)` and stored in `_dta[fesim_network_design]`.
 

@@ -1,7 +1,7 @@
 version 16
 clear all
 set more off
-quietly _fesim_load
+quietly fesim__load
 mata:
 void cpv_joint_stationarity(real scalar seed)
 {

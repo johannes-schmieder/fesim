@@ -26,7 +26,7 @@ class DocumentationTests(unittest.TestCase):
                             ignore=shutil.ignore_patterns("__pycache__"))
         for name in ("README.md", "CONTRIBUTING.md", "CITATION.cff", "LICENSE",
                      "fesim.sthlp", "fesim_version_info.ado", "fesim_registry.ado",
-                     "_fesim_load.ado"):
+                     "fesim__load.ado"):
             shutil.copy2(PROJECT_ROOT / name, self.root / name)
         self.patcher = patch.object(CHECKS, "ROOT", self.root)
         self.patcher.start()

@@ -83,13 +83,13 @@ fixture sets those terms to zero and checks the full four-normal covariance law.
 
 ## Implementation map
 
-- `_fesim_blm_registry.ado`: scalar defaults, typed matrix keys and bounds.
-- `_fesim_blm_config.ado`: dimensions, explicit recipe conflicts, preflight and provenance.
+- `fesim__blm_registry.ado`: scalar defaults, typed matrix keys and bounds.
+- `fesim__blm_config.ado`: dimensions, explicit recipe conflicts, preflight and provenance.
 - `src/fesim_blm.mata`: actual-firm allocation, normalized scores, resolved
   matrices, eligible destinations, stable move probability, deterministic wage map.
 - `src/fesim_blm_simulate.mata`: fixed-stream worker-major monthly histories,
   bounded output blocks, cell moments and complete serialized characteristics.
-- `_fesim_blm.ado`: transactional public run, common graphs/durations/moments,
+- `fesim__blm.ado`: transactional public run, common graphs/durations/moments,
   generated-versus-returned summaries and caller-state rollback.
 - `tests/unit/test_blm_model.do` and `test_blm_author_fixtures.do`: independent
   probability grids, deterministic earnings and compatible author-model laws.

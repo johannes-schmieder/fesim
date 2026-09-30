@@ -1,5 +1,5 @@
 *! fesim common configuration resolver 1.2.0-rc.1 06sep2026
-program define _fesim_blm_config, rclass
+program define fesim__blm_config, rclass
     version 16.0
     syntax [ , DGP(string) PRESet(string) WORKers(string) FIRMs(string) ///
         PERIODs(string) FREQuency(string) START(string) SEED(string) ///
@@ -284,7 +284,7 @@ program define _fesim_blm_config, rclass
     }
 
 
-    quietly _fesim_load
+    quietly fesim__load
     tempname primitives
     matrix `primitives' = J(1,12,.)
     local col 0

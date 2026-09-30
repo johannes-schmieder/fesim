@@ -15,7 +15,7 @@ if `"`repository_root'"' == "" | `"`source_sha'"' == "" | ///
 }
 
 quietly adopath ++ `"`repository_root'"'
-quietly _fesim_load
+quietly fesim__load
 
 mata:
 firm_count = strtoreal(st_local("requested_firms"))

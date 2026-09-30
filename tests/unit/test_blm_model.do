@@ -1,7 +1,7 @@
 version 19.0
 clear all
 set more off
-quietly _fesim_load
+quietly fesim__load
 mata:
 p=(2,3,3,.4,.15,.1,.2,.25,.5,0,0,0)
 s=fesim_blm_build(8,p,J(1,9,"-"),"static")

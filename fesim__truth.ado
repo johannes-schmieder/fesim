@@ -1,5 +1,5 @@
 *! fesim retained-sample truth moments 1.2.0-rc.1 06sep2026
-program define _fesim_truth, rclass
+program define fesim__truth, rclass
     version 16.0
 
     foreach variable in workerid time firmid employed alpha_true psi_true ///

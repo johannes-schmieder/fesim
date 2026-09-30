@@ -2,6 +2,10 @@
 
 ## Unreleased source maintenance — 2026-09-30
 
+- Give every installed file a `fesim` prefix for SSC hosting. Rename twelve
+  internal ado helpers to `fesim__*`, update their callers and source map, and
+  ensure the installed loader reads adjacent Mata before adopath shadow files.
+  Enforce the prefix in static packaging checks and test installation precedence.
 - Reorganize the README and Stata help around installation, model choice,
   runnable examples, interpretation, and troubleshooting.
 - Bring compatibility, architecture, references, and preset inventories into
@@ -10,7 +14,7 @@
   interface, validation, and contribution guides. Retain scientific derivations,
   calibration provenance, independent tests, the illustrated manual, and examples.
 - Keep GitHub CI on hosted static checks and document local licensed testing.
-  Runtime, model defaults, public/Mata APIs, and seeded algorithms are unchanged.
+  Simulation behavior, model defaults, public/Mata APIs and seeded algorithms are unchanged.
 
 ## 1.2.0-rc.1 — development candidate, untagged
 

@@ -1,5 +1,5 @@
 *! fesim discovery output schema 1.2.0-rc.1 06sep2026
-program define _fesim_schema, rclass
+program define fesim__schema, rclass
     version 16.0
     syntax , DGP(string) PRESet(string)
     local observed "workerid time firmid employed lnwage spellid tenure newjob from_unemp to_unemp jobtojob ntransitions"

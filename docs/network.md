@@ -67,7 +67,7 @@ kernel. The same existing destination uniform samples the mixture. No event,
 initialization, UE, wage, or extra RNG draw is introduced. The design is a
 reduced-form wage ladder, not a structural BM or revealed-preference model.
 
-The installed internal `_fesim_network` ado constructs two observed graph
+The installed internal `fesim__network` ado constructs two observed graph
 representations after the panel and common flow variables are finalized. The
 bipartite worker-firm graph supplies component and leave-out diagnostics. The
 undirected firm mobility graph supplies direct-move link diagnostics. Both are

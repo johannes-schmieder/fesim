@@ -27,7 +27,7 @@ program define fesim_config, rclass
     quietly fesim_registry, `registry_options'
 
     if "`r(dgp)'"=="blm" {
-        _fesim_blm_config `invocation'
+        fesim__blm_config `invocation'
         return add
         exit
     }

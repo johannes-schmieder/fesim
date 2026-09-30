@@ -1,12 +1,12 @@
 *! fesim canonical BM public handler 1.2.0-rc.1 06sep2026
-program define _fesim_bm, rclass
+program define fesim__bm, rclass
     version 16.0
     syntax [, CLEAR *]
     if `"`clear'"' == "" & (_N > 0 | c(k) > 0) {
         di as error "data are in memory; specify clear to permit replacement"
         exit 4
     }
-    quietly _fesim_load
+    quietly fesim__load
     local caller_rng `"`c(rng)'"'
     local caller_state `"`c(rngstate)'"'
     tempname timers
@@ -60,7 +60,7 @@ program define _fesim_bm_run, rclass
         "`cfg_initial'", `cfg_burnin', "`cfg_truth'", st_matrix("`primitives'"), ///
         `random_firms', "`solver'", "`firm_summary'", "`timing'", ///
         st_matrix("`timers'")))
-    quietly _fesim_network, workers(`cfg_workers') firms(`cfg_firms') ///
+    quietly fesim__network, workers(`cfg_workers') firms(`cfg_firms') ///
         periods(`cfg_periods') connectivity(`cfg_connectivity')
     matrix `network' = r(network)
     matrix `leaveout' = r(leaveout)
@@ -69,9 +69,9 @@ program define _fesim_bm_run, rclass
     local obs_share = r(largest_component_obs_share)
     local worker_share = r(largest_component_worker_share)
     local firm_share = r(largest_component_firm_share)
-    quietly _fesim_durations, deltayears(`cfg_delta_years')
+    quietly fesim__durations, deltayears(`cfg_delta_years')
     matrix `durations' = r(durations)
-    quietly _fesim_moments, firms(`cfg_firms')
+    quietly fesim__moments, firms(`cfg_firms')
     matrix `moments' = r(moments)
     local firms_active = r(N_firms_active)
     local employment = r(employment_rate)
@@ -89,7 +89,7 @@ program define _fesim_bm_run, rclass
     local seed : display %21.0f scalar(`master_seed')
     local seed = strtrim(`"`seed'"')
     local scientific = subinstr(`"`cfg_config'"', " report=`cfg_report'", "", .)
-    _fesim_finalize, dgp(bm) dgpalias(`cfg_dgp_alias') preset(simple) ///
+    fesim__finalize, dgp(bm) dgpalias(`cfg_dgp_alias') preset(simple) ///
         calibrationclass(`cfg_calibration_class') command(`"fesim `scientific'"') ///
         seed(`seed') rng(mt64s) ///
         rngmethod(fixed_nonoverlapping_mt64s_component_streams) ///

@@ -10,6 +10,9 @@ maps source files to their responsibilities.
   `--ff-only` before starting and before pushing when the remote may have changed.
 - Keep commits small, coherent, and tested. Document user-visible changes in
   `CHANGELOG.md`; keep current interface and source inventories consistent.
+- Every installed file basename must start with `fesim` for SSC file hosting.
+  Use `fesim__*` for internal autoload helpers; keep filenames, program names,
+  callers and the package manifest aligned. This includes Mata, help and assets.
 - Keep installed runtime paths pure official Stata/Mata. Repository-only tools
   may use other languages, but users must not need them.
 - Preserve caller data/RNG on failure, fixed-seed truth/block invariance, and

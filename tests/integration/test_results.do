@@ -33,7 +33,7 @@ matrix rownames toy_durations = tenure_years_N tenure_years_mean ///
     tenure_years_sd
 matrix colnames toy_durations = realized
 
-quietly _fesim_moments, firms(3) truthmoments(toy_truth_moments)
+quietly fesim__moments, firms(3) truthmoments(toy_truth_moments)
 matrix toy_moments = r(moments)
 scalar toy_firms_active = r(N_firms_active)
 scalar toy_employment_rate = r(employment_rate)
@@ -56,7 +56,7 @@ local finalize_options ///
     runtimeoutput(.01) parameters(toy_parameters) moments(toy_moments)
 local finalize_options `finalize_options' durations(toy_durations)
 
-_fesim_finalize, `finalize_options' reporting(report)
+fesim__finalize, `finalize_options' reporting(report)
 
 assert r(N) == 35
 assert r(N_workers) == 7
@@ -108,7 +108,7 @@ scalar report_N = r(N)
 scalar report_runtime_total = r(runtime_total)
 quietly datasignature set, reset
 
-quietly _fesim_finalize, `finalize_options' reporting(noreport)
+quietly fesim__finalize, `finalize_options' reporting(noreport)
 assert r(N) == report_N
 assert r(runtime_total) == report_runtime_total
 assert `"`r(command)'"' == `"`report_command'"'
@@ -138,7 +138,7 @@ forvalues row = 1/19 {
 }
 matrix rownames toy_leaveout = `toy_leaveout_rows'
 matrix colnames toy_leaveout = value
-quietly _fesim_finalize, `finalize_options' reporting(noreport) ///
+quietly fesim__finalize, `finalize_options' reporting(noreport) ///
     network(toy_network) leaveout(toy_leaveout)
 matrix returned_network = r(network)
 matrix returned_leaveout = r(leaveout)
@@ -146,16 +146,16 @@ mata: assert(mreldif(st_matrix("returned_network"), ///
     st_matrix("toy_network")) == 0)
 mata: assert(mreldif(st_matrix("returned_leaveout"), ///
     st_matrix("toy_leaveout")) == 0)
-capture _fesim_finalize, `finalize_options' reporting(noreport) ///
+capture fesim__finalize, `finalize_options' reporting(noreport) ///
     network(toy_network)
 assert _rc == 198
-capture _fesim_finalize, `finalize_options' reporting(noreport) ///
+capture fesim__finalize, `finalize_options' reporting(noreport) ///
     leaveout(toy_leaveout)
 assert _rc == 198
 quietly datasignature confirm
 assert `"`c(rngstate)'"' == `"`rng_before'"'
 
-capture _fesim_finalize, `finalize_options' reporting(invalid)
+capture fesim__finalize, `finalize_options' reporting(invalid)
 assert _rc == 198
 quietly datasignature confirm
 assert `"`c(rngstate)'"' == `"`rng_before'"'

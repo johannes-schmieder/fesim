@@ -1,6 +1,6 @@
 # Common moments
 
-The installed internal `_fesim_moments` ado is the common Stata-facing moment engine. It validates the balanced worker-period and flow-variable contracts, computes realized moments without changing the dataset or RNG state, and returns a one-column `r(moments)` matrix with stable row names.
+The installed internal `fesim__moments` ado is the common Stata-facing moment engine. It validates the balanced worker-period and flow-variable contracts, computes realized moments without changing the dataset or RNG state, and returns a one-column `r(moments)` matrix with stable row names.
 
 ## Observation units
 

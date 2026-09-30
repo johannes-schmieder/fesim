@@ -21,31 +21,31 @@ capture noisily findfile fesim.ado
 assert _rc == 0
 assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
-capture noisily findfile _fesim_schema.ado
+capture noisily findfile fesim__schema.ado
 assert _rc == 0
 assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
-capture noisily findfile _fesim_finalize.ado
+capture noisily findfile fesim__finalize.ado
 assert _rc == 0
 assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
-capture noisily findfile _fesim_durations.ado
+capture noisily findfile fesim__durations.ado
 assert _rc == 0
 assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
-capture noisily findfile _fesim_moments.ado
+capture noisily findfile fesim__moments.ado
 assert _rc == 0
 assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
-capture noisily findfile _fesim_network.ado
+capture noisily findfile fesim__network.ado
 assert _rc == 0
 assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
-capture noisily findfile _fesim_truth.ado
+capture noisily findfile fesim__truth.ado
 assert _rc == 0
 assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
-capture noisily findfile _fesim_load.ado
+capture noisily findfile fesim__load.ado
 assert _rc == 0
 assert strpos(`"`r(fn)'"', "build/stata-plus") > 0
 
@@ -79,11 +79,14 @@ assert strpos(`"`r(config)'"', "workers=10000") > 0
 quietly adopath - `"`repository_root'/build"'
 mata: mata clear
 mata: mata mlib index
+local stale_path `"`repository_root'/tests/fixtures/stale_mata"'
+quietly adopath ++ `"`stale_path'"'
 capture noisily fesim, dgp(akmsimple) workers(12) firms(3) periods(2) ///
     seed(12345) truth(none) noreport clear
 assert _rc == 0
 assert _N == 24
 isid workerid time
+quietly adopath - `"`stale_path'"'
 
 capture noisily fesim, dgp(akm) preset(germany_chk_2002_2009) ///
     workers(12) firms(3) periods(2) seed(11111) truth(none) noreport clear

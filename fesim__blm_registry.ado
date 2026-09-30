@@ -1,5 +1,5 @@
 *! fesim BLM typed parameter registry 1.2.0-rc.1 06sep2026
-program define _fesim_blm_registry, rclass
+program define fesim__blm_registry, rclass
     version 16.0
     syntax , ACTION(string) PRESet(string) [ PARAmeter(string) ]
     local scalar_parameters "workers firms periods burnin worker_types firm_types mu sd_worker sd_firm interaction sd_error lambda_move sorting rho mobility_wage origin_dependence"

@@ -1,6 +1,6 @@
 version 16.0
 args root
-quietly _fesim_load
+quietly fesim__load
 mata:
 /* Independent dense linear Bellman oracle, deliberately not tail recursion. */
 void cpv_oracle(real colvector p, real scalar le, real scalar beta)

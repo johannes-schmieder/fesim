@@ -17,7 +17,7 @@ input byte employed double tenure double unemp_duration
 end
 quietly datasignature set, reset
 
-quietly _fesim_durations, deltayears(.25)
+quietly fesim__durations, deltayears(.25)
 matrix durations = r(durations)
 assert rowsof(durations) == 12
 assert colsof(durations) == 1
@@ -46,10 +46,10 @@ assert durations["unemployment_duration_years_p90", "realized"] == ///
 quietly datasignature confirm
 assert `"`c(rngstate)'"' == `"`rng_before'"'
 
-capture noisily _fesim_durations, deltayears(0)
+capture noisily fesim__durations, deltayears(0)
 assert _rc == 198
 quietly replace tenure = -1 in 1
-capture noisily _fesim_durations, deltayears(.25)
+capture noisily fesim__durations, deltayears(.25)
 assert _rc == 459
 
 di as result "FESIM DURATION DIAGNOSTIC TESTS PASS"

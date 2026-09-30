@@ -2,7 +2,7 @@ version 16
 clear all
 set more off
 set varabbrev off
-quietly _fesim_load
+quietly fesim__load
 mata:
 void cpv_stream(real scalar block) {
     real scalar seed

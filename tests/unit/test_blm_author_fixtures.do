@@ -1,7 +1,7 @@
 version 19.0
 clear all
 set more off
-quietly _fesim_load
+quietly fesim__load
 /* Compatible submodels of author m2/m4 conditional sample simulators.
    Source: tlamadon/blm-replicate 8d65ada76c15c2b8ae2cbfa291813fa8bc6d0393,
    R/m2-mixt.r and R/m4-mixt.R. No empirical data or fitted parameters used.

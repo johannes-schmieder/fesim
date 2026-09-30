@@ -55,7 +55,7 @@ matrix rownames targets = employment_rate lnwage_mean p_ee_observed
 matrix colnames targets = target
 
 quietly datasignature set, reset
-quietly _fesim_moments, firms(3) truthmoments(truth_moments) ///
+quietly fesim__moments, firms(3) truthmoments(truth_moments) ///
     targets(targets)
 scalar moment_N = r(N)
 scalar moment_N_workers = r(N_workers)
@@ -124,7 +124,7 @@ assert missing(target_table["p_ee_observed", "relative_difference"])
 matrix bad_targets = (1)
 matrix rownames bad_targets = undefined_moment
 quietly datasignature set, reset
-capture _fesim_moments, firms(3) targets(bad_targets)
+capture fesim__moments, firms(3) targets(bad_targets)
 assert _rc == 198
 quietly datasignature confirm
 assert `"`c(rngstate)'"' == `"`rng_before'"'
@@ -133,7 +133,7 @@ matrix bad_truth = J(10, 1, 0)
 matrix rownames bad_truth = wrong1 wrong2 wrong3 wrong4 wrong5 ///
     wrong6 wrong7 wrong8 wrong9 wrong10
 quietly datasignature set, reset
-capture _fesim_moments, firms(3) truthmoments(bad_truth)
+capture fesim__moments, firms(3) truthmoments(bad_truth)
 assert _rc == 198
 quietly datasignature confirm
 assert `"`c(rngstate)'"' == `"`rng_before'"'
@@ -152,7 +152,7 @@ input long workerid long time long firmid byte employed double lnwage ///
 2 2 . 0 . 0 0 . 0 0
 end
 quietly datasignature set, reset
-quietly _fesim_moments, firms(2)
+quietly fesim__moments, firms(2)
 scalar unemployed_p_eu = r(p_eu_realized)
 scalar unemployed_p_ue = r(p_ue_realized)
 scalar unemployed_p_ee = r(p_ee_realized)

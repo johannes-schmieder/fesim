@@ -5,7 +5,7 @@ args root sha workers record result
 capture log close _all
 log using `"`result'.stata.log"', text replace
 quietly adopath ++ `"`root'"'
-quietly _fesim_load
+quietly fesim__load
 mata:
 void fesim_benchmark_bm_events(real scalar workers, real scalar record)
 {

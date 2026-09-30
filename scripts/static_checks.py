@@ -74,6 +74,10 @@ def check_package_manifest() -> None:
     require(entries, "fesim.pkg contains no installable files")
     require(len(entries) == len(set(entries)), "fesim.pkg repeats a file")
     for entry in entries:
+        require(
+            Path(entry).name.startswith("fesim"),
+            f"installed filename must start with fesim: {entry}",
+        )
         require((ROOT / entry).is_file(), f"manifest file does not exist: {entry}")
         require(
             Path(entry).suffix in {".ado", ".sthlp", ".mata"},
@@ -249,7 +253,7 @@ def check_documentation_inventory() -> None:
     patterns = (
         ("Package version", "fesim_version_info.ado", r'return local version "([^"]+)"'),
         ("Public API", "fesim_version_info.ado", r"return scalar api_level\s*=\s*(\d+)"),
-        ("Mata API", "_fesim_load.ado", r"fesim_mata_api_version\(\) == (\d+)"),
+        ("Mata API", "fesim__load.ado", r"fesim_mata_api_version\(\) == (\d+)"),
         ("Registered presets", "fesim_registry.ado", r'return local qualified "([^"]+)"'),
     )
     for name, path, pattern in patterns:

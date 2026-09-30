@@ -2,7 +2,7 @@ version 16.0
 clear all
 set more off
 set varabbrev off
-quietly _fesim_load
+quietly fesim__load
 mata:
 void fesim_test_bm_stream(real scalar block)
 {
