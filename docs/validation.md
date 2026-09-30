@@ -27,6 +27,21 @@ controls and passed 20 BLM scaling cases. Same-host repeated comparisons resolve
 two initial performance outliers. Benchmarks are descriptive measurements;
 see [performance](performance.md).
 
+## Public-source documentation checks — 2026-09-30
+
+The complete licensed suite passed on exact clean preparation source
+`4b4088abb30cb56ebcf6a7a46abe78c4d810c710`: all 73 Stata files, including ten-preset
+source installation, all 22 revised clickable help examples, and fourteen
+manual scripts. Seven noninstallation README Stata blocks also passed verbatim;
+the revised help translated successfully through Stata's SMCL renderer.
+Ten static contract checks and fourteen Python tests passed separately.
+
+The installed ado/Mata sources, Stata tests/examples, package manifest, and
+manual are unchanged from `8c75e87`; this preparation reorganizes documentation
+and replaces obsolete handover checks. A documentation-only follow-up records
+this tested SHA and corrects the historical BM benchmark source attribution.
+The receipt identifies its tested source, not that later documentation commit.
+
 ## Reproduce a qualification
 
 From a clean checkout:
