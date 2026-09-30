@@ -2,6 +2,8 @@
 
 ## Unreleased source maintenance — 2026-09-30
 
+- Document the clean upgrade path for installations with old `_fesim_*` helper
+  filenames: uninstall the old package before installing current source.
 - Give every installed file a `fesim` prefix for SSC hosting. Rename twelve
   internal ado helpers to `fesim__*`, update their callers and source map, and
   ensure the installed loader reads adjacent Mata before adopath shadow files.

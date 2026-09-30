@@ -31,6 +31,12 @@ immutable simple-AKM alternative. Offline source installation uses
 `net install fesim, from("/path/to/extracted/source") replace`.
 The runtime loads authoritative official Mata source in Stata.
 
+For an existing installation with `_fesim_*` helpers, run `ado uninstall fesim`
+before the installation command. A direct `replace` upgrade works but leaves
+the obsolete helper files on disk; uninstalling the old package first removes
+those files. Fresh installation and reinstalling the current package need no
+extra step.
+
 ## Release review
 
 Review scientific claims, API compatibility, full-suite evidence, archive

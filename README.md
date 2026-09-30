@@ -28,6 +28,11 @@ fesim version
 help fesim
 ```
 
+If upgrading from an installation with `_fesim_*` helper files, first run
+`ado uninstall fesim`, then use the install command above. Stata's `replace`
+updates the package but leaves files removed from the manifest on disk; the
+uninstall step removes the old helpers before the renamed files are installed.
+
 `main` can change. For reproducible research, replace `main` in the URL with
 an exact Git commit and record that commit, your Stata version, and the command.
 The immutable simple-AKM version is available by using `v0.1.0` instead.
