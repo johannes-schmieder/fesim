@@ -87,7 +87,7 @@ No empirical skill/sector calibration is claimed. Overrides are classified
 
 ## BLM presets
 
-`blm/static` and `blm/dynamic` implement the D-044 employed-only monthly
+`blm/static` and `blm/dynamic` implement the employed-only monthly
 forward process. They are not Swedish empirical calibrations or BLM estimators.
 Static earnings innovations are independent across months conditional on types;
 dynamic earnings add persistence, wage-dependent mobility and move shifts.

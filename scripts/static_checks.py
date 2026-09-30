@@ -236,72 +236,57 @@ def check_static_workflow() -> None:
     )
 
 
-def markdown_section(text: str, heading: str) -> str:
-    """Read a unique level-two section, excluding later historical sections."""
-    pattern = rf"^{re.escape(heading)}\n(.*?)(?=^## |\Z)"
-    matches = re.findall(pattern, text, re.MULTILINE | re.DOTALL)
-    require(len(matches) == 1, f"missing or duplicate handover section: {heading}")
-    return matches[0]
 
-
-def handover_field(section: str, name: str) -> str:
-    matches = re.findall(
-        rf"^\| {re.escape(name)} \| (.*?) \|$", section, re.MULTILINE
-    )
-    require(len(matches) == 1, f"missing or duplicate handover field: {name}")
+def documentation_field(text: str, name: str) -> str:
+    matches = re.findall(rf"^\| {re.escape(name)} \| (.*?) \|$", text, re.MULTILINE)
+    require(len(matches) == 1, f"missing or duplicate source inventory field: {name}")
     return matches[0].strip("`")
 
 
-def check_handover() -> None:
-    """Check live-source consistency, never certify historical test evidence."""
-    plan = (ROOT / "PLAN.md").read_text(encoding="utf-8")
-    facts = markdown_section(plan, "## 3. Current repository facts")
-    version_source = (ROOT / "fesim_version_info.ado").read_text(encoding="utf-8")
-    registry = (ROOT / "fesim_registry.ado").read_text(encoding="utf-8")
-    loader = (ROOT / "_fesim_load.ado").read_text(encoding="utf-8")
-    runner = (ROOT / "tests/run_all.do").read_text(encoding="utf-8")
+def check_documentation_inventory() -> None:
+    """Keep maintained public documentation aligned with authoritative source."""
+    interface = (ROOT / "docs/interface.md").read_text(encoding="utf-8")
     patterns = (
-        ("Package version", version_source, r'return local version "([^"]+)"'),
-        ("Public API", version_source, r"return scalar api_level\s*=\s*(\d+)"),
-        ("Mata API", loader, r"fesim_mata_api_version\(\) == (\d+)"),
-        ("Registered presets", registry, r'return local qualified "([^"]+)"'),
+        ("Package version", "fesim_version_info.ado", r'return local version "([^"]+)"'),
+        ("Public API", "fesim_version_info.ado", r"return scalar api_level\s*=\s*(\d+)"),
+        ("Mata API", "_fesim_load.ado", r"fesim_mata_api_version\(\) == (\d+)"),
+        ("Registered presets", "fesim_registry.ado", r'return local qualified "([^"]+)"'),
     )
-    for name, source, pattern in patterns:
+    for name, path, pattern in patterns:
+        source = (ROOT / path).read_text(encoding="utf-8")
         match = re.search(pattern, source)
-        require(match is not None, f"cannot parse source for handover: {name}")
-        require(handover_field(facts, name) == match.group(1),
-                f"handover/source mismatch: {name}")
+        require(match is not None, f"cannot parse source inventory: {name}")
+        require(documentation_field(interface, name) == match.group(1),
+                f"documentation/source mismatch: {name}")
+    runner = (ROOT / "tests/run_all.do").read_text(encoding="utf-8")
     tests = re.search(r"\nlocal tests\s+(.*?)\nlocal n_tests", runner, re.DOTALL)
-    require(tests is not None, "cannot parse handover Stata inventory")
+    require(tests is not None, "cannot parse Stata inventory")
     count = len(tests.group(1).replace("///", " ").split())
-    require(handover_field(facts, "Registered Stata files") == str(count),
-            "handover/source mismatch: Registered Stata files")
-
-    # A review report names an immutable candidate, not necessarily current HEAD.
-    report_link = handover_field(facts, "Review report")
-    match = re.fullmatch(r"\[[^\]]+\]\((docs/qualification-[\w.-]+\.md)\)", report_link)
-    require(match is not None, "invalid handover Review report link")
-    report = (ROOT / match.group(1)).read_text(encoding="utf-8")
-    shas = re.findall(r"Exact source:\s*`([0-9a-f]{40})`", report)
-    require(len(shas) == 1, "review report must identify one exact source")
-    require(handover_field(facts, "Accepted review candidate source") == shas[0],
-            "handover/review candidate source mismatch")
-
-    presets = handover_field(facts, "Registered presets").split()
+    require(documentation_field(interface, "Registered Stata files") == str(count),
+            "documentation/source mismatch: Registered Stata files")
+    presets = documentation_field(interface, "Registered presets").split()
     calibration = (ROOT / "docs/calibration.md").read_text(encoding="utf-8")
     routes = re.findall(r"^\| `([^`]+)` \|", calibration, re.MULTILINE)
     require(sorted(routes) == sorted(presets), "calibration route inventory mismatch")
-    if {"blm/static", "blm/dynamic"}.issubset(presets):
-        blm = markdown_section(plan, "## P7.2 Finite worker and firm types / BLM-style model")
-        states = re.findall(r"^- \[(.)\]", blm, re.MULTILINE)
-        require(len(states) == 5 and set(states) == {"x"},
-                "registered BLM presets have incomplete P7.2 handover status")
 
-    documents = markdown_section(plan, "## 11. Documentation checklist")
-    paths = re.findall(r"^\| `([^`]+)` \|", documents, re.MULTILINE)
-    require(bool(paths), "empty handover documentation inventory")
-    for path in paths:
-        require((ROOT / path).is_file(), f"handover document is absent: {path}")
+    help_text = (ROOT / "fesim.sthlp").read_text(encoding="utf-8")
+    markers = re.findall(r"\{marker ([\w]+)\}", help_text)
+    require(len(markers) == len(set(markers)), "duplicate help navigation marker")
+    targets = re.findall(r"\{help fesim##([\w]+):", help_text)
+    require(set(targets).issubset(markers), "help navigation target is absent")
+
+    documents = [ROOT / "README.md", ROOT / "CONTRIBUTING.md"]
+    documents.extend((ROOT / "docs").glob("*.md"))
+    documents.extend((ROOT / "tests").rglob("README.md"))
+    documents.extend((ROOT / "examples").glob("README.md"))
+    for document in documents:
+        text = document.read_text(encoding="utf-8")
+        for target in re.findall(r"\[[^\]]+\]\(([^)]+)\)", text):
+            if "://" in target or target.startswith(("#", "mailto:")):
+                continue
+            path = target.split("#", 1)[0]
+            require((document.parent / path).exists(),
+                    f"document link is absent: {document.relative_to(ROOT)} -> {target}")
 
 
 def main() -> int:
@@ -315,7 +300,7 @@ def main() -> int:
         check_runtime_dependencies,
         check_help_examples,
         check_static_workflow,
-        check_handover,
+        check_documentation_inventory,
     )
     try:
         for check in checks:

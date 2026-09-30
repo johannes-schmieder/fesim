@@ -76,7 +76,7 @@ verify shrinking offer-CDF, worker-CDF and aggregate EE approximation errors.
 Small employed-offer, destruction and discount rates have explicit limiting
 checks. `bm_burnin.do` separately compares 20/40-year starts from unemployment
 and 20-year random-start convergence. Runtime and source qualification are
-recorded in `PLAN.md`; statistical tests do not establish platform portability.
+recorded in [validation](validation.md); statistical tests do not establish platform portability.
 
 ## CPV contracts, tenure and flow validation
 

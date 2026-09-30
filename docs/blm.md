@@ -1,7 +1,7 @@
 # BLM-style finite-type simulation
 
-D-044 in DESIGN.md is the normative implementation contract. This note records
-its sources and interpretation; the LaTeX manual provides runnable examples.
+This note and the [public interface contract](interface.md) specify the model
+and its source interpretation. The LaTeX manual provides runnable examples.
 
 `fesim, dgp(blm) preset(static)` generates an employed-only monthly process with
 permanent worker types and firm classes. Static earnings are conditionally
@@ -28,7 +28,7 @@ assumed. The author-page main-PDF link was unavailable during the bounded audit.
 The working paper's Assumption 2 (PDF pages 10–11, printed pages 8–9) allows
 next mobility to depend on current earnings, permanent worker type and current
 firm class, and next earnings to depend on the current earnings/type and the
-origin/destination classes and move indicator. D-044 imposes those forward
+origin/destination classes and move indicator. The implemented model imposes those forward
 restrictions on every internal month. The static specialization removes serial
 persistence and earnings-dependent mobility. Gaussian cell distributions, the
 scalar score recipes, monthly event probabilities and the 20-year burn-in are

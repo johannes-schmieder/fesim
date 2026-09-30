@@ -19,3 +19,7 @@ windows-ci.status
 
 # Primary-source downloads used for the documented BLM audit.
 literature/downloads/
+
+# Python static-tool caches
+__pycache__/
+*.pyc

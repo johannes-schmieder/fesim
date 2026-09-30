@@ -1,52 +1,35 @@
 # CI and exact-source qualification
 
-`fesim` separates checks that can run on a public GitHub host from tests that require licensed Stata. A green static job is not a Stata qualification claim.
+## GitHub-hosted checks
 
-## GitHub-hosted static lane
+`.github/workflows/static.yml` runs on pushes, pull requests, and manual
+dispatch with read-only repository permissions. It uses a GitHub-hosted Ubuntu
+runner and the Python standard library. It checks whitespace/artifact hygiene,
+installation manifest and version consistency, Mata and test registration,
+runtime dependencies, executable help markers/navigation, current source and
+calibration inventories, documentation paths, and exact-SHA receipt verification.
 
-`.github/workflows/static.yml` runs on pushes, pull requests, and manual dispatch. It uses only Git, shell, and the Python standard library. The job checks:
+The job is labeled `no Stata`: it does not install, emulate, or invoke Stata.
+**No personal self-hosted runner belongs on this repository.** Licensed automation
+must stay local or in a separate trusted private CI repository.
 
-- whitespace and tracked-artifact hygiene;
-- one-to-one agreement between `fesim.pkg` and installed root-level ado/help files;
-- version-source consistency;
-- complete Mata source registration in `src/build_mlib.do`;
-- complete unit/integration Stata test registration in `tests/run_all.do`;
-- absence of foreign-runtime calls from installed ado files;
-- the expected static workflow structure;
-- live handover version/API/preset/test inventories, review-candidate identity,
-  BLM roadmap completion and referenced documentation paths;
-- valid and invalid exact-SHA receipt cases.
-
-It does not install, emulate, or invoke Stata, and its job name states `no Stata`.
-Handover checks read only tracked source and Markdown; they work in shallow
-checkouts and do not require ignored local archives. They establish consistency,
-not qualification or existence of a licensed receipt. Dated historical handovers
-and accepted review reports retain their original source identities.
-
-## Licensed Stata lane
-
-Run exact-source qualification from a clean checkout with:
+## Licensed local tests
 
 ```sh
 STATA_BIN=/path/to/stata-mp scripts/run_stata_tests.sh
 ```
 
-The wrapper refuses tracked or untracked source changes, derives the exact `HEAD` SHA and branch itself, runs `tests/run_all.do`, and then passes the generated JSON receipt to `scripts/verify_stata_receipt.py`. The verifier requires:
+The wrapper refuses source changes, derives the exact `HEAD` and branch, runs
+`tests/run_all.do`, and invokes `scripts/verify_stata_receipt.py`. Acceptance
+requires the exact SHA, clean worktree, correct filename/repository/branch,
+accepted status, zero exit/failure counts, complete registered test inventory,
+per-test PASS markers, and a clean Mata rebuild. Receipts and logs remain ignored
+local evidence. See [validation](validation.md).
 
-- an exact 40-character receipt SHA equal to checked-out `HEAD`;
-- a clean worktree;
-- a receipt filename, repository path, and branch matching the checkout;
-- accepted status, zero exit code and failed-test count, a positive passed-test count, and a clean Mata rebuild.
+## Owner-controlled Windows entry point
 
-Receipts and logs remain ignored local evidence. `PLAN.md` records accepted exact-SHA results. No licensed self-hosted workflow is configured because the repository has no `gptpro.md` or approved Stata runner instructions.
-
-## Owner-controlled Windows qualification
-
-Formal Windows qualification uses the private guarded Windows/Stata runner,
-not GitHub Actions. The exact clean source archive contains `windows-ci.do`,
-which invokes the complete Stata suite and writes `windows-ci.status` with the
-authoritative final marker only after every assertion passes. The external
-runner binds that result to the exact commit and source-archive hash, collects
-only sanitized evidence, removes transient source/results, and returns the
-machine to its stopped state. Raw Stata startup logs and license information
-must never be collected or published.
+`windows-ci.do` invokes the full suite and writes ignored `windows-ci.status`
+only after success. It is a portable local batch entry point and contains no
+runner registration or credentials. External Windows qualification binds the
+marker to exact source/archive hashes and licensed Stata logs. This file alone
+does not establish current Windows support.

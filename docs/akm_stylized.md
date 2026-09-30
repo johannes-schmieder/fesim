@@ -1,12 +1,12 @@
 # Stylized empirical-mobility AKM
 
-`akm/stylized` is the first public route using the D-025 monthly empirical-mobility engine:
+`akm/stylized` is the first public route using the monthly empirical-mobility engine:
 
 ```stata
 fesim, dgp(akm) preset(stylized) seed(12345) clear
 ```
 
-`dgp(akmempirical)` is an exact alias. The word `empirical` describes the reduced-form mechanisms, not the calibration status. D-026 classifies every default as stylized and uncalibrated; no country, paper, or administrative-data label applies.
+`dgp(akmempirical)` is an exact alias. The word `empirical` describes the reduced-form mechanisms, not the calibration status. Every default is classified as stylized and uncalibrated; no country, paper, or administrative-data label applies.
 
 ## Timing and state
 
@@ -30,7 +30,7 @@ that created the bridge.
 
 With `truth(full)`, `worker_type_true` repeats the worker mobility type and `firm_quality_true` records current-firm quality on employed rows. Basic wage truth retains the common additive-AKM variables.
 
-## D-026 defaults
+## Stylized defaults
 
 The wage and size parameters reuse the transparent `akm/simple` scale. The three hazard intercepts transform its annual transition probabilities into continuous rates at zero covariates and duration: joint EU/EE rate `-log(1-.08-.12)` split in 0.08/0.12 shares, and UE rate `-log(1-.60)`. The remaining values are modest stress-design coefficients.
 

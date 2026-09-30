@@ -1,51 +1,75 @@
 # Contributing to fesim
 
-`DESIGN.md` is the normative architecture and public-interface contract. `PLAN.md` is the live execution and evidence ledger. Read both completely before implementation work.
+Start with the [public interface contract](docs/interface.md), the relevant
+model note, and the installed help. The [architecture guide](docs/architecture.md)
+maps source files to their responsibilities.
 
 ## Development rules
 
-- Work directly on `main` unless the owner changes the branch policy.
-- Pull with `--ff-only` before starting and before pushing when the remote may have changed.
-- Keep commits small, coherent, tested, and paired with the relevant `PLAN.md` update.
-- Keep every installed runtime path pure Stata/Mata. Repository-only static tooling may use other languages, but users must not need it.
-- Do not commit logs, datasets, scratch files, generated Mata libraries, credentials, or machine-specific executable paths.
-- Do not advertise a DGP, preset, Stata version, or platform as qualified without exact-source test evidence.
+- Work directly on `main` unless the owner changes the branch policy. Pull with
+  `--ff-only` before starting and before pushing when the remote may have changed.
+- Keep commits small, coherent, and tested. Document user-visible changes in
+  `CHANGELOG.md`; keep current interface and source inventories consistent.
+- Keep installed runtime paths pure official Stata/Mata. Repository-only tools
+  may use other languages, but users must not need them.
+- Preserve caller data/RNG on failure, fixed-seed truth/block invariance, and
+  scientific units, sample rules, and calibration boundaries.
+- Do not commit logs, datasets, generated Mata libraries, scratch files,
+  credentials, license material, or machine-specific executable paths.
+- Do not advertise a model, platform, or Stata version as tested without
+  exact-source evidence. Keep accepted receipts and raw logs outside tracked source.
+- Keep licensed tests local or in a separate trusted private CI repository.
+  **Never attach a personal self-hosted runner to this public source repository.**
 
-## Build
+## Build and tests
 
-From the repository root in Stata:
+Users install the authoritative Mata source; a compiled library is not required.
+For development, rebuild the ignored library from the repository root in Stata:
 
 ```stata
 do src/build_mlib.do
 ```
 
-The command rebuilds the development `lfesim.mlib` into the ignored `build/` directory and verifies that its minimal API can be loaded. Mata source files are authoritative and are installed with the package. The compiled library is a development and qualification artifact, not a release dependency.
-
-## Tests
-
-The single Stata entry point is:
+The complete test entry point is:
 
 ```stata
 do tests/run_all.do
 ```
 
-It rebuilds the Mata library, performs a clean temporary package installation, and runs the registered unit, integration, deterministic regression, statistical, and documentation-example suites. When invoked outside the repository root, pass the repository path as the first argument.
+It rebuilds Mata, performs a clean temporary installation, and runs all
+registered unit, integration, deterministic regression, statistical, and
+executable documentation suites. It isolates `PERSONAL` and `PLUS` so a stale
+installation cannot satisfy the tests. Pass the repository path as argument 1
+when invoking it outside the root. Inspect the batch and per-test logs in the
+ignored `build/test-results/`; a zero OS exit alone does not establish success.
 
-Inspect the complete batch and per-test logs under the ignored `build/test-results/` directory. A zero process exit alone is not sufficient evidence if a log contains an unexpected Stata error or skipped test.
-
-For an exact-source receipt, use the clean-checkout wrapper rather than supplying a SHA manually:
+For an exact-source receipt from a clean checkout:
 
 ```sh
 STATA_BIN=/path/to/stata-mp scripts/run_stata_tests.sh
 ```
 
-The wrapper derives `HEAD`, runs the complete suite, and verifies that the accepted receipt belongs to that exact clean checkout. See [docs/ci.md](docs/ci.md).
+The wrapper derives `HEAD` and verifies source, branch, clean worktree, test
+inventory, per-test success, and the Mata rebuild. See [CI](docs/ci.md) and
+[qualification](docs/validation.md).
 
-GitHub-hosted CI runs dependency-free static contract checks only:
+GitHub-hosted CI runs these dependency-free static checks:
 
 ```sh
 python3 scripts/static_checks.py
 python3 -m unittest discover -s tests/static -p 'test_*.py' -v
 ```
 
-A green static job must not be described as a Stata test result.
+A green static job is separate from licensed Stata testing. Performance harnesses
+are documented in [tests/performance](tests/performance/README.md). Manual source,
+figures, and their regeneration scripts live under `docs/`; example scripts are
+part of the Stata suite.
+
+## Release qualification
+
+Run the full suite from exact clean source and, for a packaged release, again
+from an isolated source archive. Preserve receipts and checksums, verify the
+installation manifest, examples, manual, platform scope, scientific claims,
+and matched deterministic/performance controls as relevant. See
+[publishing](docs/publishing.md). Do not rewrite existing tags; a source cleanup
+or public visibility change does not itself create a new software release.

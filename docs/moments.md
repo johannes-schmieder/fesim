@@ -11,7 +11,7 @@ The installed internal `_fesim_moments` ado is the common Stata-facing moment en
 - Firm concentration is the equally weighted mean of output-period HHIs over periods with positive employment.
 - Movers have at least two distinct observed employers; stayers have exactly one. Their shares condition on ever employment, while never-employed workers are reported separately.
 
-The exact row order is normative in [`DESIGN.md`](../DESIGN.md#76-common-moment-schema).
+The exact row order is specified by the row table below.
 
 ## Truth moments
 

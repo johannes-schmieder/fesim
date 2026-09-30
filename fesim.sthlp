@@ -1,82 +1,192 @@
 {smcl}
-{* *! version 1.2.0-rc.1 06sep2026}{...}
+{* *! version 1.2.0-rc.1 30sep2026}{...}
 {.-}
 help for {cmd:fesim} {right:(Johannes F. Schmieder)}
 {.-}
-{vieweralsosee "fesim design" "DESIGN.md"}{...}
+
 {title:Title}
 
-{p 4 8}{cmd:fesim} {hline 2} linked employer-employee panel simulation{p_end}
+{pstd}
+{cmd:fesim} {hline 2} Simulate linked worker-firm panels with known truth
 
-{title:Syntax available in 1.2.0-rc.1}
+{pstd}
+{cmd:fesim} creates synthetic employment histories and wages for teaching,
+Monte Carlo experiments, and testing methods for matched employer-employee data.
+Choose a model and parameterization, then receive a worker-period panel with
+wages, employer links, mobility indicators, and optional latent truth.
+The runtime uses only official Stata and Mata; no plugin or other package is needed.
+
+{pstd}
+{help fesim##quickstart:Example} | {help fesim##syntax:Syntax} |
+{help fesim##models:Choose a model} | {help fesim##options:Main options} |
+{help fesim##output:Reading output}
+
+{pstd}
+{help fesim##connectivity:Connectivity} | {help fesim##advanced:Network designs} |
+{help fesim##examples:More examples} | {help fesim##stored:Stored results} |
+{help fesim##troubleshooting:Troubleshooting} | {help fesim##references:References}
+
+{marker quickstart}
+{title:Start with an example}
+
+{pstd}
+Generate 500 workers observed annually for eight years at up to 30 firms.
+Wages are the sum of an intercept, a worker effect, a firm effect, and noise.
+This example changes worker-effect dispersion and the annual direct-move
+probability, then compares observed wages with their known components.
+The temporary matrix saves {cmd:r(moments)} before {cmd:summarize} overwrites {cmd:r()}.
+
+{cmd}{...}
+          preserve
+{* example_start - simulate}{...}
+          clear
+          fesim, dgp(akmsimple) workers(500) firms(30) periods(8) ///
+              seed(12345) parameters(sd_worker .45 p_ee .10) ///
+              truth(basic) connectivity(keep) noreport clear
+          matrix fesim_example_moments = r(moments)
+          describe
+          summarize lnwage alpha_true psi_true if employed
+          matrix list fesim_example_moments
+          matrix drop fesim_example_moments
+{* example_end}{...}
+          restore
+{txt}{...}
+{space 2}{hline 76}
+{space 2}{it:({stata fesim_run simulate using fesim.sthlp:click to run})}
+
+
+{pstd}
+Clicking runs the complete example and restores your current data afterward.
+An ordinary {cmd:fesim, ... clear} command replaces the current dataset on success;
+wrap it in {cmd:preserve}/{cmd:restore} to retain your data, as shown above.
+For a regression demonstration, see {help fesim##examples:More examples}.
+
+{marker syntax}
+{title:Syntax}
+
+{p 8 16 2}
+{cmd:fesim} [{cmd:, dgp(}{it:name}{cmd:)} {cmd:preset(}{it:name}{cmd:)}
+{cmd:workers(}{it:#}{cmd:)} {cmd:firms(}{it:#}{cmd:)} {cmd:periods(}{it:#}{cmd:)}
+{cmd:frequency(}{it:year|quarter|month}{cmd:)} {cmd:seed(}{it:#}{cmd:)}
+{cmd:truth(}{it:none|basic|full}{cmd:)} {cmd:parameters(}{it:name value ...}{cmd:)}
+{cmd:clear} {it:options}]
+
+{pstd}
+With no {cmd:dgp()}, the model is {cmd:akm/simple}. Stata 19 or later is required.
+For the current candidate, licensed testing covers Stata/MP 19 on macOS Apple
+Silicon. See {help fesim##limitations:Limitations} for other environments.
+
+{pstd}Discover designs and their defaults without changing your data:
 
 {p 8 12}{cmd:fesim version}{p_end}
 {p 8 12}{cmd:fesim list}{p_end}
 {p 8 12}{cmd:fesim presets} [{it:dgp}]{p_end}
 {p 8 12}{cmd:fesim describe} {it:dgp} [{cmd:, preset(}{it:name}{cmd:)}]{p_end}
 
-{title:Simulation syntax}
-
-{p 8 12}{cmd:fesim} [{cmd:, dgp(}{it:name}{cmd:)} {cmd:preset(}{it:name}{cmd:)}
-{cmd:workers(}{it:#}{cmd:)} {cmd:firms(}{it:#}{cmd:)} {cmd:periods(}{it:#}{cmd:)}
-{cmd:frequency(}{it:year|quarter|month}{cmd:)} {cmd:start(}{it:string}{cmd:)}
-{cmd:seed(}{it:#}{cmd:)} {cmd:initial(}{it:name}{cmd:)} {cmd:burnin(}{it:#}{cmd:)}
-{cmd:jobrule(}{it:name}{cmd:)} {cmd:truth(}{it:name}{cmd:)}
-{cmd:connectivity(}{it:name}{cmd:)} {cmd:network(}{it:name}{cmd:)}
-{cmd:parameters(}{it:string}{cmd:)}
-{cmd:report} {cmd:noreport} {cmd:clear}]{p_end}
+{marker models}
+{title:Choose a model}
 
 {pstd}
-The {cmd:dgp(akm)} presets {cmd:simple}, {cmd:stylized}, and {cmd:germany_chk_2002_2009}, plus the {cmd:dgp(akmpaygap)} presets {cmd:simple} and {cmd:cck2016}, are available. {cmd:dgp(akmsimple)} and {cmd:dgp(akmempirical)} are convenience aliases for the first two AKM designs. Model-specific scalars remain exclusively inside {cmd:parameters()}; named options are common controls only. Canonical {cmd:dgp(bm) preset(simple)} is also available, with alias {cmd:dgp(bmsimple)}. The CPV family adds {cmd:simple} and {cmd:heterogeneous} presets.
+A DGP defines the model; a preset supplies its parameterization. All ten
+configurations below are implemented. Defaults and calibration scope are
+printed by {cmd:fesim describe}; for example, {cmd:fesim describe blm, preset(dynamic)}.
 
-{title:Description}
-
-{pstd}
-{cmd:fesim} generates worker-period linked employer-employee panels using a common Stata/Mata engine. The package separates the DGP, mobility engine, calibration preset, and observation scheme. The {cmd:akm/simple} defaults are a stylized teaching and testing design. The {cmd:akm/stylized} defaults exercise a monthly empirical-mobility engine but are explicitly uncalibrated; the alias name {cmd:akmempirical} does not imply a paper or country calibration. The distinct {cmd:akm/germany_chk_2002_2009} preset targets selected Card-Heining-Kline 2002--2009 West German AKM wage-dispersion and sorting moments. {cmd:akmpaygap} codes men as group 0 and women as group 1, reports men-minus-women gaps, and separates worker composition, firm sorting, and group premium schedules. Its {cmd:cck2016} preset targets selected Card-Cardoso-Kline group and decomposition moments.
-
-{pstd}
-{cmd:fesim list} shows canonical DGP families, presets, aliases, and implementation status. {cmd:fesim presets} lists presets for all families or one requested DGP. {cmd:fesim describe} resolves case-insensitive names to canonical lowercase names. For example, {cmd:akmsimple} resolves to {cmd:dgp(akm) preset(simple)} and reports the same canonical configuration.
-
-{pstd}
-Configuration metadata is implemented for all ten public presets. The simple and stylized presets retain their documented defaults. The Germany preset defaults to {cmd:workers(10000)}, {cmd:firms(1000)}, eight annual periods beginning in 2002, {cmd:initial(random)}, and a five-year monthly burn-in. All presets default to {cmd:truth(basic)}, {cmd:connectivity(keep)}, {cmd:network(random)}, and {cmd:report}. Omitting {cmd:seed()} records {cmd:current}; configuration resolution itself never changes the RNG state.
-
-For the simple AKM contract, {cmd:initial(stationary)} uses the exact interval transition matrix over unemployment and firms and initializes job age from the stationary geometric distribution. {cmd:initial(random)} uses employment probability 0.5, attraction-weighted firm assignment, tenure zero, and requires {cmd:burnin()} of at least one period. {cmd:initial(allunemployed)} is a diagnostic start.
-
-{pstd}
-The simple model parameters accepted in {cmd:parameters()} are {cmd:mu}, {cmd:sd_worker}, {cmd:sd_firm}, {cmd:sd_error}, {cmd:firm_size_sd}, {cmd:p_eu}, {cmd:p_ee}, {cmd:p_ue}, and {cmd:wage_trend}. Registered defaults are 3, .40, .15, .20, 1, .08, .12, .60, and 0, respectively. Standard deviations are nonnegative; transition probabilities are bounded in [0,1], with {cmd:p_eu} and {cmd:p_ee} strictly below 1 and summing to less than 1. These model parameters do not have separate named options in {cmd:v0.1.0}.
-
-{pstd}
-The stylized empirical-mobility preset reuses the wage/size parameters and adds {cmd:rho_z_alpha}, {cmd:rho_q_psi}; annual log-hazard intercepts {cmd:kappa_eu}, {cmd:kappa_ee}, {cmd:kappa_ue}; worker, firm, tenure, and unemployment-duration slopes; and destination coefficients {cmd:theta_sort}, {cmd:theta_quality}, {cmd:theta_up}, and {cmd:theta_down}. Type {cmd:fesim describe akmempirical} for all defaults and bounds. The intercepts anchor zero-covariate intensities to the simple annual probabilities; all remaining coefficients are transparent stress-design choices, not fitted estimates.
+{p2colset 5 35 37 2}{...}
+{p2col:{cmd:akm/simple}}Additive wages and exogenous interval mobility; stylized baseline.{p_end}
+{p2col:{cmd:akm/stylized}}Monthly duration/type-dependent mobility and sorting; uncalibrated.{p_end}
+{p2col:{cmd:akm/germany_chk_2002_2009}}Selected CHK wage dispersion and sorting targets; stylized hazards.{p_end}
+{p2col:{cmd:akmpaygap/simple}}Two-group composition, firm sorting, and premium schedules.{p_end}
+{p2col:{cmd:akmpaygap/cck2016}}Selected CCK group/decomposition targets under a different normalization.{p_end}
+{p2col:{cmd:bm/simple}}Homogeneous-worker, common-productivity wage-posting equilibrium.{p_end}
+{p2col:{cmd:cpv/simple}}Finite-firm sequential bargaining with incumbent raises.{p_end}
+{p2col:{cmd:cpv/heterogeneous}}The same bargaining protocol with multiplicative worker ability.{p_end}
+{p2col:{cmd:blm/static}}Employed-only worker types and firm classes with nonlinear Gaussian earnings.{p_end}
+{p2col:{cmd:blm/dynamic}}Monthly persistence, earnings-dependent mobility, and origin-class shifts.{p_end}
+{p2colreset}{...}
 
 {pstd}
-The CHK-targeted preset sets {cmd:sd_worker=.357}, {cmd:sd_firm=.230}, and {cmd:sd_error=.135}, and fits only {cmd:theta_sort=2.2} to the employment-weighted worker--establishment covariance target {cmd:.0205}. It returns these four source moments in {cmd:r(targets)}. The other mobility coefficients, including all transition hazards and duration slopes, remain stylized D-026 carryovers and must not be described as German-calibrated. Its classification is {cmd:targeted}; any model-parameter override changes it to {cmd:targeted_modified}.
+BM, CPV, and BLM defaults are illustrative parameters, not empirical calibrations.
+These commands simulate models; they do not estimate them. Aliases {cmd:akmsimple},
+{cmd:akmempirical}, and {cmd:bmsimple} select {cmd:akm/simple}, {cmd:akm/stylized},
+and {cmd:bm/simple}; {cmd:akmempirical} does not select Germany.
+
+{marker options}
+{title:Main options}
+
+  {it:Option}{col 43}Description
+  {hline 76}
+    {cmd:dgp(}{it:name}{cmd:)}{col 43}economic model; default akm
+    {cmd:preset(}{it:name}{cmd:)}{col 43}parameterization; default simple (BLM: static)
+    {cmd:workers(}{it:#}{cmd:)}{col 43}requested workers
+    {cmd:firms(}{it:#}{cmd:)}{col 43}actual firms in the economy
+    {cmd:periods(}{it:#}{cmd:)}{col 43}retained snapshots per worker
+    {cmd:frequency(year|quarter|month)}{col 43}output interval; default year
+    {cmd:start(}{it:date}{cmd:)}{col 43}first output date in the selected frequency
+    {cmd:seed(}{it:#}{cmd:)}{col 43}recorded simulation seed
+    {cmd:truth(none|basic|full)}{col 43}latent columns; default basic
+    {cmd:parameters(}{it:name value ...}{cmd:)}{col 43}model controls; inspect fesim describe
+    {cmd:initial(}{it:name}{cmd:)}{col 43}starting state; modes depend on model
+    {cmd:burnin(}{it:#}{cmd:)}{col 43}unrecorded initial history; units depend on model
+    {cmd:connectivity(keep|largest)}{col 43}keep all or largest-component worker histories
+    {cmd:network(}{it:name}{cmd:)}{col 43}AKM destination design; default random
+    {cmd:jobrule(end)}{col 43}end-of-period employer (only supported rule)
+    {cmd:noreport}{col 43}suppress the compact simulation report
+    {cmd:clear}{col 43}allow replacement of current data on success
+  {hline 76}
+
+{phang}
+{cmd:workers()}, {cmd:firms()}, and {cmd:periods()} control sample size.
+Defaults depend on the preset. {cmd:periods(24) frequency(month)} returns
+24 monthly snapshots, not 24 years. {cmd:start(2000m1)} is a monthly start;
+use {cmd:start(2000)} for annual data or {cmd:start(2000q1)} for quarterly data.
+
+{phang}
+{cmd:parameters()} contains model-specific name/value pairs, for example
+{cmd:parameters(sd_worker .45 p_ee .10)} for simple AKM. These names are not
+separate top-level options. {cmd:fesim describe} lists allowed names, defaults,
+bounds, units, truth variables, and source scope. BLM additionally accepts
+existing Stata matrix names as values; see {help fesim##blm:BLM details}.
+
+{phang}
+{cmd:truth(basic)} adds model-specific latent variables; {cmd:full} adds more
+state and diagnostic truth; {cmd:none} omits truth columns. All three retain
+identical common economic draws. Structural BM/CPV quantities and BLM type/cell
+truth have different meanings from additive AKM worker and firm effects.
+
+{phang}
+{cmd:initial()} and {cmd:burnin()} control initialization. Simple AKM uses
+internal output periods for burn-in; monthly AKM, pay-gap, CPV, and BLM use
+years, and BM uses continuous years. Use the registered units and modes shown
+by {cmd:fesim describe}. BLM supports random initialization with finite burn-in;
+it has no exact stationary initializer.
+
+{phang}
+{cmd:seed()} makes the run reproducible without advancing the caller's RNG.
+Without it, one integer draw supplies the master seed recorded in the results
+and dataset. Reproducibility assumes fixed source and Stata environment.
+
+{phang}
+{cmd:connectivity(keep)} is the default. {cmd:largest} retains complete histories
+for workers in the selected largest observed component and recomputes returned
+moments. It does not select a leave-out-connected sample. See
+{help fesim##connectivity:Connectivity}.
+
+{phang}
+{cmd:network()} selects {cmd:random}, {cmd:blocks}, {cmd:bridges}, or {cmd:ladder}
+for AKM. Other DGPs support {cmd:random} only. The controls for nonrandom designs
+belong in {cmd:parameters()}; see {help fesim##advanced:Network stress designs}.
+
+{phang}
+{cmd:clear} permits successful replacement of nonempty data. A failed simulation
+restores data and RNG. {cmd:report} is the default; {cmd:noreport} suppresses
+printing without changing output. The abbreviation {cmd:norep} is not accepted.
+
+{marker output}
+{title:Reading the output}
 
 {pstd}
-The pay-gap parameters are {cmd:female_share}, {cmd:mu_m}, {cmd:mu_f}, {cmd:sd_worker_m}, {cmd:sd_worker_f}, {cmd:premium_intercept_m}, {cmd:premium_intercept_f}, {cmd:premium_loading_m}, {cmd:premium_loading_f}, {cmd:premium_deviation_sd_m}, {cmd:premium_deviation_sd_f}, {cmd:sd_error_m}, {cmd:sd_error_f}, {cmd:firm_size_sd}, the six group annual probabilities {cmd:p_eu_*}, {cmd:p_ee_*}, and {cmd:p_ue_*}, the group destination tilts {cmd:group_sort_*}, the worker-type destination tilts {cmd:worker_sort_*}, and {cmd:wage_trend_m}, {cmd:wage_trend_f}. Type {cmd:fesim describe akmpaygap, preset(simple)} or {cmd:preset(cck2016)} for defaults and bounds. Firm premiums equal a group intercept plus a group loading on common standard-normal firm surplus plus a population-mean-zero group deviation.
-
-{pstd}
-The pay-gap destination rule combines common firm attraction with {cmd:exp((group_sort_g + worker_sort_g * type) * surplus)}. Five worker types use scores {cmd:(-2,-1,0,1,2)/sqrt(2)}. Group EU/EE/UE probabilities are converted from annual units to the output interval. Only {cmd:network(random)} is registered for this DGP. The CCK-inspired preset is {cmd:targeted}, or {cmd:targeted_modified} after a model-parameter override; it is not a reproduction of CCK's empirical normalization or full estimation procedure.
-
-{title:Network stress designs}
-
-{pstd}
-{cmd:network(random)} is the frozen compatibility default. {cmd:network(blocks)} independently assigns workers and firms to balanced communities using a dedicated RNG stream. Origin-free initialization and UE destinations use the worker's permanent home community; EE destinations use the current firm's community. The same-block destination weight is multiplied by {cmd:exp(block_log_bonus)}. The network scalars {cmd:block_count} and {cmd:block_log_bonus} remain inside {cmd:parameters()}; their defaults are 4 and {cmd:ln(9)}. Setting {cmd:block_log_bonus} to zero exactly nests the random destination rule. Network parameters supplied under an irrelevant design are rejected.
-
-{pstd}
-{cmd:network(bridges)} uses strict ordinary blocks: initialization and UE stay in the worker's home block, and ordinary EE destinations stay in the current firm's block. It then redirects the destination, but not the occurrence or timing, of an exact set of retained-sample EE events. The minimum plan is 1-2, 2-3, ..., {cmd:block_count-1}-{cmd:block_count}; extra bridges cycle over those adjacent pairs. Distinct bridge workers are selected reproducibly by the isolated network-design priority among eligible workers. {cmd:bridge_count} defaults dynamically to {cmd:block_count-1} and may be raised inside {cmd:parameters()}. At least two firms per block are required. The command fails if eligible retained EE events cannot complete the exact plan. {cmd:block_log_bonus} is inapplicable and is rejected when explicitly supplied.
-
-{pstd}
-{cmd:network(ladder)} is a reduced-form EE-destination design. All public AKM presets rank firms by persistent firm effect {cmd:psi_j} using tied percentile midranks. Candidate firms within {cmd:ladder_band} of the origin rank are lateral; lower and higher candidates outside that band are downward and upward. Defaults are {cmd:ladder_down_share=.10}, {cmd:ladder_lateral_share=.20}, {cmd:ladder_up_share=.70}, and {cmd:ladder_band=.10}. Shares are renormalized over directions with positive ordinary destination mass, while the selected DGP's ordinary weights are retained within direction. The current firm remains excluded. Initialization, UE destinations, event timing, and wages are unchanged, and the existing destination uniform is reused. All four controls remain inside {cmd:parameters()}. This is not a structural Burdett-Mortensen or revealed-preference equilibrium.
-
-{title:Time and rate units}
-
-{pstd}
-{cmd:frequency()} selects abstract Stata annual, quarterly, or monthly output periods and the corresponding {cmd:%ty}, {cmd:%tq}, or {cmd:%tm} time format. Simple-AKM transition inputs are annual probabilities. The stylized and Germany presets always advance monthly from annual continuous hazards and sample the requested output snapshots. Pay-gap probabilities are annual and jointly converted to the requested output interval; its internal clock is the output period. Quarterly or monthly output never reinterprets annual inputs as per-period values.
-
-{title:Simulation output}
-
-{pstd}
-The returned dataset is sorted by {cmd:workerid time} and satisfies {cmd:isid workerid time}. Required variables are {cmd:workerid}, {cmd:time}, {cmd:firmid}, {cmd:employed}, {cmd:lnwage}, {cmd:spellid}, {cmd:tenure}, {cmd:newjob}, {cmd:from_unemp}, {cmd:to_unemp}, {cmd:jobtojob}, and {cmd:ntransitions}. With {cmd:truth(basic)} or {cmd:truth(full)}, the simple preset also generates {cmd:alpha_true}, {cmd:psi_true}, {cmd:time_true}, {cmd:xb_true}, {cmd:match_true}, {cmd:epsilon_true}, and {cmd:lnwage_true}. {cmd:truth(none)} suppresses those columns without changing any economic draw or common output value.
+Each row is one worker at one output date. Nonemployment has {cmd:employed==0}
+and missing {cmd:firmid} and {cmd:lnwage}; BLM is employed-only. The returned dataset is sorted by {cmd:workerid time} and satisfies {cmd:isid workerid time}. Required variables are {cmd:workerid}, {cmd:time}, {cmd:firmid}, {cmd:employed}, {cmd:lnwage}, {cmd:spellid}, {cmd:tenure}, {cmd:newjob}, {cmd:from_unemp}, {cmd:to_unemp}, {cmd:jobtojob}, and {cmd:ntransitions}. With {cmd:truth(basic)} or {cmd:truth(full)}, the simple preset also generates {cmd:alpha_true}, {cmd:psi_true}, {cmd:time_true}, {cmd:xb_true}, {cmd:match_true}, {cmd:epsilon_true}, and {cmd:lnwage_true}. {cmd:truth(none)} suppresses those columns without changing any economic draw or common output value.
 
 {pstd}
 The stylized and Germany presets additionally report {cmd:unemp_duration}; it and {cmd:tenure} use output-period units. {cmd:ntransitions} counts all monthly events since the prior snapshot and may exceed one. {cmd:r(durations)} reports counts, means, sample standard deviations, and p10/p50/p90 in years. Under {cmd:truth(full)}, {cmd:worker_type_true} gives the five-point mobility type and {cmd:firm_quality_true} gives current-firm quality on employed rows. Under {cmd:network(blocks)} or {cmd:network(bridges)}, full truth also adds permanent {cmd:worker_block_true} and current-employer {cmd:firm_block_true}; the latter is missing outside employment. {cmd:network(bridges)} adds {cmd:nbridges_imposed} under every truth mode; it counts design-imposed bridges for that worker and output interval.
@@ -90,6 +200,14 @@ Pay-gap output always adds {cmd:group}, labeled 0 Men and 1 Women. Basic truth u
 {pstd}
 Simulation results are returned through {cmd:r()} scalars for dimensions, realized flows, network diagnostics, and stage runtimes; macros for the resolved DGP, preset, timing, RNG, network design, and version; and matrices {cmd:r(parameters)}, {cmd:r(moments)}, {cmd:r(targets)}, {cmd:r(network)}, and {cmd:r(leaveout)}. {cmd:akm/stylized} and {cmd:akm/germany_chk_2002_2009} also return {cmd:r(durations)}. Pay-gap routes additionally return {cmd:r(group_moments)}, {cmd:r(group_targets)}, {cmd:r(decomposition)}, and {cmd:r(decomposition_targets)}. {cmd:network(bridges)} returns {cmd:r(bridges_imposed)} and the exact eight-column {cmd:r(bridges)} ledger: bridge ID, worker ID, output period, internal period, source firm, target firm, source block, and target block. Component moments and applicable targets are computed even under {cmd:truth(none)}. Dataset characteristics record the version, canonical DGP and requested alias, preset and calibration class, command, actual master seed and RNG, frequency and internal clock, employer rule, burn-in, connectivity rule, network design, truth mode, and normalization reference.
 
+{pstd}
+Inspect {cmd:return list} immediately after simulation. Later commands may
+replace {cmd:r()}, so copy needed matrices first, for example
+{cmd:matrix simulation_moments = r(moments)}. Model-specific truth and tables
+are explained in {help fesim##bm:BM}, {help fesim##cpv:CPV}, and {help fesim##blm:BLM}.
+Dataset characteristics retain the configuration and recorded seed.
+
+{marker connectivity}
 {title:Connectivity}
 
 {pstd}
@@ -103,105 +221,60 @@ The observed firm mobility graph is undirected. A link is an unordered firm pair
 {pstd}
 The separate 19-row, one-column {cmd:r(leaveout)} matrix audits the current returned panel's largest unique-match bipartite component without filtering the panel. Worker deletion removes a worker's complete observed history; {cmd:worker_cut_vertices} counts articulation workers in the base component, and the {cmd:worker_set_*} rows describe the deterministic largest component after articulation-worker pruning repeats to a robust fixed point or emptiness. Match deletion removes one complete worker-firm edge while retaining the audited firms; {cmd:vulnerable_matches_largest} and {cmd:vulnerable_matches_worker_set} count deletions that separate firms. An edge that only isolates a stayer-worker is not vulnerable. The final {cmd:worker_out_connected} and {cmd:match_out_connected} flags audit the retained worker set; no separate match-connected sample is constructed.
 
+{marker advanced}
+{title:Network stress designs}
+
+{pstd}
+{cmd:network(random)} is the frozen compatibility default. {cmd:network(blocks)} independently assigns workers and firms to balanced communities using a dedicated RNG stream. Origin-free initialization and UE destinations use the worker's permanent home community; EE destinations use the current firm's community. The same-block destination weight is multiplied by {cmd:exp(block_log_bonus)}. The network scalars {cmd:block_count} and {cmd:block_log_bonus} remain inside {cmd:parameters()}; their defaults are 4 and {cmd:ln(9)}. Setting {cmd:block_log_bonus} to zero exactly nests the random destination rule. Network parameters supplied under an irrelevant design are rejected.
+
+{pstd}
+{cmd:network(bridges)} uses strict ordinary blocks: initialization and UE stay in the worker's home block, and ordinary EE destinations stay in the current firm's block. It then redirects the destination, but not the occurrence or timing, of an exact set of retained-sample EE events. The minimum plan is 1-2, 2-3, ..., {cmd:block_count-1}-{cmd:block_count}; extra bridges cycle over those adjacent pairs. Distinct bridge workers are selected reproducibly by the isolated network-design priority among eligible workers. {cmd:bridge_count} defaults dynamically to {cmd:block_count-1} and may be raised inside {cmd:parameters()}. At least two firms per block are required. The command fails if eligible retained EE events cannot complete the exact plan. {cmd:block_log_bonus} is inapplicable and is rejected when explicitly supplied.
+
+{pstd}
+{cmd:network(ladder)} is a reduced-form EE-destination design. All public AKM presets rank firms by persistent firm effect {cmd:psi_j} using tied percentile midranks. Candidate firms within {cmd:ladder_band} of the origin rank are lateral; lower and higher candidates outside that band are downward and upward. Defaults are {cmd:ladder_down_share=.10}, {cmd:ladder_lateral_share=.20}, {cmd:ladder_up_share=.70}, and {cmd:ladder_band=.10}. Shares are renormalized over directions with positive ordinary destination mass, while the selected DGP's ordinary weights are retained within direction. The current firm remains excluded. Initialization, UE destinations, event timing, and wages are unchanged, and the existing destination uniform is reused. All four controls remain inside {cmd:parameters()}. This is not a structural Burdett-Mortensen or revealed-preference equilibrium.
+
+{marker time}
+{title:Time and rate units}
+
+{pstd}
+{cmd:frequency()} selects abstract Stata annual, quarterly, or monthly output periods and the corresponding {cmd:%ty}, {cmd:%tq}, or {cmd:%tm} time format. Simple-AKM transition inputs are annual probabilities. The stylized and Germany presets always advance monthly from annual continuous hazards and sample the requested output snapshots. Pay-gap probabilities are annual and jointly converted to the requested output interval; its internal clock is the output period. Quarterly or monthly output never reinterprets annual inputs as per-period values.
+
+{marker safety}
 {title:Safety and RNG behavior}
 
 {pstd}
 Discovery and configuration resolution do not alter data or Stata's RNG state. The simulation parser validates recognized options before any possible clear or random draw. If data are loaded and {cmd:clear} is absent, it exits without modifying them. A failing simulation restores the prior dataset and RNG state. With {cmd:seed(#)}, the caller RNG state is unchanged; without it, one integer draw supplies the recorded master seed and advances the caller sequence exactly once. {cmd:connectivity(force)} has no accepted scientific generation rule and fails before replacement or draws.
 
-{title:Registered designs}
+{marker akm}
+{title:AKM and pay-gap parameter details}
 
-{p2colset 9 24 26 2}{...}
-{p2col:{cmd:akm}}Presets {cmd:simple}, {cmd:stylized}, and {cmd:germany_chk_2002_2009} are qualified; aliases are {cmd:akmsimple} and {cmd:akmempirical}.{p_end}
-{p2col:{cmd:akmpaygap}}Qualified presets {cmd:simple} and {cmd:cck2016}; no convenience alias.{p_end}
-{p2col:{cmd:bm}}Preset {cmd:simple}; alias {cmd:bmsimple}; canonical homogeneous wage-posting model with a stylized calibration.{p_end}
-{p2colreset}{...}
+{pstd}
+{cmd:fesim} generates worker-period linked employer-employee panels using a common Stata/Mata engine. The package separates the DGP, mobility engine, calibration preset, and observation scheme. The {cmd:akm/simple} defaults are a stylized teaching and testing design. The {cmd:akm/stylized} defaults exercise a monthly empirical-mobility engine but are explicitly uncalibrated; the alias name {cmd:akmempirical} does not imply a paper or country calibration. The distinct {cmd:akm/germany_chk_2002_2009} preset targets selected Card-Heining-Kline 2002--2009 West German AKM wage-dispersion and sorting moments. {cmd:akmpaygap} codes men as group 0 and women as group 1, reports men-minus-women gaps, and separates worker composition, firm sorting, and group premium schedules. Its {cmd:cck2016} preset targets selected Card-Cardoso-Kline group and decomposition moments.
 
-{title:Stored results}
+{pstd}
+{cmd:fesim list} shows canonical DGP families, presets, aliases, and implementation status. {cmd:fesim presets} lists presets for all families or one requested DGP. {cmd:fesim describe} resolves case-insensitive names to canonical lowercase names. For example, {cmd:akmsimple} resolves to {cmd:dgp(akm) preset(simple)} and reports the same canonical configuration.
 
-{pstd}{cmd:fesim version} returns:{p_end}
-{synoptset 22 tabbed}{...}
-{synopt:{cmd:r(version)}}package version{p_end}
-{synopt:{cmd:r(status)}}release status{p_end}
-{synopt:{cmd:r(api_level)}}discovery API level{p_end}
+{pstd}
+Configuration metadata is implemented for all ten public presets. The simple and stylized presets retain their documented defaults. The Germany preset defaults to {cmd:workers(10000)}, {cmd:firms(1000)}, eight annual periods beginning in 2002, {cmd:initial(random)}, and a five-year monthly burn-in. All presets default to {cmd:truth(basic)}, {cmd:connectivity(keep)}, {cmd:network(random)}, and {cmd:report}. Omitting {cmd:seed()} records {cmd:current}; configuration resolution itself never changes the RNG state.
 
-{pstd}{cmd:fesim list} returns:{p_end}
-{synopt:{cmd:r(dgps)}}canonical DGP names{p_end}
-{synopt:{cmd:r(aliases)}}registered aliases{p_end}
-{synopt:{cmd:r(qualified)}}qualified DGP/preset names; currently {cmd:akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016 bm/simple}{p_end}
-{synopt:{cmd:r(n_dgps)}}number of canonical registered DGP families{p_end}
+For the simple AKM contract, {cmd:initial(stationary)} uses the exact interval transition matrix over unemployment and firms and initializes job age from the stationary geometric distribution. {cmd:initial(random)} uses employment probability 0.5, attraction-weighted firm assignment, tenure zero, and requires {cmd:burnin()} of at least one period. {cmd:initial(allunemployed)} is a diagnostic start.
 
-{pstd}{cmd:fesim presets} returns {cmd:r(dgps)} when listing all families; with a DGP, it returns {cmd:r(dgp)}, {cmd:r(dgp_alias)}, {cmd:r(presets)}, and {cmd:r(aliases)}.{p_end}
+{pstd}
+The simple model parameters accepted in {cmd:parameters()} are {cmd:mu}, {cmd:sd_worker}, {cmd:sd_firm}, {cmd:sd_error}, {cmd:firm_size_sd}, {cmd:p_eu}, {cmd:p_ee}, {cmd:p_ue}, and {cmd:wage_trend}. Registered defaults are 3, .40, .15, .20, 1, .08, .12, .60, and 0, respectively. Standard deviations are nonnegative; transition probabilities are bounded in [0,1], with {cmd:p_eu} and {cmd:p_ee} strictly below 1 and summing to less than 1. These model parameters do not have separate named options in the current interface.
 
-{pstd}{cmd:fesim describe} returns:{p_end}
-{synopt:{cmd:r(dgp)}}canonical DGP{p_end}
-{synopt:{cmd:r(dgp_alias)}}requested lowercase name{p_end}
-{synopt:{cmd:r(preset)}}resolved preset{p_end}
-{synopt:{cmd:r(title)}}design title{p_end}
-{synopt:{cmd:r(calibration_class)}}calibration classification{p_end}
-{synopt:{cmd:r(status)}}implementation status{p_end}
-{synopt:{cmd:r(frequencies)}}registered output frequencies{p_end}
-{synopt:{cmd:r(jobrules)}}registered observation rules{p_end}
-{synopt:{cmd:r(config_schema)}}configuration-schema identifier, when available{p_end}
-{synopt:{cmd:r(config)}}stable canonical default serialization, when available{p_end}
-{synopt:{cmd:r(config_sources)}}source of each resolved field, when available{p_end}
-{synopt:{cmd:r(parameters)}}scalar parameter matrix with value, default, lower, and upper columns{p_end}
+{pstd}
+The stylized empirical-mobility preset reuses the wage/size parameters and adds {cmd:rho_z_alpha}, {cmd:rho_q_psi}; annual log-hazard intercepts {cmd:kappa_eu}, {cmd:kappa_ee}, {cmd:kappa_ue}; worker, firm, tenure, and unemployment-duration slopes; and destination coefficients {cmd:theta_sort}, {cmd:theta_quality}, {cmd:theta_up}, and {cmd:theta_down}. Type {cmd:fesim describe akmempirical} for all defaults and bounds. The intercepts anchor zero-covariate intensities to the simple annual probabilities; all remaining coefficients are transparent stress-design choices, not fitted estimates.
 
-{synopt:{cmd:r(observed_variables)}}observed output inventory{p_end}
-{synopt:{cmd:r(truth_basic_variables)}}basic truth additions{p_end}
-{synopt:{cmd:r(truth_full_variables)}}further full truth additions{p_end}
-{synopt:{cmd:r(conditional_variables)}}conditional network fields and inclusion rules{p_end}
-{synopt:{cmd:r(initial_modes)}}supported initialization modes{p_end}
-{synopt:{cmd:r(networks)}}supported network designs{p_end}
-{synopt:{cmd:r(source_note)}}scientific source or stylized provenance{p_end}
-{synopt:{cmd:r(target_scope)}}limits of target/calibration claims{p_end}
-{synopt:{cmd:r(parameter_units)}}semicolon-delimited name=unit entries{p_end}
+{pstd}
+The CHK-targeted preset sets {cmd:sd_worker=.357}, {cmd:sd_firm=.230}, and {cmd:sd_error=.135}, and fits only {cmd:theta_sort=2.2} to the employment-weighted worker--establishment covariance target {cmd:.0205}. It returns these four source moments in {cmd:r(targets)}. The other mobility coefficients, including all transition hazards and duration slopes, remain stylized parameters and must not be described as German-calibrated. Its classification is {cmd:targeted}; any model-parameter override changes it to {cmd:targeted_modified}.
 
-{pstd}Numeric common controls also accept the legacy {cmd:parameters()} route.
-Prefer named options; supplying the same control through both routes is rejected.
-Pay-gap network scalar rows are reserved and do not enable nonrandom designs.
-Within v1, existing defaults and output semantics are compatibility commitments;
-removal or semantic changes require a major version. Numerical fixes that change
-seeded output must be disclosed.{p_end}
+{pstd}
+The pay-gap parameters are {cmd:female_share}, {cmd:mu_m}, {cmd:mu_f}, {cmd:sd_worker_m}, {cmd:sd_worker_f}, {cmd:premium_intercept_m}, {cmd:premium_intercept_f}, {cmd:premium_loading_m}, {cmd:premium_loading_f}, {cmd:premium_deviation_sd_m}, {cmd:premium_deviation_sd_f}, {cmd:sd_error_m}, {cmd:sd_error_f}, {cmd:firm_size_sd}, the six group annual probabilities {cmd:p_eu_*}, {cmd:p_ee_*}, and {cmd:p_ue_*}, the group destination tilts {cmd:group_sort_*}, the worker-type destination tilts {cmd:worker_sort_*}, and {cmd:wage_trend_m}, {cmd:wage_trend_f}. Type {cmd:fesim describe akmpaygap, preset(simple)} or {cmd:preset(cck2016)} for defaults and bounds. Firm premiums equal a group intercept plus a group loading on common standard-normal firm surplus plus a population-mean-zero group deviation.
 
-{pstd}A successful simulation returns:{p_end}
-{synoptset 38 tabbed}{...}
-{synopt:{cmd:r(N)}}returned worker-period observations{p_end}
-{synopt:{cmd:r(N_workers)}}returned workers; after {cmd:connectivity(largest)}, the retained count{p_end}
-{synopt:{cmd:r(N_firms)}}requested firm population{p_end}
-{synopt:{cmd:r(N_firms_active)}}firms observed active in the returned panel{p_end}
-{synopt:{cmd:r(periods)}}retained periods per returned worker{p_end}
-{synopt:{cmd:r(employment_rate)}}returned-sample employment share{p_end}
-{synopt:{cmd:r(p_eu_realized)}}observed employment-to-nonemployment rate{p_end}
-{synopt:{cmd:r(p_ue_realized)}}observed nonemployment-to-employment rate{p_end}
-{synopt:{cmd:r(p_ee_realized)}}observed direct employer-change rate{p_end}
-{synopt:{cmd:r(bridges_imposed)}}exact design-imposed bridge count; zero outside {cmd:network(bridges)}{p_end}
-{synopt:{cmd:r(components)}}components in the returned observed graph{p_end}
-{synopt:{cmd:r(largest_component_obs_share)}}returned graph's largest employed-observation share{p_end}
-{synopt:{cmd:r(largest_component_worker_share)}}returned graph's largest ever-employed-worker share{p_end}
-{synopt:{cmd:r(largest_component_firm_share)}}returned graph's largest active-firm share{p_end}
-{synopt:{cmd:r(runtime_total)}}simulation plus post-simulation diagnostic seconds{p_end}
-{synopt:{cmd:r(runtime_solve)}}solve-stage seconds; zero for simple AKM{p_end}
-{synopt:{cmd:r(runtime_simulate)}}population, mobility, wage, write, and flow seconds{p_end}
-{synopt:{cmd:r(runtime_output)}}graph, retained-truth, and common-moment seconds{p_end}
-{synopt:{cmd:r(parameters)}}resolved value/default/bound matrix; requested dimensions remain here{p_end}
-{synopt:{cmd:r(moments)}}common realized and truth moment rows{p_end}
-{synopt:{cmd:r(targets)}}target, realized, difference, and relative-difference columns{p_end}
-{synopt:{cmd:r(network)}}generated and returned graph-diagnostic columns{p_end}
-{synopt:{cmd:r(leaveout)}}KSS-aligned worker-set and complete-match vulnerability audit{p_end}
-{synopt:{cmd:r(durations)}}year-valued tenure and unemployment-duration distribution; empirical AKM presets{p_end}
-{synopt:{cmd:r(bridges)}}exact bridge-event ledger; {cmd:network(bridges)} only{p_end}
-{synopt:{cmd:r(group_moments)}}17 by 2 men/women counts, wage/effect moments, surplus moments, and realized flows; pay-gap only{p_end}
-{synopt:{cmd:r(group_targets)}}same shape as {cmd:r(group_moments)}; CCK target rows where applicable{p_end}
-{synopt:{cmd:r(decomposition)}}nine by three exact total/worker/firm/sorting/schedule/time/residual decomposition{p_end}
-{synopt:{cmd:r(decomposition_targets)}}male-, female-, and symmetric-reference target matrix{p_end}
-{synopt:{cmd:r(dgp)}, {cmd:r(dgp_alias)}, {cmd:r(preset)}}canonical identity and requested alias{p_end}
-{synopt:{cmd:r(seed)}, {cmd:r(rng)}}actual master seed and component-stream RNG{p_end}
-{synopt:{cmd:r(network_design)}}resolved random, blocks, bridges, or ladder destination design{p_end}
-{synopt:{cmd:r(frequency)}, {cmd:r(internal_clock)}}output and internal timing{p_end}
-{synopt:{cmd:r(command)}, {cmd:r(version)}, {cmd:r(reference)}}scientific command and package metadata{p_end}
-{synopt:{cmd:r(group_coding)}, {cmd:r(gap_direction)}}pay-gap group and sign conventions{p_end}
-{synopt:{cmd:r(surplus_normalization)}}pay-gap common-surplus normalization{p_end}
+{pstd}
+The pay-gap destination rule combines common firm attraction with {cmd:exp((group_sort_g + worker_sort_g * type) * surplus)}. Five worker types use scores {cmd:(-2,-1,0,1,2)/sqrt(2)}. Group EU/EE/UE probabilities are converted from annual units to the output interval. Only {cmd:network(random)} is registered for this DGP. The CCK-inspired preset is {cmd:targeted}, or {cmd:targeted_modified} after a model-parameter override; it is not a reproduction of CCK's empirical normalization or full estimation procedure.
 
+{marker bm}
 {title:Canonical Burdett-Mortensen model}
 
 {pstd}
@@ -253,6 +326,7 @@ including after largest-component filtering. Runtime diagnostics include
 {cmd:r(bm_block_workers)}. Common parameters, moments, network, leaveout, durations,
 metadata, and solve/simulate/output timings remain available.
 
+{marker cpv}
 {title:Cahuc-Postel-Vinay-Robin bargaining}
 
 {pstd}
@@ -312,6 +386,7 @@ available with {cmd:truth(none)}. Type {cmd:fesim describe cpv} for the exact
 variable inventory. The LaTeX manual derives the finite solver and histories.
 
 
+{marker blm}
 {title:BLM-style worker and firm types}
 
 {p 4 4 2}
@@ -413,12 +488,14 @@ caller data/RNG. Type labels are arbitrary, and graph connectivity alone does no
 establish BLM mixture identification. See the manual's BLM appendix and
 {browse "https://doi.org/10.3982/ECTA15722":Bonhomme, Lamadon and Manresa (2019)}.
 
-{title:Examples}
+{marker examples}
+{title:More examples}
 
 {pstd}
 Each simulation example creates its own synthetic data and wraps the block in
 {cmd:preserve}/{cmd:restore}, so it can be copied into a do-file without replacing
-the caller's dataset. Every simulation supplies {cmd:seed()}. The clickable link
+the caller's dataset. Every simulation supplies {cmd:seed()}. Examples that make graphs leave those
+graphs available in the session. The clickable link
 runs the entire marked block through {cmd:fesim_run}, which also restores the
 caller's data.
 
@@ -439,26 +516,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run discovery using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 2 - Generate and inspect a simple AKM panel} {hline 12}
-{cmd}{...}
-          preserve
-{* example_start - simulate}{...}
-          clear
-          fesim, dgp(akmsimple) workers(500) firms(30) periods(8) ///
-              seed(12345) parameters(sd_worker .45 p_ee .10) ///
-              truth(basic) connectivity(keep) noreport clear
-          matrix fesim_example_moments = r(moments)
-          describe
-          summarize lnwage alpha_true psi_true if employed
-          matrix list fesim_example_moments
-          matrix drop fesim_example_moments
-{* example_end}{...}
-          restore
-{txt}{...}
-{space 2}{hline 76}
-{space 2}{it:({stata fesim_run simulate using fesim.sthlp:click to run})}
-
-{space 2}{hline 8} {it:Example 3 - Simulate and estimate an AKM model} {hline 15}
+{space 2}{hline 8} {it:Example 2 - Simulate and estimate an AKM model} {hline 15}
 {cmd}{...}
           preserve
 {* example_start - estimate}{...}
@@ -473,7 +531,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run estimate using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 4 - Run the stylized mobility engine} {hline 17}
+{space 2}{hline 8} {it:Example 3 - Run the stylized mobility engine} {hline 17}
 {cmd}{...}
           preserve
 {* example_start - stylized}{...}
@@ -490,7 +548,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run stylized using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 5 - Inspect the Germany-targeted moments} {hline 13}
+{space 2}{hline 8} {it:Example 4 - Inspect the Germany-targeted moments} {hline 13}
 {cmd}{...}
           preserve
 {* example_start - germany}{...}
@@ -506,7 +564,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run germany using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 6 - Generate a block-network stress design} {hline 11}
+{space 2}{hline 8} {it:Example 5 - Generate a block-network stress design} {hline 11}
 {cmd}{...}
           preserve
 {* example_start - blocks}{...}
@@ -522,7 +580,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run blocks using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 7 - Impose exact bridges across blocks} {hline 17}
+{space 2}{hline 8} {it:Example 6 - Impose exact bridges across blocks} {hline 17}
 {cmd}{...}
           preserve
 {* example_start - bridges}{...}
@@ -541,7 +599,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run bridges using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 8 - Direct employer changes up a firm ladder} {hline 10}
+{space 2}{hline 8} {it:Example 7 - Direct employer changes up a firm ladder} {hline 10}
 {cmd}{...}
           preserve
 {* example_start - ladder}{...}
@@ -559,7 +617,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run ladder using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 9 - Inspect a pay-gap decomposition} {hline 17}
+{space 2}{hline 8} {it:Example 8 - Inspect a pay-gap decomposition} {hline 17}
 {cmd}{...}
           preserve
 {* example_start - paygap}{...}
@@ -577,7 +635,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run paygap using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 10 - Simulate the canonical BM model} {hline 16}
+{space 2}{hline 8} {it:Example 9 - Simulate the canonical BM model} {hline 16}
 {cmd}{...}
           preserve
 {* example_start - bm}{...}
@@ -595,7 +653,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run bm using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 11 - Simulate CPV bargaining} {hline 8}
+{space 2}{hline 8} {it:Example 10 - Simulate CPV bargaining} {hline 8}
 {cmd}{...}
           preserve
 {* example_start - cpv}{...}
@@ -610,7 +668,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run cpv using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 12 - Add heterogeneous workers} {hline 8}
+{space 2}{hline 8} {it:Example 11 - Add heterogeneous workers} {hline 8}
 {cmd}{...}
           preserve
 {* example_start - cpv_heterogeneous}{...}
@@ -623,7 +681,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run cpv_heterogeneous using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 13 - Inspect incumbent raises and wage cuts} {hline 8}
+{space 2}{hline 8} {it:Example 12 - Inspect incumbent raises and wage cuts} {hline 8}
 {cmd}{...}
           preserve
 {* example_start - cpv_paths}{...}
@@ -667,7 +725,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run cpv_paths using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 14 - Plot within-firm wage dispersion} {hline 8}
+{space 2}{hline 8} {it:Example 13 - Plot within-firm wage dispersion} {hline 8}
 {cmd}{...}
           preserve
 {* example_start - cpv_dispersion}{...}
@@ -692,7 +750,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run cpv_dispersion using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 15 - Compare bargaining power} {hline 8}
+{space 2}{hline 8} {it:Example 14 - Compare bargaining power} {hline 8}
 {cmd}{...}
           preserve
 {* example_start - cpv_bargaining}{...}
@@ -731,7 +789,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run cpv_bargaining using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 16 - Fit an AKM-style wage projection} {hline 8}
+{space 2}{hline 8} {it:Example 15 - Fit an AKM-style wage projection} {hline 8}
 {cmd}{...}
           preserve
 {* example_start - cpv_akm}{...}
@@ -744,7 +802,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run cpv_akm using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 17 - Plot a descriptive mover event study} {hline 8}
+{space 2}{hline 8} {it:Example 16 - Plot a descriptive mover event study} {hline 8}
 {cmd}{...}
           preserve
 {* example_start - cpv_movers}{...}
@@ -782,7 +840,7 @@ caller's data.
 {space 2}{it:({stata fesim_run cpv_movers using fesim.sthlp:click to run})}
 
 
-{space 2}{hline 8} {it:Example 18 - Simulate static earnings interactions} {hline 8}
+{space 2}{hline 8} {it:Example 17 - Simulate static earnings interactions} {hline 8}
 {cmd}{...}
           preserve
 {* example_start - blm_static}{...}
@@ -799,7 +857,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run blm_static using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 19 - Simulate persistence and wage-dependent mobility} {hline 8}
+{space 2}{hline 8} {it:Example 18 - Simulate persistence and wage-dependent mobility} {hline 8}
 {cmd}{...}
           preserve
 {* example_start - blm_dynamic}{...}
@@ -815,7 +873,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run blm_dynamic using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 20 - Supply custom type-cell matrices} {hline 8}
+{space 2}{hline 8} {it:Example 19 - Supply custom type-cell matrices} {hline 8}
 {cmd}{...}
           preserve
 {* example_start - blm_matrices}{...}
@@ -835,7 +893,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run blm_matrices using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 21 - Fit an additive approximation} {hline 8}
+{space 2}{hline 8} {it:Example 20 - Fit an additive approximation} {hline 8}
 {cmd}{...}
           preserve
 {* example_start - blm_akm}{...}
@@ -850,7 +908,7 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run blm_akm using fesim.sthlp:click to run})}
 
-{space 2}{hline 8} {it:Example 22 - Plot wages around observed firm changes} {hline 8}
+{space 2}{hline 8} {it:Example 21 - Plot wages around observed firm changes} {hline 8}
 {cmd}{...}
           preserve
 {* example_start - blm_movers}{...}
@@ -872,6 +930,129 @@ caller's data.
 {space 2}{hline 76}
 {space 2}{it:({stata fesim_run blm_movers using fesim.sthlp:click to run})}
 
+{marker stored}
+{title:Stored results}
+
+{pstd}{cmd:fesim version} returns:{p_end}
+{synoptset 22 tabbed}{...}
+{synopt:{cmd:r(version)}}package version{p_end}
+{synopt:{cmd:r(status)}}release status{p_end}
+{synopt:{cmd:r(api_level)}}discovery API level{p_end}
+
+{pstd}{cmd:fesim list} returns:{p_end}
+{synopt:{cmd:r(dgps)}}canonical DGP names{p_end}
+{synopt:{cmd:r(aliases)}}registered aliases{p_end}
+{synopt:{cmd:r(qualified)}}implemented DGP/preset names; currently {cmd:akm/simple akm/stylized akm/germany_chk_2002_2009 akmpaygap/simple akmpaygap/cck2016 bm/simple cpv/simple cpv/heterogeneous blm/static blm/dynamic}{p_end}
+{synopt:{cmd:r(n_dgps)}}number of canonical registered DGP families{p_end}
+
+{pstd}{cmd:fesim presets} returns {cmd:r(dgps)} when listing all families; with a DGP, it returns {cmd:r(dgp)}, {cmd:r(dgp_alias)}, {cmd:r(presets)}, and {cmd:r(aliases)}.{p_end}
+
+{pstd}{cmd:fesim describe} returns:{p_end}
+{synopt:{cmd:r(dgp)}}canonical DGP{p_end}
+{synopt:{cmd:r(dgp_alias)}}requested lowercase name{p_end}
+{synopt:{cmd:r(preset)}}resolved preset{p_end}
+{synopt:{cmd:r(title)}}design title{p_end}
+{synopt:{cmd:r(calibration_class)}}calibration classification{p_end}
+{synopt:{cmd:r(status)}}implementation status{p_end}
+{synopt:{cmd:r(frequencies)}}registered output frequencies{p_end}
+{synopt:{cmd:r(jobrules)}}registered observation rules{p_end}
+{synopt:{cmd:r(config_schema)}}configuration-schema identifier, when available{p_end}
+{synopt:{cmd:r(config)}}stable canonical default serialization, when available{p_end}
+{synopt:{cmd:r(config_sources)}}source of each resolved field, when available{p_end}
+{synopt:{cmd:r(parameters)}}scalar parameter matrix with value, default, lower, and upper columns{p_end}
+
+{synopt:{cmd:r(observed_variables)}}observed output inventory{p_end}
+{synopt:{cmd:r(truth_basic_variables)}}basic truth additions{p_end}
+{synopt:{cmd:r(truth_full_variables)}}further full truth additions{p_end}
+{synopt:{cmd:r(conditional_variables)}}conditional network fields and inclusion rules{p_end}
+{synopt:{cmd:r(initial_modes)}}supported initialization modes{p_end}
+{synopt:{cmd:r(networks)}}supported network designs{p_end}
+{synopt:{cmd:r(source_note)}}scientific source or stylized provenance{p_end}
+{synopt:{cmd:r(target_scope)}}limits of target/calibration claims{p_end}
+{synopt:{cmd:r(parameter_units)}}semicolon-delimited name=unit entries{p_end}
+
+{pstd}Numeric common controls also accept the legacy {cmd:parameters()} route.
+Prefer named options; supplying the same control through both routes is rejected.
+Pay-gap network scalar rows are reserved and do not enable nonrandom designs.
+Within v1, existing defaults and output semantics are compatibility commitments;
+removal or semantic changes require a major version. Numerical fixes that change
+seeded output must be disclosed.{p_end}
+
+{pstd}A successful simulation returns:{p_end}
+{synoptset 38 tabbed}{...}
+{synopt:{cmd:r(N)}}returned worker-period observations{p_end}
+{synopt:{cmd:r(N_workers)}}returned workers; after {cmd:connectivity(largest)}, the retained count{p_end}
+{synopt:{cmd:r(N_firms)}}requested firm population{p_end}
+{synopt:{cmd:r(N_firms_active)}}firms observed active in the returned panel{p_end}
+{synopt:{cmd:r(periods)}}retained periods per returned worker{p_end}
+{synopt:{cmd:r(employment_rate)}}returned-sample employment share{p_end}
+{synopt:{cmd:r(p_eu_realized)}}observed employment-to-nonemployment rate{p_end}
+{synopt:{cmd:r(p_ue_realized)}}observed nonemployment-to-employment rate{p_end}
+{synopt:{cmd:r(p_ee_realized)}}observed direct employer-change rate{p_end}
+{synopt:{cmd:r(bridges_imposed)}}exact design-imposed bridge count; zero outside {cmd:network(bridges)}{p_end}
+{synopt:{cmd:r(components)}}components in the returned observed graph{p_end}
+{synopt:{cmd:r(largest_component_obs_share)}}returned graph's largest employed-observation share{p_end}
+{synopt:{cmd:r(largest_component_worker_share)}}returned graph's largest ever-employed-worker share{p_end}
+{synopt:{cmd:r(largest_component_firm_share)}}returned graph's largest active-firm share{p_end}
+{synopt:{cmd:r(runtime_total)}}simulation plus post-simulation diagnostic seconds{p_end}
+{synopt:{cmd:r(runtime_solve)}}solve-stage seconds; zero for simple AKM{p_end}
+{synopt:{cmd:r(runtime_simulate)}}population, mobility, wage, write, and flow seconds{p_end}
+{synopt:{cmd:r(runtime_output)}}graph, retained-truth, and common-moment seconds{p_end}
+{synopt:{cmd:r(parameters)}}resolved value/default/bound matrix; requested dimensions remain here{p_end}
+{synopt:{cmd:r(moments)}}common realized and truth moment rows{p_end}
+{synopt:{cmd:r(targets)}}target, realized, difference, and relative-difference columns{p_end}
+{synopt:{cmd:r(network)}}generated and returned graph-diagnostic columns{p_end}
+{synopt:{cmd:r(leaveout)}}KSS-aligned worker-set and complete-match vulnerability audit{p_end}
+{synopt:{cmd:r(durations)}}year-valued tenure and unemployment-duration distribution; empirical AKM presets{p_end}
+{synopt:{cmd:r(bridges)}}exact bridge-event ledger; {cmd:network(bridges)} only{p_end}
+{synopt:{cmd:r(group_moments)}}17 by 2 men/women counts, wage/effect moments, surplus moments, and realized flows; pay-gap only{p_end}
+{synopt:{cmd:r(group_targets)}}same shape as {cmd:r(group_moments)}; CCK target rows where applicable{p_end}
+{synopt:{cmd:r(decomposition)}}nine by three exact total/worker/firm/sorting/schedule/time/residual decomposition{p_end}
+{synopt:{cmd:r(decomposition_targets)}}male-, female-, and symmetric-reference target matrix{p_end}
+{synopt:{cmd:r(dgp)}, {cmd:r(dgp_alias)}, {cmd:r(preset)}}canonical identity and requested alias{p_end}
+{synopt:{cmd:r(seed)}, {cmd:r(rng)}}actual master seed and component-stream RNG{p_end}
+{synopt:{cmd:r(network_design)}}resolved random, blocks, bridges, or ladder destination design{p_end}
+{synopt:{cmd:r(frequency)}, {cmd:r(internal_clock)}}output and internal timing{p_end}
+{synopt:{cmd:r(command)}, {cmd:r(version)}, {cmd:r(reference)}}scientific command and package metadata{p_end}
+{synopt:{cmd:r(group_coding)}, {cmd:r(gap_direction)}}pay-gap group and sign conventions{p_end}
+{synopt:{cmd:r(surplus_normalization)}}pay-gap common-surplus normalization{p_end}
+
+{marker troubleshooting}
+{title:Troubleshooting}
+
+{phang}
+{bf:Data in memory would be lost.} Wrap your experiment in {cmd:preserve}/{cmd:restore}
+and add {cmd:clear}, or run a clickable example with {cmd:fesim_run}.
+
+{phang}
+{bf:Unknown or inapplicable parameter.} Inspect {cmd:fesim describe} for the
+chosen DGP and preset. Put model controls inside {cmd:parameters()}, spell
+parameter names fully, and specify each common control only once.
+
+{phang}
+{bf:Results disappeared after summarize or tabulate.} These commands overwrite
+{cmd:r()}. Copy simulation matrices or scalars immediately after {cmd:fesim}.
+
+{phang}
+{bf:Fewer workers than requested.} {cmd:connectivity(largest)} filters workers
+while preserving all their periods. Compare {cmd:r(N_workers)} with the requested
+{cmd:workers} row in {cmd:r(parameters)}. Use {cmd:connectivity(keep)} to retain all.
+
+{phang}
+{bf:Observed moves differ from event counts.} Annual/quarterly endpoints can
+hide intervening employment changes or returns to the same firm. Inspect latent
+counts or increase output frequency, using the relevant model's timing rules.
+
+{phang}
+{bf:Out-of-memory or resource-limit error.} Reduce workers, firms, horizon,
+output frequency, or truth width. Temporary blocking does not bound the size
+of the returned dataset. Failing runs restore the caller's data and RNG.
+
+{phang}
+{bf:Reporting a bug.} Include the command, {cmd:fesim version}, Stata version,
+error text, and a small reproducible example with synthetic or shareable data.
+
+{marker limitations}
 {title:Limitations}
 
 {pstd}
@@ -885,7 +1066,14 @@ CPV does not implement minimum wages, free entry, amenities, shocks, endogenous
 ability sorting, empirical skill/sector calibration, or a population AKM
 projection API.
 
-{title:Reference}
+{pstd}
+BLM does not estimate mixtures, reproduce a Swedish calibration, supply
+unemployment, or certify identification from type labels or ordinary firm graphs.
+Its monthly forward process is distinct from general conditional two-/four-period
+author simulations. Burn-in is finite and is not a stationarity guarantee.
+
+{marker references}
+{title:References}
 
 {pstd}
 The worker--firm terminology and additive effects model follow Abowd, John M.,
@@ -914,6 +1102,30 @@ Cahuc, Pierre, Fabien Postel-Vinay, and Jean-Marc Robin. 2006.
 "Wage Bargaining with On-the-Job Search: Theory and Evidence."
 {it:Econometrica} 74(2): 323-364.
 {browse "https://doi.org/10.1111/j.1468-0262.2006.00665.x":doi:10.1111/j.1468-0262.2006.00665.x}.
+
+{pstd}
+Burdett, Kenneth, and Dale T. Mortensen. 1998. "Wage Differentials, Employer
+Size, and Unemployment." {it:International Economic Review} 39(2): 257-273.
+{browse "https://doi.org/10.2307/2527292":doi:10.2307/2527292}.
+
+{pstd}
+Bonhomme, Stephane, Thibaut Lamadon, and Elena Manresa. 2019.
+"A Distributional Framework for Matched Employer Employee Data."
+{it:Econometrica} 87(3): 699-739.
+{browse "https://doi.org/10.3982/ECTA15722":doi:10.3982/ECTA15722}.
+
+{pstd}
+Kline, Patrick, Raffaele Saggio, and Mikkel Solvsten. 2020.
+"Leave-Out Estimation of Variance Components." {it:Econometrica} 88(5): 1859-1898.
+{browse "https://doi.org/10.3982/ECTA16410":doi:10.3982/ECTA16410}.
+The worker-set audit uses a conservative fixed-point extension of one-pass pruning.
+
+{pstd}
+For software citation, use Johannes F. Schmieder, {it:fesim: Linked employer-employee
+panel simulation}, version 1.2.0-rc.1, and record the exact commit used.
+{browse "https://github.com/johannes-schmieder/fesim":Repository and citation metadata}.
+Cite the relevant model paper separately; software citation does not establish
+empirical calibration.
 
 {title:License}
 

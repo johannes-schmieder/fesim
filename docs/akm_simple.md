@@ -1,6 +1,7 @@
 # Simple AKM implementation
 
-The normative simple-AKM model and frozen stylized defaults are in [`DESIGN.md`](../DESIGN.md#8-dgp-1-simple-akm). This note records the qualified implementation boundary.
+This note specifies the simple-AKM model and frozen stylized defaults. The
+[public contract](interface.md) covers shared behavior.
 
 ## Population layer
 

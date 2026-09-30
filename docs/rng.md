@@ -1,6 +1,6 @@
 # RNG implementation and reproducibility scope
 
-The authoritative behavioral requirements are in [`DESIGN.md`](../DESIGN.md), Section 15. This note records the qualified implementation strategy selected by the RNG spike.
+The authoritative behavioral requirements are in [the public interface contract](interface.md#reproducibility-and-safety). This note records the qualified implementation strategy selected by the RNG spike.
 
 ## Component streams
 

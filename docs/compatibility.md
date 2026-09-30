@@ -1,17 +1,14 @@
 # Public contract and compatibility
 
-The `1.1.0-rc.1` candidate adds the CPV bargaining family while preserving the
-six earlier presets' economic defaults and matched deterministic outputs.
-Public API remains 1; internal Mata API advances to 36 for CPV loading and
-numerical range guards. It is an unpublished development candidate; the stable
-tag remains `v0.1.0`. [Qualification evidence](qualification-1.1.0-rc.1.md)
-binds the tested implementation to its exact source and archive.
+The current source is `1.2.0-rc.1`, with ten presets, public API 1, and internal
+Mata API 37. The stable `v0.1.0` tag contains simple AKM only. Current licensed
+qualification is Stata/MP 19 on macOS Apple Silicon; see [validation](validation.md).
 
 ## Accepted names and syntax
 
 Canonical routes are `akm/simple`, `akm/stylized`,
 `akm/germany_chk_2002_2009`, `akmpaygap/simple`, `akmpaygap/cck2016`, and
-`bm/simple`, plus `cpv/simple` and `cpv/heterogeneous`. The only aliases are `akmsimple`, `akmempirical`, and `bmsimple`.
+`bm/simple`, plus `cpv/simple`, `cpv/heterogeneous`, `blm/static`, and `blm/dynamic`. The only aliases are `akmsimple`, `akmempirical`, and `bmsimple`.
 In particular, `akmempirical` means the stylized preset, not Germany.
 
 Stata accepts these existing option minima; spelling options out is preferred:
@@ -38,7 +35,7 @@ the same control through both routes is an error, even if the values agree.
 implemented; `connectivity(force)` is reserved and fails before changing data
 or RNG. `solveonly`, `solution()`, alternative output datasets, an explicit
 initial employment share, and heterogeneous BM are outside this candidate.
-All four network designs apply to AKM; pay-gap, BM and CPV accept only `random`.
+All four network designs apply to AKM; pay-gap, BM, CPV, and BLM accept only `random`.
 Seven network scalar rows in the pay-gap parameter matrix are reserved schema
 entries and do not enable these designs.
 
@@ -72,14 +69,8 @@ Numerical bug fixes must disclose affected quantities and whether seeded output
 changes. Bitwise reproducibility is qualified for a fixed source, command, seed,
 and Stata environment; it is not promised across software/platform changes.
 
-The CPV extension is qualified as an unpublished 1.1.0-rc.1 review candidate with
-macOS Stata/MP 19 qualification. CPV does not inherit historical Windows
-qualification from the earlier simple-AKM release.
-
-
-BLM is qualified in unpublished candidate `3f9bb87` (1.2.0-rc.1), on macOS
-Stata/MP19 only. Its nine matrix keys extend `parameters()` for BLM without
-changing legacy scalar semantics. The 16-by-4 numeric scalar table is retained;
-separately named resolved tables and full serialized model values specify
-matrix-driven behavior. No existing economic defaults or simulation algorithms
-changed. See [the BLM review](qualification-1.2.0-rc.1.md).
+BLM's nine matrix keys extend `parameters()` without changing scalar semantics.
+The 16-by-4 numeric scalar table is retained; separately named resolved tables
+and full serialized model values specify matrix-driven behavior. Existing
+legacy economic defaults and simulation algorithms are preserved. Matrix
+inputs, initialization, and truth semantics are documented in [BLM](blm.md).

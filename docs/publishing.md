@@ -1,76 +1,45 @@
-# Candidate qualification and publishing
+# Source archives and releases
 
-`1.2.0-rc.1` is a development candidate for owner review. This work prepares an
-unpublished exact-source archive. It does not create a tag, GitHub release, or
-SSC submission. The stable release remains `v0.1.0`; current qualification is
-Stata/MP 19 on macOS Apple Silicon. Windows, Linux, and SE require new receipts
-before claiming support for this candidate.
+A public repository exposes source; a software release additionally needs an
+immutable version and a qualified installable archive. Current `main` is a
+1.2.0-rc.1 development candidate. `v0.1.0` remains the older simple-AKM tag.
 
-## Reproduce the candidate
+## Build an exact archive
 
-Build the manual with `bash docs/build_manual.sh`, render and inspect it, and
-commit the finished source and documentation before exact qualification.
-Start from that clean committed checkout. Set `STATA_BIN` to the local licensed
-Stata executable; never commit machine-specific paths. From the repository root:
+From clean committed source, with a licensed Stata executable:
 
 ```sh
-python3 scripts/static_checks.py
-python3 -m unittest discover -s tests/static
-bash scripts/run_stata_tests.sh "$STATA_BIN" full
-python3 scripts/qualify_archive.py . "$STATA_BIN" build/release-review
-python3 scripts/run_release_benchmarks.py . "$STATA_BIN" build/release-benchmarks
-python3 scripts/run_cpv_benchmarks.py . "$STATA_BIN" build/cpv-benchmarks
-python3 scripts/run_blm_benchmarks.py . "$STATA_BIN" build/blm-benchmarks
+python3 scripts/qualify_archive.py . /path/to/stata-mp build/releases/new-candidate
 ```
 
-The source wrapper removes stale receipts, rebuilds Mata, installs into isolated
-PERSONAL/PLUS directories, runs the entire registered inventory, and verifies
-its receipt against clean HEAD. `quick` and `full` currently select the same
-inventory; the label does not imply a smaller test set.
+Choose a new output directory each time. The tool creates `git archive HEAD`,
+extracts it without Git or a development Mata library, runs every registered
+Stata test including source-only installation, and binds the accepted receipt
+to the source SHA and archive SHA-256. It rejects unsafe archive paths, symlinks,
+generated test/data/library artifacts, and tracked-source changes. Logs and
+receipts stay under ignored `build/`.
 
-The archive script refuses dirty source and a reused output directory. It runs
-`git archive` on exact HEAD, extracts without `.git`, and reruns the full suite,
-including source-only installation and all ten presets outside the checkout.
-The outer `archive-receipt.json` binds source SHA, archive SHA-256, suite receipt,
-file hashes, inventory, and environment. It explicitly does not use the
-checkout-only Git verifier to certify the extraction. Generated libraries and
-logs remain under ignored `build/`; only official Stata/Mata are installed.
-
-For performance, compare identical harness/driver inputs against the recorded
-pre-BLM source `1955978`, including all eight existing presets, three AKM network designs, BM
-scale, and private event recording. Compare `runtime_total` (or the BM driver's
-corresponding measured elapsed time) and peak RSS per case. Investigate any
-increase over 10% with three matched repetitions on both revisions; report
-medians and retain raw results. Data signatures must be unchanged when no
-simulation change is intended. The unchanged 20-case CPV harness is also a matched control. The new 20-case
-BLM harness measures worker, type-grid, truth and frequency scaling. See [the candidate report](qualification-1.2.0-rc.1.md)
-for accepted results and repeat investigations. Timing is descriptive, not a portable guarantee.
-
-Render and inspect the rebuilt PDF, verify links and version consistency, and
-record manual/archive/receipt hashes in the review report. An evidence-only
-follow-up commit may record the qualified candidate SHA without relabeling its
-archive as that later commit. Record local and hosted CI separately.
-
-## Installation channels
-
-Stable users can install the immutable `v0.1.0` source:
+## Installation and reproducibility
 
 ```stata
-net install fesim, from("https://raw.githubusercontent.com/johannes-schmieder/fesim/v0.1.0") replace
+net install fesim, from("https://raw.githubusercontent.com/johannes-schmieder/fesim/main") replace
+fesim version
 ```
 
-Development users can replace the URL suffix with `main`. `main` is mutable;
-record its exact commit for research reproducibility. For the candidate, extract
-the review archive and use `net install fesim, from("/path/to/extracted/source") replace`.
-Check `fesim version` and `fesim describe` after installation. Source loading
-builds the runtime in the user's official Stata/Mata session.
+Use an exact commit in place of `main` for reproducibility. `v0.1.0` is an
+immutable simple-AKM alternative. Offline source installation uses
+`net install fesim, from("/path/to/extracted/source") replace`.
+The runtime loads authoritative official Mata source in Stata.
 
-## Owner release gate
+## Release review
 
-Review scientific claim boundaries, API compatibility, full-suite evidence,
-archive installation, platform scope, performance comparison, and manual. Only
-a separate release instruction authorizes an immutable candidate/stable tag and
-GitHub release. At that point rerun qualification if the source changed, ensure
-the tag resolves to the accepted SHA, publish release notes and installation
-instructions, and attach the exact archive/checksums. Do not rewrite existing
-tags. Consider SSC only after a stable GitHub release and separate authorization.
+Review scientific claims, API compatibility, full-suite evidence, archive
+installation, platform scope, performance controls, and the rendered manual.
+Preserve source/receipt/archive/manual checksums outside tracked source. Hosted
+static CI and licensed testing are separate evidence.
+
+Create a new tag or GitHub release only with owner authorization and qualified
+exact source. Never move an existing tag or claim wider platform support from
+another version's evidence. Update citation metadata, package/help versions,
+release notes, and installation instructions together. SSC submission is a
+separate distribution decision. Public visibility does not imply a new tag.

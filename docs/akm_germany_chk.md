@@ -1,6 +1,6 @@
 # CHK-targeted West Germany preset
 
-`dgp(akm) preset(germany_chk_2002_2009)` is a targeted parameterization of the D-025 reduced-form monthly mobility engine. It is distinct from the uncalibrated `akm/stylized` preset and has no convenience alias.
+`dgp(akm) preset(germany_chk_2002_2009)` is a targeted parameterization of the reduced-form monthly mobility engine. It is distinct from the uncalibrated `akm/stylized` preset and has no convenience alias.
 
 ## Empirical scope
 
@@ -28,7 +28,7 @@ Only `theta_sort` is fitted. The approved fitting design uses 100,000 workers, 1
 
 Both meet the fixed absolute tolerance `.0015`, yielding `theta_sort=2.2`. Seed-level results are in [`../calibrations/germany_chk_2002_2009_results.csv`](../calibrations/germany_chk_2002_2009_results.csv), with an executable validation harness in [`../calibrations/fit_germany_chk_2002_2009.do`](../calibrations/fit_germany_chk_2002_2009.do).
 
-All transition hazards, duration slopes, `firm_size_sd`, `rho_z_alpha`, `rho_q_psi`, `theta_quality`, `theta_up`, and `theta_down` remain D-026 stylized carryovers. They are not German-calibrated. The accurate label is **targeted wage dispersion and sorting**, not a comprehensive Germany mobility calibration.
+All transition hazards, duration slopes, `firm_size_sd`, `rho_z_alpha`, `rho_q_psi`, `theta_quality`, `theta_up`, and `theta_down` remain stylized carryovers. They are not German-calibrated. The accurate label is **targeted wage dispersion and sorting**, not a comprehensive Germany mobility calibration.
 
 ## Defaults and use
 

@@ -1,10 +1,10 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it using the metadata below."
-title: fesim
+title: "fesim: Linked employer–employee panel simulation"
 type: software
 authors:
   - family-names: Schmieder
-    given-names: Johannes
+    given-names: Johannes F.
 repository-code: "https://github.com/johannes-schmieder/fesim"
 url: "https://github.com/johannes-schmieder/fesim"
 license: MIT

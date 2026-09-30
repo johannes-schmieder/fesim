@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-This note freezes owner-approved decision D-036 for `dgp(bm) preset(simple)`.
+This note specifies `dgp(bm) preset(simple)`.
 It is the homogeneous-worker, homogeneous-firm case of the
 Burdett–Mortensen wage-posting model. Firms share one productivity level and
 mix continuously over permanent posted wages. Workers search while unemployed
@@ -11,17 +11,16 @@ primitives; the equal-arrival model is an exact nested special case.
 
 This is an exact model with a stylized calibration. It is not the later
 heterogeneous-productivity BM extension. The continuum equilibrium is solved
-before a finite firm universe is constructed. D-037 fixes deterministic
+before a finite firm universe is constructed. The implementation fixes deterministic
 midpoint quantiles as the finite-firm default and retains isolated-stream
 random quantiles as an opt-in mode.
 
 ## Public implementation
 
 `fesim, dgp(bm)` and `fesim, dgp(bmsimple)` expose this model in the development
-source. D-042 in `DESIGN.md` is the current public control, result, and resource
-contract. Historical checkpoint paragraphs below describe how the components
-were qualified; their earlier statements about closed dispatch are historical.
-See `PLAN.md` for the exact source/platform qualification, and
+source. The installed help and [public contract](interface.md) define controls,
+results, and resource limits. See [validation](validation.md) for source/platform
+qualification and
 `examples/bmsimple.do` for a runnable theory-versus-simulation example.
 
 ## Environment and primitives
@@ -308,8 +307,7 @@ the offer and worker CDFs, and checks equal profit and the equal-arrival case.
 
 ## Solver and finite-firm construction
 
-Checkpoint 40 implements the internal continuum solver in
-`src/fesim_bm.mata`. `fesim_bm_solve()`:
+The continuum solver is implemented in `src/fesim_bm.mata`. `fesim_bm_solve()`:
 
 1. evaluates equations (7)–(13) analytically;
 2. uses series expansions for small rate ratios to avoid cancellation in the
@@ -324,10 +322,9 @@ Checkpoint 40 implements the internal continuum solver in
    and analytical/numerical validation failures with error 430.
 
 The solver and checker consume no random numbers and do not inspect or alter
-Stata data. They are internal infrastructure: `r(solver)` will be exposed only
-when the later public handler is qualified.
+Stata data. The public handler returns these diagnostics in `r(solver)`.
 
-D-037 selects both finite-firm modes and makes midpoint quantiles the default.
+The implementation selects both finite-firm modes and makes midpoint quantiles the default.
 For `J` firms,
 
 \[
@@ -359,9 +356,8 @@ to the continuum employment mass `1-u` up to floating-point error. Expected
 headcount is `N*L_j`; `J*L_j` is the finite employment scale directly
 comparable to continuum `ell(w_j)`.
 
-Checkpoint 41 exact-qualifies API 28 and finite-firm schema 1, which implement
-the inverse CDF, both constructions,
-the exact recursion, strict-tie handling, finite job-to-job rate, and separate
+The finite-firm construction implements the inverse CDF, both quantile
+modes, exact recursion, strict-tie handling, finite job-to-job rate, and separate
 offer-CDF, worker-CDF, employment-quadrature, and stationary-flow diagnostics.
 The default construction consumes no random numbers. Random construction is
 repeatable under `seed()` and does not advance worker, mobility, destination,
@@ -370,7 +366,7 @@ observed-panel moments remain distinct.
 
 ## Continuous-time worker events
 
-D-038 implements exact continuous-time worker histories after the firm
+The engine generates exact continuous-time worker histories after the firm
 universe is fixed. While unemployed, the next event time is exponential with
 rate `lambda_u` and the event is a uniformly sampled firm offer. While
 employed, the next event time is exponential with rate `lambda_e+delta`; a
@@ -401,13 +397,11 @@ switching but do not mix component streams. The optional private ledger has
 post-event spell, post-event tenure, post-event unemployment duration, and
 waiting time. Its rows are worker-major and strictly ordered within worker.
 Recording it does not change economic draws or final states. Events exactly at
-the horizon are included. Checkpoint 42 exact-qualifies API 29/BM-history
-schema 1, which remains internal until
-initialization, aggregation, and the public handler are qualified.
+the horizon are included.
 
 ## Initialization and burn-in
 
-D-039 uses the exact finite stationary allocation rather than substituting
+The implementation uses the exact finite stationary allocation rather than substituting
 the continuum employed-wage CDF. The stationary state probabilities are
 
 \[
@@ -437,14 +431,11 @@ Burn-in calls the exact event engine without retaining its private event
 ledger. At the retained-sample boundary it preserves employment, employer,
 spell count, and continuous spell age, records elapsed burn-in years, and
 resets interval transition counts. Restarting the event clock there is exact
-because all primitive clocks are exponential and memoryless. Checkpoint 43
-exact-qualifies API 30/BM-state schema 1 for this private boundary; the public
-BM route remains closed until aggregation, truth/results, and handler
-qualification.
+because all primitive clocks are exponential and memoryless.
 
 ## Observation aggregation
 
-D-040 maps one continuous-time event ledger into worker-major end-of-period
+The implementation maps one continuous-time event ledger into worker-major end-of-period
 snapshots. Annual, quarterly, and monthly periods have lengths `1`, `1/4`, and
 `1/12` years. Interval `k` is `((k-1) Delta, k Delta]`; an event exactly on
 the right boundary is applied before snapshot `k` and counted in that
@@ -483,15 +474,13 @@ instead compares the theoretical level, exact time share, and endpoint share,
 with no annualized entry. These columns are not silently treated as the same
 estimand.
 
-Checkpoint 44 exact-qualifies API 31/BM-panel schema 1 for this private replay
-and diagnostic boundary. It consumes no random numbers and produces identical
+Aggregation consumes no random numbers and produces identical
 nested endpoints, event totals, transition totals, and time exposure from the
-same history at annual, quarterly, and monthly frequencies. The public route
-remains closed until output/truth and handler qualification.
+same history at annual, quarterly, and monthly frequencies.
 
 ## Output, truth, and value diagnostics
 
-D-041 maps each employed endpoint's accepted posted wage level `w` to the
+The implementation maps each employed endpoint's accepted posted wage level `w` to the
 common panel as `lnwage=lnwage_true=log(w)`. `posted_wage_true` and
 `productivity_true` remain structural levels and are missing with all
 job-specific truth under nonemployment. The canonical model adds no
@@ -529,11 +518,9 @@ continuum equal-profit flow profit, and finite-scaled flow profit. These labels
 are deliberate: the finite grid discretizes the continuum equilibrium and is
 not claimed to solve a separate finite wage-posting game. Solver diagnostics
 likewise retain theoretical and finite EE hazards and all solution/grid
-residuals separately. The API-32/BM-output-schema-1 implementation is private,
-draw-free, source-installed, and requires empty Stata data after preflighting
-all output arrays. Checkpoint 45 exact-qualifies this boundary at
-`b2dd74270b3f8c23b42a97a996c32c2fb9966d2e`; public BM simulation remains
-closed pending later gates.
+residuals separately. The output writer consumes no draws and requires empty
+Stata data after preflighting all output arrays. The public handler owns data
+replacement and rollback.
 
 ## Sources
 

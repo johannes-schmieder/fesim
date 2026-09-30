@@ -1,230 +1,246 @@
 # fesim
 
-`fesim` is a Stata/Mata package for simulating linked employer–employee panels. Its intended scope includes transparent AKM-style designs, mobility and network experiments, pay-gap decompositions, and structural search models, all behind a common output contract.
+**Simulate linked worker–firm panels in Stata, with known model parameters and truth.**
 
-The installed runtime uses only official Stata and Mata. It does not require a compiled plugin, Python, R, Julia, or a user-written Stata dependency.
+`fesim` generates synthetic employment histories and wages for teaching,
+Monte Carlo experiments, and testing methods for matched employer–employee data.
+Choose an economic model, set its parameters, and receive a panel with worker
+and firm identifiers, wages, mobility indicators, and optional latent truth.
+The same interface covers additive AKM wages, two-group pay gaps, wage posting,
+sequential bargaining, and finite worker and firm types.
 
-## Current implementation status
+The runtime uses only **official Stata and Mata**. No plugin, compiler, Python,
+R, or user-written Stata command is needed.
 
-The unpublished `1.2.0-rc.1` candidate adds BLM-style static and dynamic finite-type panels to
-the eight existing AKM, pay-gap, BM and CPV presets. BLM supports arbitrary
-retained panel lengths, nonlinear earnings interactions, sorting, earnings
-persistence and wage-dependent mobility. Its scalar recipes and optional Stata
-matrices are documented in [the BLM model note](docs/blm.md).
+The current source version is **1.2.0-rc.1**, a development candidate requiring
+**Stata 19 or later**. It has been tested with Stata/MP 19 on Apple Silicon Macs.
+Linux, Windows, Stata/SE, and older Stata versions have not been qualified for
+this candidate. The older `v0.1.0` tag contains only simple AKM simulation and
+was also tested on Windows x86-64. See [compatibility](docs/compatibility.md).
+
+## Install
+
+In Stata, install the current source and open the help:
 
 ```stata
-fesim, dgp(blm) preset(dynamic) workers(5000) firms(250) ///
-    periods(10) seed(12345) truth(full) clear
-matrix list r(blm_mean)
-matrix list r(blm_cells)
+net install fesim, from("https://raw.githubusercontent.com/johannes-schmieder/fesim/main") replace
+fesim version
+help fesim
 ```
 
-BLM is an employed-only monthly forward process with illustrative parameters.
-It does not estimate BLM or reproduce the Swedish empirical calibration.
-Exact candidate `3f9bb87` passes all 73 Stata files on clean source and isolated
-archive, nine static checks, six verifier tests, hosted static CI, 46 unchanged
-legacy/CPV deterministic controls and 20 BLM scale cases. See
-[the review report](docs/qualification-1.2.0-rc.1.md) for hashes and performance
-repeat investigations. Qualification is Stata/MP19 on macOS Apple Silicon.
-The [53-page user and technical manual](docs/fesim_manual.pdf) covers the BLM
-syntax, matrix inputs, four new figures and detailed technical appendix. No new tag or release has been created.
+`main` can change. For reproducible research, replace `main` in the URL with
+an exact Git commit and record that commit, your Stata version, and the command.
+The immutable simple-AKM version is available by using `v0.1.0` instead.
+There is no SSC distribution or tagged 1.2 release yet.
 
-## Canonical Burdett–Mortensen
+For an offline installation, download or clone the repository and run:
 
 ```stata
-fesim, dgp(bm) workers(5000) firms(250) periods(10) seed(12345) ///
-    truth(full) parameters(b .4 p 1 lambda_u 1 lambda_e .5 delta .2 r .05) clear
-matrix list r(solver)
-matrix list r(bm_flows)
-matrix list r(bm_firms)
+net install fesim, from("/path/to/fesim") replace
 ```
 
-`bmsimple` is an alias for `bm/simple`. The homogeneous wage-posting model is
-exact; its default calibration is stylized. Firms receive permanent midpoint
-quantile wages by default; `parameters(random_firms 1)` draws their quantiles.
-Offers go uniformly to firms and employed workers accept strictly higher wages.
-Stationary starts use exact finite-firm employment masses and backward spell
-ages. `burnin()` is measured in continuous years. Annual, quarterly, and monthly
-snapshots share the same event history at a fixed seed and horizon.
+All Mata source is included; it loads in Stata without a separate build step.
+For development directly from a checkout, use `adopath ++ "/path/to/fesim"`.
 
-`r(bm_flows)` distinguishes finite-economy theoretical hazards, exact simulated
-event rates, observed transition probabilities, and their descriptive annualized
-values. `r(solver)` also reports continuum quantities and discretization errors.
-`r(bm_firms)` gives firm-level means/minima/maxima; full truth contains accepted
-wages, values, firm quantities, interval event counts, and exposure in years.
-`truth(basic)` supplies log wages, posted wages, and productivity. BM uses
-`network(random)` and supports `connectivity(keep|largest)`. The 10-million-event
-budget for each burn-in/retained stage fails transactionally if exceeded.
-See [the derivation](docs/bm_equilibrium.md) and [example](examples/bmsimple.do).
+## Generate your first panel
 
-## Quick start
-
-Generate a reproducible annual panel and inspect its returned configuration, realized moments, targets, and graph:
+The following creates 500 workers, 30 firms, and eight annual observations per
+worker. It saves the known worker and firm wage effects alongside observed
+wages, then fits an AKM-style regression with Stata's built-in `areg`.
 
 ```stata
-fesim, dgp(akmsimple) workers(5000) firms(250) periods(8) ///
-    seed(12345) truth(basic) connectivity(keep) clear
+preserve
+fesim, dgp(akm) preset(simple) workers(500) firms(30) periods(8) ///
+    seed(12345) truth(basic) connectivity(largest) clear
 
-describe
-summarize employed lnwage alpha_true psi_true epsilon_true
-matrix list r(parameters)
-matrix list r(moments)
-matrix list r(targets)
-matrix list r(network)
-matrix list r(leaveout)
+* Save simulation results before another command replaces r().
+matrix simulation_moments = r(moments)
+matrix simulation_network = r(network)
+
+isid workerid time
+summarize lnwage alpha_true psi_true if employed
+matrix list simulation_moments
+matrix list simulation_network
+areg lnwage i.firmid i.time if employed, absorb(workerid)
+restore
 ```
 
-Use `connectivity(largest)` to retain every period for workers in the selected largest observed component. Under that mode, `r(N_workers)` is the retained worker count; the originally requested count remains in the `workers` row of `r(parameters)`. The 21-row `r(network)` combines bipartite component summaries with undirected observed firm-mobility link counts, direction-pooled move-count weights, active firms with no movers, articulation-firm counts, and graph-bridge-link counts; all returned-column summaries are recomputed after filtering. The separate 19-row `r(leaveout)` reports the KSS-aligned leave-one-worker set and complete-match vulnerabilities on the returned panel's largest bipartite component. It is an audit only and does not filter the public panel.
+`connectivity(largest)` keeps complete histories for workers in the largest
+observed worker–firm component, so the returned worker count may be below 500.
+Use `connectivity(keep)`, the default, to keep everyone. Nonemployment rows have
+`employed==0` and missing `firmid` and `lnwage`.
 
-Model-specific overrides stay inside `parameters()`:
+The help has **22 clickable, self-contained examples**, including graphs and
+mover profiles. To run the basic simulation example while restoring your data:
 
 ```stata
-fesim, dgp(akmsimple) workers(2000) periods(12) frequency(month) ///
-    start(2000m1) seed(9876) ///
+fesim_run simulate using fesim.sthlp
+```
+
+An ordinary successful simulation with `clear` replaces the current dataset.
+Use `preserve`/`restore` as above when you want to keep your data. With a supplied
+`seed()`, simulation leaves the caller's RNG state unchanged.
+
+## Choose a model
+
+A **DGP** defines the model; a **preset** supplies its parameterization.
+
+| DGP and preset | Useful for | Interpretation |
+| --- | --- | --- |
+| `akm`, `simple` | Additive worker/firm wages and exogenous mobility | Stylized teaching and testing baseline |
+| `akm`, `stylized` | Duration dependence, worker heterogeneity and sorting | Monthly mobility with uncalibrated parameters |
+| `akm`, `germany_chk_2002_2009` | Wage dispersion and sorting resembling selected CHK moments | Targets selected West German wage moments; hazards remain stylized |
+| `akmpaygap`, `simple` | Separating composition, firm sorting and premium schedules | Stylized two-group design |
+| `akmpaygap`, `cck2016` | Selected group moments and pay-gap decomposition | CCK-inspired targets under a different normalization |
+| `bm`, `simple` | Wage posting and upward job-to-job moves | Homogeneous-worker, common-productivity Burdett–Mortensen equilibrium |
+| `cpv`, `simple` | Outside-offer bargaining and incumbent raises | Finite-firm Cahuc–Postel-Vinay–Robin model |
+| `cpv`, `heterogeneous` | Bargaining with worker ability differences | Same protocol with multiplicative ability |
+| `blm`, `static` | Nonadditive worker-type/firm-class earnings | Employed-only Gaussian finite-type forward process |
+| `blm`, `dynamic` | Persistence and earnings-dependent mobility | Monthly forward process following BLM restrictions |
+
+All BM, CPV, and BLM preset parameters are illustrative. These routes simulate
+models; they do not estimate them or reproduce their empirical applications.
+BLM provides finite-type long panels rather than a general replica of the
+authors' conditional short-panel simulator.
+
+Discover defaults, bounds, units, truth variables, and source scope in Stata:
+
+```stata
+fesim list
+fesim presets blm
+fesim describe blm, preset(dynamic)
+```
+
+Omitting `dgp()` selects `akm/simple`. The aliases `akmsimple`, `akmempirical`,
+and `bmsimple` select `akm/simple`, `akm/stylized`, and `bm/simple` respectively;
+`akmempirical` does not mean an empirical calibration.
+
+## Customize an experiment
+
+### Additive wages and mobility
+
+Common options control the panel. Model-specific name/value pairs belong in
+`parameters()`:
+
+```stata
+fesim, dgp(akm) workers(2000) firms(100) periods(24) frequency(month) ///
+    start(2000m1) seed(9876) truth(full) ///
     parameters(sd_worker .45 sd_firm .18 p_ee .10) clear
 ```
 
-Generate a four-community mobility stress design with the default ninefold
-same-block destination weight:
+`periods(24) frequency(month)` means 24 monthly observations, not 24 years.
+Transition inputs keep their documented annual units. AKM also supports
+`network(blocks)`, `network(bridges)`, and `network(ladder)` for mobility stress
+experiments. These designs do not guarantee leave-out connectedness; see
+[network definitions](docs/network.md).
 
-```stata
-fesim, dgp(akmsimple) network(blocks) workers(2000) firms(100) ///
-    periods(8) seed(24680) truth(full) ///
-    parameters(block_count 4 block_log_bonus 2.1972245773362196) clear
-
-tabulate worker_block_true firm_block_true if employed
-```
-
-Worker home communities govern origin-free initialization and job finding;
-the current firm's community governs direct employer moves. Full truth adds
-`worker_block_true` and the current `firm_block_true`. These are simulation
-design labels, not claims of leave-out or KSS connectedness. See
-[docs/network.md](docs/network.md).
-
-Generate the minimum adjacent-block bridge chain and inspect its exact ledger:
-
-```stata
-fesim, dgp(akmsimple) network(bridges) workers(2000) firms(100) ///
-    periods(8) seed(86420) truth(full) ///
-    parameters(block_count 4) clear
-
-summarize nbridges_imposed
-matrix list r(bridges)
-```
-
-`bridge_count` defaults to `block_count-1`. Bridge workers are distinct and
-chosen by an isolated random priority among workers with eligible retained EE
-events. Extra bridges cycle over pairs 1-2, 2-3, ..., and the command fails
-rather than fabricate events or return an incomplete plan. The ledger records
-worker, output/internal period, source/target firm, and source/target block.
-This is an imposed block-level stress design, not a KSS or leave-out
-connectedness claim.
-
-Generate a reduced-form firm-wage ladder while preserving event timing,
-initialization, and job-finding destinations:
-
-```stata
-fesim, dgp(akmsimple) network(ladder) workers(2000) firms(100) ///
-    periods(8) seed(97531) truth(full) ///
-    parameters(ladder_down_share .1 ladder_lateral_share .2 ///
-        ladder_up_share .7 ladder_band .1) clear
-```
-
-The lateral band is measured in percentile-rank distance using tied midranks.
-Unavailable directions are removed and the configured shares are renormalized;
-ordinary DGP weights are retained within direction. The design reuses the
-event's existing destination uniform and is explicitly reduced-form, not a
-structural Burdett–Mortensen or revealed-preference model.
-
-[`examples/akmsimple.do`](examples/akmsimple.do) is a tested end-to-end example. It simulates a connected panel and runs an AKM-style regression using only Stata's built-in `areg`; the example adds no runtime dependency.
-
-The monthly empirical-mobility route can be sampled annually, quarterly, or monthly:
-
-```stata
-fesim, dgp(akmempirical) workers(5000) firms(250) periods(8) ///
-    seed(24680) truth(full) clear
-
-summarize tenure unemp_duration
-matrix list r(durations)
-```
-
-Its `akm/stylized` defaults are deliberately uncalibrated. Wage and firm-size scales reuse the simple baseline, continuous-hazard intercepts anchor its zero-covariate transition intensities to the simple annual probabilities, and modest slopes exercise worker heterogeneity, firm quality, duration dependence, sorting, and asymmetric moves. `ntransitions` aggregates all monthly events between output snapshots; `r(durations)` reports tenure and unemployment-duration distributions in years. With `truth(full)`, `worker_type_true` and `firm_quality_true` expose the core latent mobility objects. All coefficients remain inside `parameters()`. See [docs/akm_stylized.md](docs/akm_stylized.md), [`examples/akm_stylized.do`](examples/akm_stylized.do), and the auditable status table in [`calibrations/presets.csv`](calibrations/presets.csv).
-
-The separate `akm/germany_chk_2002_2009` preset targets Card, Heining, and Kline's 2002–2009 West German AKM worker-effect SD `.357`, establishment-effect SD `.230`, residual SD `.135`, and worker–establishment covariance `.0205`. Only `theta_sort=2.2` is fitted, using five 100,000-worker calibration seeds and five disjoint validation seeds. Transition hazards and durations remain D-026 stylized values, so the precise claim is **targeted wage dispersion and sorting**. See [docs/akm_germany_chk.md](docs/akm_germany_chk.md), [`examples/akm_germany_chk.do`](examples/akm_germany_chk.do), and the audited files under [`calibrations/`](calibrations/).
-
-Generate a two-group panel and inspect the exact men-minus-women
-decomposition under male, female, and symmetric premium-schedule references:
+### Two-group pay gaps
 
 ```stata
 fesim, dgp(akmpaygap) preset(cck2016) workers(5000) firms(500) ///
-    periods(8) burnin(5) seed(13579) truth(full) noreport clear
-
+    periods(8) burnin(5) seed(13579) truth(full) clear
 matrix list r(group_moments)
-matrix list r(group_targets)
 matrix list r(decomposition)
-matrix list r(decomposition_targets)
 ```
 
-`group=0` denotes men and `group=1` women; all gaps are men minus women. The
-common firm-surplus index is population standard normal without realized-sample
-restandardization. `r(decomposition)` adds exactly and always includes
-male-reference, female-reference, and symmetric columns. The CCK-inspired
-preset targets selected Table II group moments and Table III total/firm/sorting
-moments, but it does not reproduce CCK's empirical low-surplus-firm
-normalization or full estimation procedure. See
-[docs/akm_paygap.md](docs/akm_paygap.md),
-[`examples/akmpaygap_cck2016.do`](examples/akmpaygap_cck2016.do), and the
-audited records under [`calibrations/`](calibrations/).
+`group=0` denotes men and `group=1` women; gaps are men minus women. The
+returned decomposition includes male-reference, female-reference, and symmetric
+columns. The [calibration guide](docs/calibration.md) explains the selected
+targets and normalization.
 
-An internal deterministic toy handler exercises the shared Mata lifecycle and typed containers. It is test infrastructure and is not registered as a public DGP. Only the shared output module may translate its results into the frozen Stata panel scaffold. The common blockwise finalizer constructs observed flow indicators and preserves latent transition counts with explicit boundary-period missingness.
-
-The common result finalizer attaches the frozen dataset characteristics, returns named scalars/macros/matrices, and implements compact `report`/`noreport` behavior without changing data or RNG state.
-
-The internal common moment engine computes risk-set transition rates, employed-observation wage moments, pooled firm-period size and concentration moments, mover/stayer counts, and consistently weighted truth moments. Its exact row and target-comparison contracts are documented in [docs/moments.md](docs/moments.md).
-
-The `akm/simple` module generates persistent worker and firm effects, normalized firm attraction weights, approved initial states, competing employment/mobility transitions, spell and duration state, discrete burn-in, and complete employed wage/truth components on isolated RNG streams. The public route and remaining diagnostic boundary are documented in [docs/akm_simple.md](docs/akm_simple.md).
-
-The simple preset is a transparent stylized design, not an empirical calibration. It reports compressed bipartite worker-firm component diagnostics under `connectivity(keep)` and can retain complete worker histories from the deterministically selected largest component with `connectivity(largest)`. The exact graph and returned-matrix contract is documented in [docs/network.md](docs/network.md). `connectivity(force)` remains unavailable pending an accepted scientific generation rule.
-
-## Installation
-
-Install version 0.1.0 from its immutable release tag:
+### Sequential bargaining
 
 ```stata
-net install fesim, from("https://raw.githubusercontent.com/johannes-schmieder/fesim/v0.1.0") replace
+fesim, dgp(cpv) preset(heterogeneous) workers(2000) firms(100) ///
+    periods(8) seed(12345) truth(full) parameters(beta .5) clear
+matrix list r(solver)
+matrix list r(cpv_flows)
+summarize contract_wage_true worker_ability_true if employed
 ```
 
-For a local checkout, prepend the repository root to the Stata ado-path:
+A better outside offer can raise pay at the incumbent firm or lead to a move
+with a wage cut. Structural wages and productivity are distinct from AKM firm
+effects. The [manual](docs/fesim_manual.pdf) explains the bargaining mechanism.
+
+### Nonlinear earnings and persistence
 
 ```stata
-adopath ++ "/path/to/fesim"
+fesim, dgp(blm) preset(dynamic) workers(2000) firms(100) ///
+    periods(24) frequency(month) seed(12345) truth(full) clear
+matrix list r(blm_mean)
+matrix list r(blm_cells)
+summarize lnwage persistence_true move_probability_true
 ```
 
-The supported minimum for v0.1 is Stata 19. Exact-source qualification covers Stata/MP 19.0 on macOS Apple Silicon and Windows x86-64; source files may declare the Stata 16 language dialect, but no Stata 16–18 support claim is made without full qualification.
+Worker types and firm classes determine earnings and mobility. Optional Stata
+matrices let you set cell means, scales, move rates, persistence, and destination
+weights. BLM keeps all workers employed and does not supply additive AKM truth.
+See [the BLM note](docs/blm.md) and its help examples for matrix dimensions.
 
-## Concepts
+## Read the output
 
-- A **DGP** defines the economic or statistical model.
-- A **mobility engine** determines employment transitions and employer links.
-- A **preset** supplies a documented parameterization and calibration classification.
-- An **observation scheme** converts latent histories into annual, quarterly, or monthly Stata panels.
+Each row is one worker at one output date, sorted by `workerid time`. The main
+variables are `workerid`, `time`, `firmid`, `employed`, and `lnwage`, with spell,
+tenure, and observed mobility indicators. `jobtojob` compares adjacent retained
+snapshots; `ntransitions` counts latent transitions in the interval and can
+exceed one. More frequent output can reveal moves hidden by annual snapshots.
 
-For example, `dgp(akmsimple)` and `dgp(akmempirical)` are aliases for the canonical `dgp(akm) preset(simple)` and `dgp(akm) preset(stylized)` configurations. Both presets are stylized, not paper or country calibrations. `akmpaygap/cck2016` is separately classified as targeted.
+`truth(none)` suppresses latent columns, `truth(basic)` is the default, and
+`truth(full)` adds model-specific details. Changing truth mode leaves the
+common simulated data unchanged. BM and CPV also distinguish theoretical
+hazards, simulated event rates, and observed endpoint transitions.
 
-## Development
+Immediately after simulation, inspect `return list`. Common matrices include
+`r(parameters)`, `r(moments)`, `r(targets)`, `r(network)`, and `r(leaveout)`;
+additional results depend on the model. Save matrices before running commands
+that overwrite `r()`. Configuration and seed metadata also stay in the dataset's
+`fesim_*` characteristics. Graph and leave-out results are diagnostics; they do
+not silently select a leave-out sample or certify BLM mixture identification.
 
-Read [DESIGN.md](DESIGN.md) before changing public behavior and [PLAN.md](PLAN.md) for the live implementation state. Build and test instructions are in [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/architecture.md](docs/architecture.md).
+## Documentation and support
 
-The qualified component-stream protocol is documented in [docs/rng.md](docs/rng.md), the worker-block output strategy in [docs/output.md](docs/output.md), the common statistical definitions in [docs/moments.md](docs/moments.md), the pay-gap model in [docs/akm_paygap.md](docs/akm_paygap.md), the canonical BM equilibrium in [docs/bm_equilibrium.md](docs/bm_equilibrium.md), observed graph semantics in [docs/network.md](docs/network.md), frozen tiny-panel scope in [docs/regression.md](docs/regression.md), large-sample test bounds in [docs/statistical_tests.md](docs/statistical_tests.md), and exact-source runtime baselines in [docs/performance.md](docs/performance.md). User-visible release scope is summarized in [CHANGELOG.md](CHANGELOG.md).
+- [Stata help](fesim.sthlp): options, 22 examples, and stored results; best viewed with `help fesim`.
+- [Illustrated manual](docs/fesim_manual.pdf): user guide, model equations, fourteen figures, and technical appendices.
+- [Standalone examples](examples/README.md) and [manual figure scripts](docs/manual_examples/README.md).
+- [Calibration and source scope](docs/calibration.md), [compatibility](docs/compatibility.md), and [performance](docs/performance.md).
+- [Contributing](CONTRIBUTING.md): source structure, tests, CI, and qualification.
 
-`fesim` is released under the MIT License. See [LICENSE](LICENSE).
+For a bug report, include the command, `fesim version`, Stata version, error
+message, and a small example using synthetic or shareable data.
 
-## Candidate review and compatibility
+## Citation and references
 
-See the [P6 audit](docs/p6_audit.md), [calibration guide](docs/calibration.md),
-[compatibility policy](docs/compatibility.md), and
-[qualification/publishing guide](docs/publishing.md). This candidate preserves
-simulation defaults and seeded paths. Public API level 1 and Mata API 33 remain
-unchanged. No new tag or release is implied. Cite the software using
-[CITATION.cff](CITATION.cff), record the exact version/SHA, and cite the relevant
-DGP paper separately; a software citation does not establish empirical calibration.
+Cite the software as **Schmieder, Johannes F. _fesim: Linked employer–employee
+panel simulation_. Version 1.2.0-rc.1**, with the [repository URL](https://github.com/johannes-schmieder/fesim)
+and exact commit used. [CITATION.cff](CITATION.cff) supplies software metadata.
+Also cite the papers relevant to your chosen model or targets:
+
+- Abowd, John M., Francis Kramarz, and David N. Margolis (1999).
+  “High Wage Workers and High Wage Firms.” *Econometrica* 67(2), 251–333.
+  [doi:10.1111/1468-0262.00020](https://doi.org/10.1111/1468-0262.00020).
+- Card, David, Jörg Heining, and Patrick Kline (2013).
+  “Workplace Heterogeneity and the Rise of West German Wage Inequality.”
+  *Quarterly Journal of Economics* 128(3), 967–1015.
+  [doi:10.1093/qje/qjt006](https://doi.org/10.1093/qje/qjt006).
+- Card, David, Ana Rute Cardoso, and Patrick Kline (2016).
+  “Bargaining, Sorting, and the Gender Wage Gap: Quantifying the Impact of
+  Firms on the Relative Pay of Women.” *Quarterly Journal of Economics*
+  131(2), 633–686. [doi:10.1093/qje/qjv038](https://doi.org/10.1093/qje/qjv038).
+- Burdett, Kenneth, and Dale T. Mortensen (1998).
+  “Wage Differentials, Employer Size, and Unemployment.”
+  *International Economic Review* 39(2), 257–273.
+  [doi:10.2307/2527292](https://doi.org/10.2307/2527292).
+- Cahuc, Pierre, Fabien Postel-Vinay, and Jean-Marc Robin (2006).
+  “Wage Bargaining with On-the-Job Search: Theory and Evidence.”
+  *Econometrica* 74(2), 323–364.
+  [doi:10.1111/j.1468-0262.2006.00665.x](https://doi.org/10.1111/j.1468-0262.2006.00665.x).
+- Bonhomme, Stéphane, Thibaut Lamadon, and Elena Manresa (2019).
+  “A Distributional Framework for Matched Employer Employee Data.”
+  *Econometrica* 87(3), 699–739.
+  [doi:10.3982/ECTA15722](https://doi.org/10.3982/ECTA15722).
+- Kline, Patrick, Raffaele Saggio, and Mikkel Sølvsten (2020).
+  “Leave-Out Estimation of Variance Components.” *Econometrica* 88(5), 1859–1898.
+  [doi:10.3982/ECTA16410](https://doi.org/10.3982/ECTA16410).
+
+Author: Johannes F. Schmieder, Boston University.
+Released under the [MIT License](LICENSE).
